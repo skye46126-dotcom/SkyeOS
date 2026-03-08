@@ -57,6 +57,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
     static class ProjectViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvName;
         private final TextView tvScore;
+        private final TextView tvStatus;
         private final TextView tvTime;
         private final TextView tvIncome;
         private final OnProjectClickListener listener;
@@ -67,6 +68,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
             this.listener = listener;
             tvName = itemView.findViewById(R.id.tv_project_name);
             tvScore = itemView.findViewById(R.id.tv_project_score);
+            tvStatus = itemView.findViewById(R.id.tv_project_status);
             tvTime = itemView.findViewById(R.id.tv_project_time);
             tvIncome = itemView.findViewById(R.id.tv_project_income);
 
@@ -81,6 +83,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
             currentProjectId = project.id;
             tvName.setText(project.name);
             tvScore.setText("⭐ " + project.score);
+            tvStatus.setText(mapStatusLabel(project.status));
 
             long hours = project.totalTimeMinutes / 60;
             long mins = project.totalTimeMinutes % 60;
@@ -89,10 +92,20 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
             if (project.totalIncomeCents == 0) {
                 tvIncome.setText("¥0.00");
             } else if (project.totalIncomeCents % 100 == 0) {
-                tvIncome.setText(String.format(Locale.CHINESE, "💰 ¥%,d", project.totalIncomeCents / 100));
+                tvIncome.setText(String.format(Locale.US, "💰 ¥%,d", project.totalIncomeCents / 100));
             } else {
                 tvIncome.setText(String.format(Locale.US, "💰 ¥%.2f", project.totalIncomeCents / 100.0));
             }
+        }
+
+        private String mapStatusLabel(String status) {
+            if ("done".equalsIgnoreCase(status)) {
+                return "Done";
+            }
+            if ("paused".equalsIgnoreCase(status)) {
+                return "Paused";
+            }
+            return "Active";
         }
     }
 }

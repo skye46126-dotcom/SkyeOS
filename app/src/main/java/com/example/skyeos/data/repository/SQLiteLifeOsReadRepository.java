@@ -138,11 +138,11 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         SQLiteDatabase db = database.readableDb();
         List<ProjectOverview> result = new ArrayList<>();
         // Query projects along with aggregated time (minutes) and income (cents) from
-        // fact tables
+        // relation tables
         String sql = "SELECT p.id, p.name, p.status, p.score, " +
-                "  COALESCE((SELECT SUM(duration_minutes) FROM time_log t JOIN fact_project_allocation f ON t.id = f.record_id WHERE f.project_id = p.id AND f.record_type = 'time_log' AND t.is_deleted = 0), 0) as total_time, "
+                "  COALESCE((SELECT SUM(t.duration_minutes) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = p.id AND t.is_deleted = 0), 0) as total_time, "
                 +
-                "  COALESCE((SELECT SUM(amount_cents) FROM income i JOIN fact_project_allocation f ON i.id = f.record_id WHERE f.project_id = p.id AND f.record_type = 'income' AND i.is_deleted = 0), 0) as total_income "
+                "  COALESCE((SELECT SUM(i.amount_cents) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = p.id AND i.is_deleted = 0), 0) as total_income "
                 +
                 "FROM project p " +
                 "WHERE p.is_deleted = 0 " +
@@ -196,14 +196,12 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
 
         // 2. Get metrics
         long totalTime = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log t JOIN fact_project_allocation f ON t.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'time_log' AND t.is_deleted = 0",
+                "SELECT COALESCE(SUM(t.duration_minutes), 0) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0",
                 projectId);
         long totalIncome = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM income i JOIN fact_project_allocation f ON i.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'income' AND i.is_deleted = 0",
+                "SELECT COALESCE(SUM(i.amount_cents), 0) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0",
                 projectId);
-        long totalExpense = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM expense e JOIN fact_project_allocation f ON e.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'expense' AND e.is_deleted = 0",
-                projectId);
+        long totalExpense = 0L;
         long globalWorkMinutes = scalarLong(
                 "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work'",
                 userId);
@@ -214,7 +212,20 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
                 userId);
         long actualHourlyRateCents = globalWorkMinutes > 0 ? (globalIncomeCents * 60 / globalWorkMinutes) : 0L;
-        long benchmarkHourlyRateCents = idealHourlyRateCents > 0 ? idealHourlyRateCents : actualHourlyRateCents;
+        int lastYear = LocalDate.now().minusYears(1).getYear();
+        String lastYearStart = String.format(Locale.US, "%04d-01-01", lastYear);
+        String lastYearEnd = String.format(Locale.US, "%04d-12-31", lastYear);
+        long lastYearIncomeCents = scalarLong(
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId, lastYearStart, lastYearEnd);
+        long lastYearWorkMinutes = scalarLong(
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
+                userId, lastYearStart, lastYearEnd);
+        long lastYearHourlyRateCents = lastYearWorkMinutes > 0 ? (lastYearIncomeCents * 60 / lastYearWorkMinutes) : 0L;
+
+        long benchmarkHourlyRateCents = lastYearHourlyRateCents > 0
+                ? lastYearHourlyRateCents
+                : (idealHourlyRateCents > 0 ? idealHourlyRateCents : actualHourlyRateCents);
         long timeCostCents = benchmarkHourlyRateCents > 0 ? (benchmarkHourlyRateCents * totalTime / 60) : 0L;
         long totalCostCents = totalExpense + timeCostCents;
         long profitCents = totalIncome - totalCostCents;
@@ -233,18 +244,15 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
 
         // 3. Get recent records associated with this project
         String recentsSql = "SELECT type, occurred_at, title, detail FROM (" +
-                "SELECT 'time' as type, t.started_at as occurred_at, t.category as title, t.note as detail FROM time_log t JOIN fact_project_allocation f ON t.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'time_log' AND t.is_deleted = 0 "
+                "SELECT 'time' as type, t.started_at as occurred_at, t.category as title, t.note as detail FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'income' as type, i.occurred_on || 'T00:00:00Z', i.source_name, i.amount_cents || ' cents' FROM income i JOIN fact_project_allocation f ON i.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'income' AND i.is_deleted = 0 "
-                +
-                "UNION ALL " +
-                "SELECT 'expense' as type, e.occurred_on || 'T00:00:00Z', e.category, e.amount_cents || ' cents' FROM expense e JOIN fact_project_allocation f ON e.id = f.record_id WHERE f.project_id = ? AND f.record_type = 'expense' AND e.is_deleted = 0"
+                "SELECT 'income' as type, i.occurred_on || 'T00:00:00Z', i.source_name, i.amount_cents || ' cents' FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 "
                 +
                 ") ORDER BY occurred_at DESC LIMIT 50";
 
         List<RecentRecordItem> recentRecords = new ArrayList<>();
-        try (Cursor cursor = db.rawQuery(recentsSql, new String[] { projectId, projectId, projectId })) {
+        try (Cursor cursor = db.rawQuery(recentsSql, new String[] { projectId, projectId })) {
             while (cursor.moveToNext()) {
                 recentRecords.add(new RecentRecordItem(
                         cursor.getString(0),
@@ -257,7 +265,8 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         return new ProjectDetail(
                 projectId, name, status, startedOn, endedOn, score, note,
                 totalTime, totalIncome, totalExpense, timeCostCents, totalCostCents, profitCents,
-                breakEvenIncomeCents, benchmarkHourlyRateCents, hourlyRate, roi, recentRecords);
+                breakEvenIncomeCents, benchmarkHourlyRateCents, lastYearHourlyRateCents, idealHourlyRateCents,
+                hourlyRate, roi, recentRecords);
     }
 
     @Override

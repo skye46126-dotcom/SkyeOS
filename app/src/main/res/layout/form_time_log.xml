@@ -12,13 +12,20 @@
         android:orientation="vertical"
         android:padding="4dp">
 
-        <!-- Start Time -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Time log (cross-day supported, project binding optional)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="8dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_time_start"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="开始时间 (yyyy-MM-dd HH:mm)"
+            android:hint="Start time (yyyy-MM-dd HH:mm)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_start"
@@ -28,13 +35,12 @@
                 android:cursorVisible="false"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- End Time -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_time_end"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="结束时间 (yyyy-MM-dd HH:mm)"
+            android:hint="End time (yyyy-MM-dd HH:mm)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_end"
@@ -44,13 +50,12 @@
                 android:cursorVisible="false"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Category -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_time_category"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="分类"
+            android:hint="Category"
             android:layout_marginBottom="10dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_time_category"
@@ -59,13 +64,87 @@
                 android:inputType="none"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Project Allocation -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI assist ratio (0-100, optional)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_time_ai_ratio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Efficiency (1-10)">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_time_efficiency_score"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="1dp"/>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Value (1-10)">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_time_value_score"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="1dp"/>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="State (1-10)">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_time_state_score"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Project allocation (optional)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_time_project"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="绑定项目（点击下方选择）"
+            android:hint="Bind project (quick-select below)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_project"
@@ -73,7 +152,6 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Project Quick-Pick chips container -->
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/chip_group_projects_time"
             android:layout_width="match_parent"
@@ -84,7 +162,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="标签（可多选）"
+            android:text="Tags (multi-select)"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -96,13 +174,12 @@
             android:layout_marginBottom="10dp"
             app:singleSelection="false"/>
 
-        <!-- Note -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_time_note"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="备注"
+            android:hint="Note"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_note"
@@ -110,13 +187,12 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Submit -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_submit_time"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="记录时间"/>
+            android:text="Save Time Log"/>
 
     </LinearLayout>
 </ScrollView>

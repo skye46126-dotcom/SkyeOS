@@ -108,4 +108,22 @@
         <item name="hintTextColor">@color/textSecondary</item>
         <item name="boxBackgroundColor">@color/surfaceWhite</item>
     </style>
+
+    <!-- Choice chip style -->
+    <style name="Widget.LifeOS.Chip.Choice" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/life_chip_choice_bg</item>
+        <item name="chipStrokeColor">@color/glassCardBorder</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">12dp</item>
+        <item name="android:textColor">@color/life_chip_choice_text</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="rippleColor">@color/bgGradientStart</item>
+    </style>
+
+    <!-- Small section subtitle -->
+    <style name="TextAppearance.LifeOS.SmallSection" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
 </resources>

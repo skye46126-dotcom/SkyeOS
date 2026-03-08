@@ -5,57 +5,68 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingLeft="20dp"
-    android:paddingRight="20dp"
-    android:paddingTop="56dp"
+    android:paddingLeft="18dp"
+    android:paddingRight="18dp"
+    android:paddingTop="60dp"
     android:paddingBottom="16dp">
 
     <!-- Header -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="记录"
+        android:text="Capture"
         android:textColor="@color/textPrimary"
-        android:textSize="26sp"
-        android:fontFamily="sans-serif-medium"
+        android:textSize="30sp"
+        android:textStyle="bold"
         android:layout_marginBottom="4dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="快速输入或 AI 解析"
+        android:text="Manual input + AI parsing, unified into one data layer"
         android:textColor="@color/textSecondary"
-        android:textSize="14sp"
-        android:layout_marginBottom="20dp"/>
+        android:textSize="13sp"
+        android:layout_marginBottom="14dp"/>
 
-    <!-- Mode Tabs -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/capture_tab_layout"
+    <com.google.android.material.card.MaterialCardView
+        style="@style/Widget.LifeOS.GlassCard"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginBottom="16dp"
-        app:tabMode="fixed"
-        app:tabGravity="fill"
-        app:tabSelectedTextColor="@color/lifeBlue"
-        app:tabTextColor="@color/textSecondary"
-        app:tabIndicatorColor="@color/lifeBlue"
-        app:tabBackground="@color/glassCardBg"
-        app:tabRippleColor="@color/bgGradientStart">
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="✍️ 手动"/>
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🤖 AI 解析"/>
-    </com.google.android.material.tabs.TabLayout>
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/capture_tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:tabSelectedTextColor="@color/lifeBlue"
+            app:tabTextColor="@color/textSecondary"
+            app:tabIndicatorColor="@color/lifeBlue"
+            app:tabRippleColor="@color/bgGradientStart">
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✍️ Manual"/>
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🤖 AI Parse"/>
+        </com.google.android.material.tabs.TabLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Content will be swapped programmatically -->
-    <FrameLayout
-        android:id="@+id/capture_content_container"
+    <com.google.android.material.card.MaterialCardView
+        style="@style/Widget.LifeOS.GlassCard"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1">
+
+        <FrameLayout
+            android:id="@+id/capture_content_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="12dp"/>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

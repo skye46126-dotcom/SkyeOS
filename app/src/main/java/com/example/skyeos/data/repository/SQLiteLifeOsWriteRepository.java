@@ -109,8 +109,10 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         requireNotBlank(input.endedAt, "timeLog.endedAt");
         String category = normalizeOrDefault(input.category, "work");
         requireContains(TIME_CATEGORY, category, "timeLog.category");
+        validateScore(input.efficiencyScore, "timeLog.efficiencyScore");
         validateScore(input.valueScore, "timeLog.valueScore");
         validateScore(input.stateScore, "timeLog.stateScore");
+        validatePercentage(input.aiAssistRatio, "timeLog.aiAssistRatio");
         validateAllocations(input.projectAllocations, "timeLog.projectAllocations");
 
         long durationMinutes = computeDurationMinutes(input.startedAt, input.endedAt);
@@ -131,11 +133,17 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("ended_at", input.endedAt.trim());
             values.put("duration_minutes", durationMinutes);
             values.put("category", category);
+            if (input.efficiencyScore != null) {
+                values.put("efficiency_score", input.efficiencyScore);
+            }
             if (input.valueScore != null) {
                 values.put("value_score", input.valueScore);
             }
             if (input.stateScore != null) {
                 values.put("state_score", input.stateScore);
+            }
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
             }
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
@@ -181,6 +189,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         if (input.amountCents < 0) {
             throw new IllegalArgumentException("income.amountCents must be >= 0");
         }
+        validatePercentage(input.aiAssistRatio, "income.aiAssistRatio");
         validateAllocations(input.projectAllocations, "income.projectAllocations");
 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
@@ -200,6 +209,9 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("type", type);
             values.put("amount_cents", input.amountCents);
             values.put("is_passive", toInt(input.isPassive));
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            }
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("is_public_pool", toInt(isPublicPool));
@@ -243,6 +255,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         if (input.amountCents < 0) {
             throw new IllegalArgumentException("expense.amountCents must be >= 0");
         }
+        validatePercentage(input.aiAssistRatio, "expense.aiAssistRatio");
 
         List<String> tagIds = safeList(input.tagIds);
         String userId = userContext.requireCurrentUserId();
@@ -256,6 +269,9 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("occurred_on", input.occurredOn.trim());
             values.put("category", category);
             values.put("amount_cents", input.amountCents);
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            }
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("owner_user_id", userId);
@@ -288,6 +304,8 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         if (input.durationMinutes < 0) {
             throw new IllegalArgumentException("learning.durationMinutes must be >= 0");
         }
+        validateScore(input.efficiencyScore, "learning.efficiencyScore");
+        validatePercentage(input.aiAssistRatio, "learning.aiAssistRatio");
         validateAllocations(input.projectAllocations, "learning.projectAllocations");
 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
@@ -305,7 +323,13 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("occurred_on", input.occurredOn.trim());
             values.put("content", input.content.trim());
             values.put("duration_minutes", input.durationMinutes);
+            if (input.efficiencyScore != null) {
+                values.put("efficiency_score", input.efficiencyScore);
+            }
             values.put("application_level", level);
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            }
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("is_public_pool", toInt(isPublicPool));
@@ -435,6 +459,12 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     private static void validateScore(Integer score, String field) {
         if (score != null && (score < 1 || score > 10)) {
             throw new IllegalArgumentException(field + " must be 1-10");
+        }
+    }
+
+    private static void validatePercentage(Integer value, String field) {
+        if (value != null && (value < 0 || value > 100)) {
+            throw new IllegalArgumentException(field + " must be 0-100");
         }
     }
 

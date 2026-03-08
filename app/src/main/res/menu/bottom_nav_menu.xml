@@ -3,21 +3,21 @@
     <item
         android:id="@+id/nav_today"
         android:icon="@drawable/ic_nav_today"
-        android:title="今日" />
+        android:title="Today" />
     <item
         android:id="@+id/nav_capture"
         android:icon="@drawable/ic_nav_capture"
-        android:title="记录" />
+        android:title="Capture" />
     <item
         android:id="@+id/nav_projects"
         android:icon="@drawable/ic_nav_projects"
-        android:title="项目" />
+        android:title="Projects" />
     <item
         android:id="@+id/nav_review"
         android:icon="@drawable/ic_nav_review"
-        android:title="复盘" />
+        android:title="Review" />
     <item
         android:id="@+id/nav_settings"
         android:icon="@drawable/ic_nav_settings"
-        android:title="设置" />
+        android:title="Settings" />
 </menu>

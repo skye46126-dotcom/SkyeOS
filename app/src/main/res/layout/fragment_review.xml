@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/transparent">
+    android:background="@android:color/transparent"
+    android:paddingTop="34dp">
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tab_review_period"
@@ -19,15 +20,15 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Daily" />
+            android:text="Day" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Weekly" />
+            android:text="Week" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Monthly" />
+            android:text="Month" />
     </com.google.android.material.tabs.TabLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -53,6 +54,15 @@
                 android:layout_marginBottom="8dp"
                 tools:text="Weekly Report (Mar 1 - Mar 7)" />
 
+            <TextView
+                android:id="@+id/tv_review_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:textColor="@color/textSecondary"
+                android:textSize="12sp"
+                tools:text="Key changes and suggested actions for this window" />
+
             <!-- AI Summary Card -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.LifeOS.GlassCard"
@@ -71,7 +81,7 @@
                         android:layout_height="wrap_content"
                         android:text="💡 Snapshot"
                         android:textStyle="bold"
-                        android:textColor="@color/lifePurple"
+                        android:textColor="@color/lifeBlueDark"
                         android:layout_marginBottom="8dp"/>
 
                     <TextView
@@ -90,7 +100,7 @@
                         android:layout_marginTop="10dp"
                         android:textColor="@color/textSecondary"
                         android:textSize="13sp"
-                        tools:text="实际时薪 ¥80/h | 理想时薪 ¥120/h | 时间负债 ¥40/h" />
+                        tools:text="Actual ¥80/h | Ideal ¥120/h | Time debt ¥40/h" />
 
                     <TextView
                         android:id="@+id/tv_trend_summary"
@@ -99,7 +109,46 @@
                         android:layout_marginTop="8dp"
                         android:textColor="@color/textSecondary"
                         android:textSize="13sp"
-                        tools:text="环比：收入 +12.0% | 支出 -8.2% | 工作时长 +5.0%" />
+                        tools:text="MoM: Income +12.0% | Expense -8.2% | Work time +5.0%" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_ai_assist_metric"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="AI assist 35.0%" />
+
+                        <TextView
+                            android:id="@+id/tv_work_eff_metric"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="Work efficiency 7.80/10" />
+
+                        <TextView
+                            android:id="@+id/tv_learning_eff_metric"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="Learning efficiency 8.20/10" />
+                    </LinearLayout>
 
                     <com.google.android.material.chip.ChipGroup
                         android:id="@+id/chip_group_trend_detail"
@@ -111,25 +160,25 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_trend_income"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="收入明细"
+                            android:text="Income Details"
                             android:checked="true" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_trend_expense"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="支出明细" />
+                            android:text="Expense Details" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_trend_work"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="工作时长明细" />
+                            android:text="Work Time Details" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView
@@ -139,7 +188,7 @@
                         android:layout_marginTop="8dp"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"
-                        tools:text="收入：当前 ¥1200 vs 上一窗口 ¥900" />
+                        tools:text="Income: current ¥1200 vs previous ¥900" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_trend_detail_records"
@@ -153,7 +202,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="TIME ALLOCATION"
+                android:text="Time Allocation"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -179,7 +228,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🏆 ROI LEADERBOARD"
+                android:text="🏆 ROI Leaderboard"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -203,7 +252,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🚨 SINKHOLES (High Time, Zero ROI)"
+                android:text="🚨 Time Sinkholes (High Time, Low ROI)"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -227,7 +276,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="KEY EVENTS"
+                android:text="Key Events"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -242,7 +291,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="💰 INCOME HISTORY"
+                android:text="💰 Income History"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -267,7 +316,7 @@
                         android:textColor="@color/textPrimary"
                         android:textSize="13sp"
                         android:layout_marginBottom="8dp"
-                        tools:text="本期收入 12 条 | 合计 ¥8,800.00" />
+                        tools:text="12 income records | Total ¥8,800.00" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_income_history"
@@ -280,7 +329,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📒 HISTORY LEDGER"
+                android:text="📒 History Ledger"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -307,39 +356,39 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_all"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="全部"
+                            android:text="All"
                             android:checked="true" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_income"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="收入" />
+                            android:text="Income" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_expense"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="支出" />
+                            android:text="Expense" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_time"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="时间" />
+                            android:text="Time" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_learning"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="学习" />
+                            android:text="Learning" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView
@@ -350,7 +399,7 @@
                         android:textSize="13sp"
                         android:layout_marginTop="8dp"
                         android:layout_marginBottom="8dp"
-                        tools:text="全部 36 条" />
+                        tools:text="All 36 records" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_history_ledger"
@@ -363,7 +412,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🏷️ TAG BOARD"
+                android:text="🏷️ Tag Board"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -384,7 +433,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="时间标签 Top"
+                        android:text="Top Time Tags"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
 
@@ -399,7 +448,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="支出标签 Top"
+                        android:text="Top Expense Tags"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
 
@@ -417,7 +466,7 @@
                         android:layout_marginTop="10dp"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"
-                        tools:text="标签明细：学习（time）"/>
+                        tools:text="Tag details: Learning (time)"/>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_tag_detail_records"

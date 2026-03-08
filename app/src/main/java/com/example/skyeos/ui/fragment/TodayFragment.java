@@ -83,15 +83,15 @@ public class TodayFragment extends Fragment {
         int hour = LocalTime.now().getHour();
         String greeting;
         if (hour < 12)
-            greeting = "早上好 ☀️";
+            greeting = "Good morning ☀️";
         else if (hour < 18)
-            greeting = "下午好 🌤";
+            greeting = "Good afternoon 🌤";
         else
-            greeting = "晚上好 🌙";
+            greeting = "Good evening 🌙";
         tvGreeting.setText(greeting);
 
         LocalDate today = LocalDate.now();
-        tvDate.setText(String.format(Locale.CHINESE, "%d年%d月%d日", today.getYear(), today.getMonthValue(),
+        tvDate.setText(String.format(Locale.US, "%04d-%02d-%02d", today.getYear(), today.getMonthValue(),
                 today.getDayOfMonth()));
     }
 
@@ -133,7 +133,7 @@ public class TodayFragment extends Fragment {
 
     private void buildTimeDistribution(WindowOverview overview) {
         if (overview.totalTimeMinutes <= 0) {
-            tvTimeDistribution.setText("今日暂无时间记录");
+            tvTimeDistribution.setText("No time logs today");
             return;
         }
 
@@ -143,13 +143,13 @@ public class TodayFragment extends Fragment {
 
         long totalH = overview.totalTimeMinutes / 60;
         long totalM = overview.totalTimeMinutes % 60;
-        sb.append(String.format(Locale.CHINESE, "总计 %dh%02dm\n", totalH, totalM));
+        sb.append(String.format(Locale.US, "Total %dh %02dm\n", totalH, totalM));
 
         if (projectRatio > 0) {
-            sb.append(String.format(Locale.US, "📌 项目  %.0f%%\n", projectRatio));
+            sb.append(String.format(Locale.US, "📌 Project  %.0f%%\n", projectRatio));
         }
         if (publicRatio > 0) {
-            sb.append(String.format(Locale.US, "🔵 公共池  %.0f%%", publicRatio));
+            sb.append(String.format(Locale.US, "🔵 Public pool  %.0f%%", publicRatio));
         }
 
         tvTimeDistribution.setText(sb.toString().trim());
@@ -158,18 +158,18 @@ public class TodayFragment extends Fragment {
     private void buildHourlyDebtSummary(MetricSnapshotSummary snapshot) {
         long ideal = graph.useCases.getIdealHourlyRate.execute();
         if (snapshot == null || snapshot.hourlyRateCents == null || snapshot.timeDebtCents == null) {
-            tvHourlyDebtSummary.setText("时薪与时间负债暂无数据");
+            tvHourlyDebtSummary.setText("No hourly rate / time debt data yet");
             return;
         }
         String debtText;
         if (snapshot.timeDebtCents > 0) {
-            debtText = "负债 " + formatYuan(snapshot.timeDebtCents) + "/h";
+            debtText = "Debt " + formatYuan(snapshot.timeDebtCents) + "/h";
         } else if (snapshot.timeDebtCents < 0) {
-            debtText = "盈余 " + formatYuan(Math.abs(snapshot.timeDebtCents)) + "/h";
+            debtText = "Surplus " + formatYuan(Math.abs(snapshot.timeDebtCents)) + "/h";
         } else {
-            debtText = "负债平衡";
+            debtText = "Balanced";
         }
-        tvHourlyDebtSummary.setText(String.format(Locale.CHINESE, "实际时薪 %s/h | 理想时薪 %s/h | %s",
+        tvHourlyDebtSummary.setText(String.format(Locale.US, "Actual %s/h | Ideal %s/h | %s",
                 formatYuan(snapshot.hourlyRateCents), formatYuan(ideal), debtText));
     }
 
@@ -177,7 +177,7 @@ public class TodayFragment extends Fragment {
         if (cents == 0)
             return "--";
         if (cents % 100 == 0) {
-            return String.format(Locale.CHINESE, "¥%,d", cents / 100);
+            return String.format(Locale.US, "¥%,d", cents / 100);
         }
         return String.format(Locale.US, "¥%.2f", cents / 100.0);
     }

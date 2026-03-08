@@ -77,7 +77,7 @@ public class TagMetricAdapter extends RecyclerView.Adapter<TagMetricAdapter.VH> 
             if (expenseMode) {
                 t2.setText(String.format(Locale.US, "¥%.2f | %.1f%%", item.value / 100.0, item.percentage));
             } else {
-                t2.setText(String.format(Locale.US, "%d 分钟 | %.1f%%", item.value, item.percentage));
+                t2.setText(String.format(Locale.US, "%d min | %.1f%%", item.value, item.percentage));
             }
         }
     }

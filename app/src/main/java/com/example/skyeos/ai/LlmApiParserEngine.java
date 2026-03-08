@@ -87,7 +87,13 @@ public final class LlmApiParserEngine implements ParserEngine {
                 + "}";
 
         String userPrompt = String.format(Locale.US,
-                "context_date=%s\nraw_text=\n%s\n\n按此 JSON 结构输出：\n%s",
+                "context_date=%s\nraw_text=\n%s\n\n按此 JSON 结构输出：\n%s\n\npayload 可按类型附带字段：\n" +
+                        "- time_log: category,start_hour,end_hour,duration_hours,description,ai_ratio(0-100),efficiency_score(1-10),value_score(1-10),state_score(1-10)\n" +
+                        "- income: source,type,amount,ai_ratio(0-100)\n" +
+                        "- expense: category,amount,note,ai_ratio(0-100)\n" +
+                        "- learning: content,duration_minutes,application_level,ai_ratio(0-100),efficiency_score(1-10)\n" +
+                        "注意：主观评分字段（efficiency_score/value_score/state_score）默认不要猜测，只有原文明确给分才提取。\n" +
+                        "缺失字段可省略，不要编造。",
                 contextDate == null ? "" : contextDate.trim(),
                 rawText == null ? "" : rawText.trim(),
                 schemaHint);

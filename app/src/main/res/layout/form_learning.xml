@@ -12,13 +12,20 @@
         android:orientation="vertical"
         android:padding="4dp">
 
-        <!-- Content -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Learning record (can link to projects and outcomes)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="8dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_learning_content"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="学习内容"
+            android:hint="Learning content"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_learning_content"
@@ -26,13 +33,12 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Duration in minutes -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_learning_duration"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="时长（分钟）"
+            android:hint="Duration (minutes)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_learning_duration"
@@ -41,13 +47,25 @@
                 android:inputType="number"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Level -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Learning efficiency (1-10, optional)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_learning_efficiency_score"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_learning_level"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="学习等级"
+            android:hint="Learning level"
             android:layout_marginBottom="10dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_learning_level"
@@ -56,13 +74,33 @@
                 android:inputType="none"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Project Allocation -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI assist ratio (0-100, optional)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_learning_ai_ratio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Related project (optional)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_learning_project"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="相关项目（可选）"
+            android:hint="Bind project (optional)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_learning_project"
@@ -80,7 +118,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="标签（可多选）"
+            android:text="Tags (multi-select)"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -92,13 +130,12 @@
             android:layout_marginBottom="16dp"
             app:singleSelection="false"/>
 
-        <!-- Submit -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_submit_learning"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="记录学习"/>
+            android:text="Save Learning Record"/>
 
     </LinearLayout>
 </ScrollView>

@@ -10,6 +10,10 @@ public final class LifeOsUseCases {
     public final GetMetricSnapshotUseCase getMetricSnapshot;
     public final GetIdealHourlyRateUseCase getIdealHourlyRate;
     public final SetIdealHourlyRateUseCase setIdealHourlyRate;
+    public final GetCurrentMonthBasicLivingCostUseCase getCurrentMonthBasicLivingCost;
+    public final SetCurrentMonthBasicLivingCostUseCase setCurrentMonthBasicLivingCost;
+    public final GetCurrentMonthFixedSubscriptionCostUseCase getCurrentMonthFixedSubscriptionCost;
+    public final SetCurrentMonthFixedSubscriptionCostUseCase setCurrentMonthFixedSubscriptionCost;
     public final GetOverviewUseCase getOverview;
     public final GetRecentRecordsUseCase getRecentRecords;
     public final GetProjectOptionsUseCase getProjectOptions;
@@ -32,6 +36,10 @@ public final class LifeOsUseCases {
             GetMetricSnapshotUseCase getMetricSnapshot,
             GetIdealHourlyRateUseCase getIdealHourlyRate,
             SetIdealHourlyRateUseCase setIdealHourlyRate,
+            GetCurrentMonthBasicLivingCostUseCase getCurrentMonthBasicLivingCost,
+            SetCurrentMonthBasicLivingCostUseCase setCurrentMonthBasicLivingCost,
+            GetCurrentMonthFixedSubscriptionCostUseCase getCurrentMonthFixedSubscriptionCost,
+            SetCurrentMonthFixedSubscriptionCostUseCase setCurrentMonthFixedSubscriptionCost,
             GetOverviewUseCase getOverview,
             GetRecentRecordsUseCase getRecentRecords,
             GetProjectOptionsUseCase getProjectOptions,
@@ -52,6 +60,10 @@ public final class LifeOsUseCases {
         this.getMetricSnapshot = getMetricSnapshot;
         this.getIdealHourlyRate = getIdealHourlyRate;
         this.setIdealHourlyRate = setIdealHourlyRate;
+        this.getCurrentMonthBasicLivingCost = getCurrentMonthBasicLivingCost;
+        this.setCurrentMonthBasicLivingCost = setCurrentMonthBasicLivingCost;
+        this.getCurrentMonthFixedSubscriptionCost = getCurrentMonthFixedSubscriptionCost;
+        this.setCurrentMonthFixedSubscriptionCost = setCurrentMonthFixedSubscriptionCost;
         this.getOverview = getOverview;
         this.getRecentRecords = getRecentRecords;
         this.getProjectOptions = getProjectOptions;

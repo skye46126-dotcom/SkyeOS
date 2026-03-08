@@ -45,10 +45,11 @@ public final class AiApiConfig {
                 + "把用户自然语言拆解为 items。"
                 + "只输出 JSON，不要 markdown，不要解释。"
                 + "kind 只允许 time_log/income/expense/learning/unknown。"
-                + "time_log payload 推荐字段: category,start_hour,end_hour,duration_hours,description。"
+                + "评分字段默认不要猜测。只有用户文本明确写了“几分”时，才可提取到分数字段。"
+                + "time_log payload 推荐字段: category,start_hour,end_hour,duration_hours,description,ai_ratio,efficiency_score,value_score,state_score。"
                 + "income payload 推荐字段: source,type,amount。"
-                + "expense payload 推荐字段: category,amount,note。"
-                + "learning payload 推荐字段: content,duration_minutes,application_level。"
+                + "expense payload 推荐字段: category,amount,note,ai_ratio。"
+                + "learning payload 推荐字段: content,duration_minutes,application_level,ai_ratio,efficiency_score。"
                 + "若无法判断，使用 unknown 并写 warning。";
     }
 }

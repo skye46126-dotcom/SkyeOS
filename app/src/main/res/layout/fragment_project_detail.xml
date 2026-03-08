@@ -152,7 +152,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="ROI"
+                            android:text="Project ROI"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
@@ -184,7 +184,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="¥0.00 / hour"
-                            android:textColor="@color/lifePurple"
+                            android:textColor="@color/lifeBlueDark"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
@@ -253,7 +253,7 @@
                             android:id="@+id/tv_detail_profit_break_even"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="利润 ¥0 | 保本线 ¥0"
+                            android:text="Profit ¥0 | Break-even ¥0"
                             android:textColor="@color/lifeBlue"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -280,7 +280,7 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Project Note"
+                        android:hint="Project note"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_project_note"

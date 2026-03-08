@@ -63,25 +63,27 @@ public class CaptureFragment extends Fragment {
     private String activeType = "time"; // time | income | expense | learning | project
 
     // ─── Time form fields ───
-    private TextInputEditText etTimeStart, etTimeEnd, etTimeProject, etTimeNote;
+    private TextInputEditText etTimeStart, etTimeEnd, etTimeProject, etTimeNote, etTimeAiRatio;
+    private TextInputEditText etTimeEfficiencyScore, etTimeValueScore, etTimeStateScore;
     private AutoCompleteTextView acvTimeCategory;
     private ChipGroup chipProjectsTime, chipTagsTime;
     private final List<String> selectedTimeTagIds = new ArrayList<>();
 
     // ─── Income form fields ───
-    private TextInputEditText etIncomeAmount, etIncomeSource, etIncomeProject;
+    private TextInputEditText etIncomeAmount, etIncomeSource, etIncomeProject, etIncomeAiRatio;
     private AutoCompleteTextView acvIncomeType;
     private ChipGroup chipProjectsIncome, chipTagsIncome;
     private final List<String> selectedIncomeTagIds = new ArrayList<>();
 
     // ─── Expense form fields ───
-    private TextInputEditText etExpenseAmount, etExpenseNote;
+    private TextInputEditText etExpenseAmount, etExpenseNote, etExpenseAiRatio;
     private AutoCompleteTextView acvExpenseCat;
     private ChipGroup chipTagsExpense;
     private final List<String> selectedExpenseTagIds = new ArrayList<>();
 
     // ─── Learning form fields ───
-    private TextInputEditText etLearningContent, etLearningDuration, etLearningProject;
+    private TextInputEditText etLearningContent, etLearningDuration, etLearningProject, etLearningAiRatio;
+    private TextInputEditText etLearningEfficiencyScore;
     private AutoCompleteTextView acvLearningLevel;
     private ChipGroup chipProjectsLearning, chipTagsLearning;
     private final List<String> selectedLearningTagIds = new ArrayList<>();
@@ -220,6 +222,10 @@ public class CaptureFragment extends Fragment {
         etTimeEnd = v.findViewById(R.id.et_time_end);
         etTimeProject = v.findViewById(R.id.et_time_project);
         etTimeNote = v.findViewById(R.id.et_time_note);
+        etTimeAiRatio = v.findViewById(R.id.et_time_ai_ratio);
+        etTimeEfficiencyScore = v.findViewById(R.id.et_time_efficiency_score);
+        etTimeValueScore = v.findViewById(R.id.et_time_value_score);
+        etTimeStateScore = v.findViewById(R.id.et_time_state_score);
         acvTimeCategory = v.findViewById(R.id.acv_time_category);
         chipProjectsTime = v.findViewById(R.id.chip_group_projects_time);
         chipTagsTime = v.findViewById(R.id.chip_group_tags_time);
@@ -231,7 +237,7 @@ public class CaptureFragment extends Fragment {
         etTimeStart.setOnClickListener(x -> pickDateTime(etTimeStart));
         etTimeEnd.setOnClickListener(x -> pickDateTime(etTimeEnd));
 
-        String[] cats = { "工作", "学习", "生活", "娱乐", "休息", "社交" };
+        String[] cats = { "Work", "Learning", "Life", "Entertainment", "Rest", "Social" };
         String[] catVals = { "work", "learning", "life", "entertainment", "rest", "social" };
         setupDropdown(acvTimeCategory, cats);
 
@@ -250,23 +256,31 @@ public class CaptureFragment extends Fragment {
             String catVal = mapCategoryValue(catLabel, catVals);
             String note = text(etTimeNote);
             String allocStr = text(etTimeProject);
+            Integer efficiencyScore = parseOptionalScore(text(etTimeEfficiencyScore));
+            Integer valueScore = parseOptionalScore(text(etTimeValueScore));
+            Integer stateScore = parseOptionalScore(text(etTimeStateScore));
+            Integer aiRatio = parseOptionalPercentage(text(etTimeAiRatio));
 
             graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
                     toUtcInstant(startStr),
                     toUtcInstant(endStr),
                     catVal,
-                    7, 7, note,
+                    efficiencyScore, valueScore, stateScore, aiRatio, note,
                     FormParsers.parseAllocations(allocStr),
                     new ArrayList<>(selectedTimeTagIds)));
-            snack("✓ 时间记录已保存");
+            snack("✓ Time log saved");
             etTimeProject.setText("");
             etTimeNote.setText("");
+            etTimeEfficiencyScore.setText("");
+            etTimeValueScore.setText("");
+            etTimeStateScore.setText("");
+            etTimeAiRatio.setText("");
             selectedTimeTagIds.clear();
             if (chipTagsTime != null) {
                 chipTagsTime.clearCheck();
             }
         } catch (Exception e) {
-            snack("❌ 保存失败: " + e.getMessage());
+            snack("❌ Save failed: " + e.getMessage());
         }
     }
 
@@ -276,11 +290,12 @@ public class CaptureFragment extends Fragment {
         etIncomeAmount = v.findViewById(R.id.et_income_amount);
         etIncomeSource = v.findViewById(R.id.et_income_source);
         etIncomeProject = v.findViewById(R.id.et_income_project);
+        etIncomeAiRatio = v.findViewById(R.id.et_income_ai_ratio);
         acvIncomeType = v.findViewById(R.id.acv_income_type);
         chipProjectsIncome = v.findViewById(R.id.chip_group_projects_income);
         chipTagsIncome = v.findViewById(R.id.chip_group_tags_income);
 
-        String[] incomeLabels = { "其他", "工资", "项目收入", "投资收入", "系统收入" };
+        String[] incomeLabels = { "Other", "Salary", "Project income", "Investment income", "System income" };
         String[] incomeVals = { "other", "salary", "project", "investment", "system" };
         setupDropdown(acvIncomeType, incomeLabels);
         buildProjectChips(chipProjectsIncome, etIncomeProject);
@@ -298,25 +313,28 @@ public class CaptureFragment extends Fragment {
             String typeVal = mapCategoryValue(typeLabel, typeVals);
             String source = text(etIncomeSource);
             String alloc = text(etIncomeProject);
+            Integer aiRatio = parseOptionalPercentage(text(etIncomeAiRatio));
 
             graph.useCases.createIncome.execute(new CreateIncomeInput(
                     LocalDate.now().format(DATE_FMT),
-                    source.isEmpty() ? "手动录入" : source,
+                    source.isEmpty() ? "Manual input" : source,
                     typeVal,
                     amountCents,
                     false,
+                    aiRatio,
                     "manual capture",
                     FormParsers.parseAllocations(alloc),
                     new ArrayList<>(selectedIncomeTagIds)));
-            snack("✓ 收入已保存");
+            snack("✓ Income saved");
             etIncomeAmount.setText("");
             etIncomeProject.setText("");
+            etIncomeAiRatio.setText("");
             selectedIncomeTagIds.clear();
             if (chipTagsIncome != null) {
                 chipTagsIncome.clearCheck();
             }
         } catch (Exception e) {
-            snack("❌ 保存失败: " + e.getMessage());
+            snack("❌ Save failed: " + e.getMessage());
         }
     }
 
@@ -325,10 +343,11 @@ public class CaptureFragment extends Fragment {
     private void bindExpenseForm(View v) {
         etExpenseAmount = v.findViewById(R.id.et_expense_amount);
         etExpenseNote = v.findViewById(R.id.et_expense_note);
+        etExpenseAiRatio = v.findViewById(R.id.et_expense_ai_ratio);
         acvExpenseCat = v.findViewById(R.id.acv_expense_cat);
         chipTagsExpense = v.findViewById(R.id.chip_group_tags_expense);
 
-        String[] expenseLabels = { "必要支出", "体验支出", "订阅", "投资" };
+        String[] expenseLabels = { "Essential", "Experience", "Subscription", "Investment" };
         String[] expenseVals = { "necessary", "experience", "subscription", "investment" };
         setupDropdown(acvExpenseCat, expenseLabels);
         buildTagChips("expense", chipTagsExpense, selectedExpenseTagIds);
@@ -343,22 +362,25 @@ public class CaptureFragment extends Fragment {
             String catLabel = text(acvExpenseCat);
             String catVal = mapCategoryValue(catLabel, catVals);
             String note = text(etExpenseNote);
+            Integer aiRatio = parseOptionalPercentage(text(etExpenseAiRatio));
 
             graph.useCases.createExpense.execute(new CreateExpenseInput(
                     LocalDate.now().format(DATE_FMT),
                     catVal,
                     amountCents,
+                    aiRatio,
                     note,
                     new ArrayList<>(selectedExpenseTagIds)));
-            snack("✓ 支出已保存");
+            snack("✓ Expense saved");
             etExpenseAmount.setText("");
             etExpenseNote.setText("");
+            etExpenseAiRatio.setText("");
             selectedExpenseTagIds.clear();
             if (chipTagsExpense != null) {
                 chipTagsExpense.clearCheck();
             }
         } catch (Exception e) {
-            snack("❌ 保存失败: " + e.getMessage());
+            snack("❌ Save failed: " + e.getMessage());
         }
     }
 
@@ -368,11 +390,13 @@ public class CaptureFragment extends Fragment {
         etLearningContent = v.findViewById(R.id.et_learning_content);
         etLearningDuration = v.findViewById(R.id.et_learning_duration);
         etLearningProject = v.findViewById(R.id.et_learning_project);
+        etLearningAiRatio = v.findViewById(R.id.et_learning_ai_ratio);
+        etLearningEfficiencyScore = v.findViewById(R.id.et_learning_efficiency_score);
         acvLearningLevel = v.findViewById(R.id.acv_learning_level);
         chipProjectsLearning = v.findViewById(R.id.chip_group_projects_learning);
         chipTagsLearning = v.findViewById(R.id.chip_group_tags_learning);
 
-        String[] levelLabels = { "输入学习", "应用学习", "结果学习" };
+        String[] levelLabels = { "Input learning", "Applied learning", "Result learning" };
         String[] levelVals = { "input", "applied", "result" };
         setupDropdown(acvLearningLevel, levelLabels);
         buildProjectChips(chipProjectsLearning, etLearningProject);
@@ -389,25 +413,31 @@ public class CaptureFragment extends Fragment {
             String lvlLabel = text(acvLearningLevel);
             String lvlVal = mapCategoryValue(lvlLabel, levelVals);
             String alloc = text(etLearningProject);
+            Integer efficiencyScore = parseOptionalScore(text(etLearningEfficiencyScore));
+            Integer aiRatio = parseOptionalPercentage(text(etLearningAiRatio));
 
             graph.useCases.createLearning.execute(new CreateLearningInput(
                     LocalDate.now().format(DATE_FMT),
                     content,
                     duration,
+                    efficiencyScore,
                     lvlVal,
+                    aiRatio,
                     "manual capture",
                     FormParsers.parseAllocations(alloc),
                     new ArrayList<>(selectedLearningTagIds)));
-            snack("✓ 学习记录已保存");
+            snack("✓ Learning record saved");
             etLearningContent.setText("");
             etLearningDuration.setText("");
             etLearningProject.setText("");
+            etLearningEfficiencyScore.setText("");
+            etLearningAiRatio.setText("");
             selectedLearningTagIds.clear();
             if (chipTagsLearning != null) {
                 chipTagsLearning.clearCheck();
             }
         } catch (Exception e) {
-            snack("❌ 保存失败: " + e.getMessage());
+            snack("❌ Save failed: " + e.getMessage());
         }
     }
 
@@ -430,13 +460,13 @@ public class CaptureFragment extends Fragment {
             String name = text(etProjectName);
             String start = text(etProjectStart);
             if (name.isEmpty()) {
-                snack("请输入项目名称");
+                snack("Please enter a project name");
                 return;
             }
 
             graph.useCases.createProject.execute(new CreateProjectInput(
                     name, start, "active", 0, null, "created from capture", new ArrayList<>(selectedProjectTagIds)));
-            snack("✓ 项目「" + name + "」已创建");
+            snack("✓ Project \"" + name + "\" created");
             etProjectName.setText("");
             selectedProjectTagIds.clear();
             if (chipTagsProject != null) {
@@ -444,7 +474,7 @@ public class CaptureFragment extends Fragment {
             }
             loadProjectOptions(); // refresh project chips in other forms
         } catch (Exception e) {
-            snack("❌ 创建失败: " + e.getMessage());
+            snack("❌ Create failed: " + e.getMessage());
         }
     }
 
@@ -483,12 +513,12 @@ public class CaptureFragment extends Fragment {
     private void parseWithAi() {
         String raw = etAiRaw.getText() == null ? "" : etAiRaw.getText().toString().trim();
         if (raw.isEmpty()) {
-            snack("请先输入内容");
+            snack("Please enter content first");
             return;
         }
 
         btnAiParse.setEnabled(false);
-        btnAiParse.setText("解析中...");
+        btnAiParse.setText("Parsing...");
         progressAiParse.setVisibility(View.VISIBLE);
         tvAiFeedback.setVisibility(View.GONE);
         cardAiPreview.setVisibility(View.GONE);
@@ -507,7 +537,7 @@ public class CaptureFragment extends Fragment {
             getActivity().runOnUiThread(() -> {
                 latestParseResult = result;
                 btnAiParse.setEnabled(true);
-                btnAiParse.setText("🤖 解析");
+                btnAiParse.setText("🤖 Parse Draft");
                 progressAiParse.setVisibility(View.GONE);
 
                 boolean hasItems = result != null && result.items != null && !result.items.isEmpty();
@@ -518,20 +548,20 @@ public class CaptureFragment extends Fragment {
                 if (hasItems) {
                     int savedClicks = result.items.size() * 5; // Approx clicks saved per item
                     int estTokens = raw.length() * 2 + 50; // Rough token estimation
-                    tvAiFeedback.setText("💡 AI 帮您节省了约 " + savedClicks + " 次点击操作，智能预估消耗 " + estTokens + " Tokens");
+                    tvAiFeedback.setText("💡 AI saved about " + savedClicks + " clicks, estimated usage " + estTokens + " tokens");
                     tvAiFeedback.setVisibility(View.VISIBLE);
                 } else {
                     tvAiFeedback.setVisibility(View.GONE);
                 }
 
-                snack("解析完成，共 " + (hasItems ? result.items.size() : 0) + " 条");
+                snack("Parse completed, " + (hasItems ? result.items.size() : 0) + " items");
             });
         }).start();
     }
 
     private void commitAiResult() {
         if (latestParseResult == null || latestParseResult.items == null) {
-            snack("无可提交的内容");
+            snack("No content to commit");
             return;
         }
         String contextDate = etAiDate.getText() == null ? LocalDate.now().toString()
@@ -549,16 +579,16 @@ public class CaptureFragment extends Fragment {
             }
         }
         if (fails.isEmpty()) {
-            snack("✓ 全部提交成功 (" + ok + " 条)");
+            snack("✓ Commit success (" + ok + " items)");
             etAiRaw.setText("");
             cardAiPreview.setVisibility(View.GONE);
             tvAiFeedback.setVisibility(View.GONE);
             btnAiCommit.setEnabled(false);
             latestParseResult = null;
         } else {
-            snack("部分提交: 成功 " + ok + " 条, 失败 " + fails.size() + " 条");
+            snack("Partial commit: success " + ok + ", failed " + fails.size());
             StringBuilder sb = new StringBuilder(tvAiPreview.getText().toString());
-            sb.append("\n\n--- 提交错误 ---\n");
+            sb.append("\n\n--- Commit Errors ---\n");
             for (String f : fails)
                 sb.append("✗ ").append(f).append('\n');
             tvAiPreview.setText(sb.toString());
@@ -569,37 +599,49 @@ public class CaptureFragment extends Fragment {
         Map<String, String> p = item.payload;
         switch (item.kind) {
             case "income":
+                Integer incomeAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 graph.useCases.createIncome.execute(new CreateIncomeInput(
                         contextDate,
-                        valueOr(p, "source", "AI 解析"),
+                        valueOr(p, "source", "AI parse"),
                         valueOr(p, "type", "other"),
                         toCents(valueOr(p, "amount", "0")),
-                        false, "ai capture", null, null));
+                        false, incomeAiRatio, "ai capture", null, null));
                 break;
             case "expense":
+                Integer expenseAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 graph.useCases.createExpense.execute(new CreateExpenseInput(
                         contextDate,
                         valueOr(p, "category", "necessary"),
                         toCents(valueOr(p, "amount", "0")),
+                        expenseAiRatio,
                         valueOr(p, "note", "ai capture"),
                         null));
                 break;
             case "learning":
+                Integer learningAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
+                Integer learningEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
                 graph.useCases.createLearning.execute(new CreateLearningInput(
                         contextDate,
-                        valueOr(p, "content", "学习"),
+                        valueOr(p, "content", "Learning"),
                         FormParsers.parseInt(valueOr(p, "duration_minutes", "60"), 60),
+                        learningEfficiencyScore,
                         valueOr(p, "application_level", "input"),
+                        learningAiRatio,
                         "ai capture", null, null));
                 break;
             case "time_log":
                 String startAt = buildAiStartAt(p, contextDate);
                 String endAt = buildAiEndAt(p, contextDate);
+                Integer timeAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
+                Integer timeEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
+                Integer timeValueScore = parseOptionalScore(valueOr(p, "value_score", ""));
+                Integer timeStateScore = parseOptionalScore(valueOr(p, "state_score", ""));
                 graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
                         startAt, endAt,
                         valueOr(p, "category", "work"),
-                        7, 7,
-                        valueOr(p, "description", "AI 解析"),
+                        timeEfficiencyScore, timeValueScore, timeStateScore,
+                        timeAiRatio,
+                        valueOr(p, "description", "AI parse"),
                         null, null));
                 break;
         }
@@ -739,17 +781,17 @@ public class CaptureFragment extends Fragment {
 
     private static String formatPreview(ParseResult r) {
         if (r == null || r.items == null || r.items.isEmpty())
-            return "无结果";
+            return "No result";
         StringBuilder sb = new StringBuilder();
-        sb.append("解析引擎: ").append(r.parserUsed).append('\n');
+        sb.append("Parser: ").append(r.parserUsed).append('\n');
         if (r.warnings != null)
             for (String w : r.warnings)
                 sb.append("⚠ ").append(w).append('\n');
         sb.append('\n');
         for (ParseDraftItem item : r.items) {
             sb.append("[").append(item.kind).append("]")
-                    .append(" 置信度=").append(String.format(Locale.US, "%.0f%%", item.confidence * 100))
-                    .append(" 来源=").append(item.source).append('\n');
+                    .append(" confidence=").append(String.format(Locale.US, "%.0f%%", item.confidence * 100))
+                    .append(" source=").append(item.source).append('\n');
             if (item.payload != null) {
                 for (Map.Entry<String, String> e : item.payload.entrySet()) {
                     sb.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
@@ -805,6 +847,28 @@ public class CaptureFragment extends Fragment {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    private static Integer parseOptionalPercentage(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        int value = FormParsers.parseInt(raw.trim(), -1);
+        if (value < 0 || value > 100) {
+            throw new IllegalArgumentException("AI assist ratio must be in 0-100");
+        }
+        return value;
+    }
+
+    private static Integer parseOptionalScore(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        int value = FormParsers.parseInt(raw.trim(), -1);
+        if (value < 1 || value > 10) {
+            throw new IllegalArgumentException("Score must be in 1-10");
+        }
+        return value;
     }
 
     private void snack(String msg) {

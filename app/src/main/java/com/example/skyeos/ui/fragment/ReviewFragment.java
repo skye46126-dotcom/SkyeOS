@@ -34,9 +34,13 @@ public class ReviewFragment extends Fragment {
 
     private TabLayout tabReviewPeriod;
     private TextView tvReviewTitle;
+    private TextView tvReviewSubtitle;
     private TextView tvAiSummary;
     private TextView tvCostDebtSummary;
     private TextView tvTrendSummary;
+    private TextView tvAiAssistMetric;
+    private TextView tvWorkEffMetric;
+    private TextView tvLearningEffMetric;
     private TextView tvTrendDetailTitle;
 
     private RecyclerView rvTimeAllocation;
@@ -81,9 +85,13 @@ public class ReviewFragment extends Fragment {
         useCases = AppGraph.getInstance(requireContext()).useCases;
 
         tvReviewTitle = view.findViewById(R.id.tv_review_title);
+        tvReviewSubtitle = view.findViewById(R.id.tv_review_subtitle);
         tvAiSummary = view.findViewById(R.id.tv_ai_summary);
         tvCostDebtSummary = view.findViewById(R.id.tv_cost_debt_summary);
         tvTrendSummary = view.findViewById(R.id.tv_trend_summary);
+        tvAiAssistMetric = view.findViewById(R.id.tv_ai_assist_metric);
+        tvWorkEffMetric = view.findViewById(R.id.tv_work_eff_metric);
+        tvLearningEffMetric = view.findViewById(R.id.tv_learning_eff_metric);
         tvTrendDetailTitle = view.findViewById(R.id.tv_trend_detail_title);
 
         tabReviewPeriod = view.findViewById(R.id.tab_review_period);
@@ -195,10 +203,14 @@ public class ReviewFragment extends Fragment {
 
     private void displayReport(ReviewReport report) {
         latestReport = report;
-        tvReviewTitle.setText(report.periodName);
+        tvReviewTitle.setText(buildUiPeriodTitle(currentTabPosition, report.periodName));
+        tvReviewSubtitle.setText(buildUiPeriodSubtitle(currentTabPosition));
         tvAiSummary.setText(report.aiSummary);
         tvCostDebtSummary.setText(formatCostDebtSummary(report));
         tvTrendSummary.setText(formatTrendSummary(report));
+        tvAiAssistMetric.setText("AI assist " + formatPercentageOrDash(report.aiAssistRate));
+        tvWorkEffMetric.setText("Work efficiency " + formatScoreOrDash(report.workEfficiencyAvg));
+        tvLearningEffMetric.setText("Learning efficiency " + formatScoreOrDash(report.learningEfficiencyAvg));
 
         timeAdapter.submitList(report.timeAllocations);
         topProjectAdapter.submitList(report.topProjects);
@@ -229,7 +241,7 @@ public class ReviewFragment extends Fragment {
     ) {
         double yuan = totalCents / 100.0;
         int count = incomeItems == null ? 0 : incomeItems.size();
-        return String.format(Locale.US, "本期收入 %d 条 | 合计 ¥%.2f", count, yuan);
+        return String.format(Locale.US, "%d income records | Total ¥%.2f", count, yuan);
     }
 
     private void applyHistoryFilter() {
@@ -240,8 +252,7 @@ public class ReviewFragment extends Fragment {
         List<com.example.skyeos.domain.model.RecentRecordItem> filtered = filterByType(latestHistoryRecords, selectedType);
         historyLedgerAdapter.submitList(filtered);
         if (tvHistoryLedgerSummary != null) {
-            String label = "all".equals(selectedType) ? "全部" : selectedType;
-            tvHistoryLedgerSummary.setText(String.format(Locale.US, "%s %d 条", label, filtered.size()));
+            tvHistoryLedgerSummary.setText(String.format(Locale.US, "%s %d records", selectedType, filtered.size()));
         }
     }
 
@@ -298,7 +309,7 @@ public class ReviewFragment extends Fragment {
             return;
         }
         if (tvTagDetailTitle != null) {
-            tvTagDetailTitle.setText("标签明细：暂无可展示标签");
+            tvTagDetailTitle.setText("Tag details: no data");
         }
         if (tagDetailAdapter != null) {
             tagDetailAdapter.submitList(new ArrayList<>());
@@ -311,7 +322,7 @@ public class ReviewFragment extends Fragment {
         }
         if (tvTagDetailTitle != null) {
             String emoji = metric.emoji == null || metric.emoji.isEmpty() ? "" : metric.emoji + " ";
-            tvTagDetailTitle.setText("标签明细：" + emoji + metric.tagName + "（" + scope + "）");
+            tvTagDetailTitle.setText("Tag details: " + emoji + metric.tagName + " (" + scope + ")");
         }
         executor.execute(() -> {
             List<com.example.skyeos.domain.model.RecentRecordItem> rows;
@@ -351,7 +362,7 @@ public class ReviewFragment extends Fragment {
         ReviewReport current = latestReport;
         if (current == null) {
             if (tvTrendDetailTitle != null) {
-                tvTrendDetailTitle.setText("趋势明细：暂无数据");
+                tvTrendDetailTitle.setText("Trend details: no data");
             }
             if (trendDetailAdapter != null) {
                 trendDetailAdapter.submitList(new ArrayList<>());
@@ -425,15 +436,15 @@ public class ReviewFragment extends Fragment {
             List<com.example.skyeos.domain.model.RecentRecordItem> currentRows,
             List<com.example.skyeos.domain.model.RecentRecordItem> previousRows) {
         List<com.example.skyeos.domain.model.RecentRecordItem> merged = new ArrayList<>();
-        merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "当前窗口", "最近记录"));
+        merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "Current window", "Recent records"));
         if (currentRows == null || currentRows.isEmpty()) {
-            merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "无记录", ""));
+            merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "No records", ""));
         } else {
             merged.addAll(currentRows);
         }
-        merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "上一窗口", "最近记录"));
+        merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "Previous window", "Recent records"));
         if (previousRows == null || previousRows.isEmpty()) {
-            merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "无记录", ""));
+            merged.add(new com.example.skyeos.domain.model.RecentRecordItem("meta", "", "No records", ""));
         } else {
             merged.addAll(previousRows);
         }
@@ -445,14 +456,14 @@ public class ReviewFragment extends Fragment {
         long prevExpense = previous == null ? 0L : previous.totalExpenseCents;
         long prevWork = previous == null ? 0L : previous.totalWorkMinutes;
         if ("expense".equals(kind)) {
-            return String.format(Locale.CHINESE, "支出：当前 %s vs 上一窗口 %s",
+            return String.format(Locale.US, "Expense: current %s vs previous %s",
                     formatYuan(current.totalExpenseCents), formatYuan(prevExpense));
         }
         if ("work".equals(kind)) {
-            return String.format(Locale.CHINESE, "工作时长：当前 %d 分钟 vs 上一窗口 %d 分钟",
+            return String.format(Locale.US, "Work time: current %d min vs previous %d min",
                     current.totalWorkMinutes, prevWork);
         }
-        return String.format(Locale.CHINESE, "收入：当前 %s vs 上一窗口 %s",
+        return String.format(Locale.US, "Income: current %s vs previous %s",
                 formatYuan(current.totalIncomeCents), formatYuan(prevIncome));
     }
 
@@ -463,30 +474,30 @@ public class ReviewFragment extends Fragment {
         if (report.timeDebtCents == null) {
             debt = "--";
         } else if (report.timeDebtCents > 0) {
-            debt = "负债 " + formatYuan(report.timeDebtCents) + "/h";
+            debt = "Debt " + formatYuan(report.timeDebtCents) + "/h";
         } else if (report.timeDebtCents < 0) {
-            debt = "盈余 " + formatYuan(Math.abs(report.timeDebtCents)) + "/h";
+            debt = "Surplus " + formatYuan(Math.abs(report.timeDebtCents)) + "/h";
         } else {
-            debt = "平衡";
+            debt = "Balanced";
         }
         String cover = report.passiveCoverRatio == null ? "--"
                 : String.format(Locale.US, "%.0f%%", report.passiveCoverRatio * 100.0);
-        return String.format(Locale.US, "实际时薪 %s | 理想时薪 %s | 时间%s | 被动覆盖 %s", actual, ideal, debt, cover);
+        return String.format(Locale.US, "Actual %s | Ideal %s | Time %s | Passive coverage %s", actual, ideal, debt, cover);
     }
 
     private static String formatTrendSummary(ReviewReport report) {
-        String income = formatChange("收入", report.incomeChangeRatio, report.totalIncomeCents, report.prevIncomeCents);
-        String expense = formatChange("支出", report.expenseChangeRatio, report.totalExpenseCents, report.prevExpenseCents);
-        String work = formatChange("工作时长", report.workChangeRatio, report.totalWorkMinutes, report.prevWorkMinutes);
-        return "环比：" + income + " | " + expense + " | " + work;
+        String income = formatChange("Income", report.incomeChangeRatio, report.totalIncomeCents, report.prevIncomeCents);
+        String expense = formatChange("Expense", report.expenseChangeRatio, report.totalExpenseCents, report.prevExpenseCents);
+        String work = formatChange("Work time", report.workChangeRatio, report.totalWorkMinutes, report.prevWorkMinutes);
+        return "Change vs previous: " + income + " | " + expense + " | " + work;
     }
 
     private static String formatChange(String label, Double ratio, long current, long previous) {
         if (ratio == null) {
             if (previous <= 0 && current <= 0) {
-                return label + " 暂无数据";
+                return label + " no data";
             }
-            return label + " 无可比基线";
+            return label + " no baseline";
         }
         String arrow = ratio > 0 ? "+" : "";
         return String.format(Locale.US, "%s %s%.1f%%", label, arrow, ratio * 100.0);
@@ -497,5 +508,45 @@ public class ReviewFragment extends Fragment {
             return String.format(Locale.US, "¥%d", cents / 100);
         }
         return String.format(Locale.US, "¥%.2f", cents / 100.0);
+    }
+
+    private static String formatPercentageOrDash(Double ratio) {
+        if (ratio == null) {
+            return "--";
+        }
+        return String.format(Locale.US, "%.1f%%", ratio * 100.0);
+    }
+
+    private static String formatScoreOrDash(Double score) {
+        if (score == null) {
+            return "--";
+        }
+        return String.format(Locale.US, "%.2f/10", score);
+    }
+
+    private static String buildUiPeriodTitle(int tabPosition, String fallback) {
+        if (tabPosition == 0) {
+            return "Daily Report";
+        }
+        if (tabPosition == 1) {
+            return "Weekly Report";
+        }
+        if (tabPosition == 2) {
+            return "Monthly Report";
+        }
+        return (fallback == null || fallback.trim().isEmpty()) ? "Review" : fallback;
+    }
+
+    private static String buildUiPeriodSubtitle(int tabPosition) {
+        if (tabPosition == 0) {
+            return "Focus on today's input and output";
+        }
+        if (tabPosition == 1) {
+            return "Focus on weekly trends, ROI and efficiency";
+        }
+        if (tabPosition == 2) {
+            return "Focus on monthly freedom and long-term direction";
+        }
+        return "Focus on key changes";
     }
 }

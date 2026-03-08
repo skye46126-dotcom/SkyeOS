@@ -27,6 +27,24 @@ public final class MigrationRegistry {
                 "db/migrations/V003__multi_user_foundation.sql",
                 "v003-multi-user-foundation"
         ));
+        migrations.add(new MigrationSpec(
+                4,
+                "expense_structure",
+                "db/migrations/V004__expense_structure.sql",
+                "v004-expense-structure"
+        ));
+        migrations.add(new MigrationSpec(
+                5,
+                "ai_assist_ratio",
+                "db/migrations/V005__ai_assist_ratio.sql",
+                "v005-ai-assist-ratio"
+        ));
+        migrations.add(new MigrationSpec(
+                6,
+                "efficiency_scores",
+                "db/migrations/V006__efficiency_scores.sql",
+                "v006-efficiency-scores"
+        ));
         return Collections.unmodifiableList(migrations);
     }
 }

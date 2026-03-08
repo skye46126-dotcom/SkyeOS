@@ -12,4 +12,12 @@ public interface LifeOsMetricsRepository {
     long getIdealHourlyRateCents();
 
     void setIdealHourlyRateCents(long cents);
+
+    long getCurrentMonthBasicLivingCents();
+
+    void setCurrentMonthBasicLivingCents(long cents);
+
+    long getCurrentMonthFixedSubscriptionCents();
+
+    void setCurrentMonthFixedSubscriptionCents(long cents);
 }

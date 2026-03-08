@@ -33,6 +33,8 @@ import com.example.skyeos.domain.usecase.ReviewUseCases;
 import com.example.skyeos.domain.usecase.GetLatestBackupUseCase;
 import com.example.skyeos.domain.usecase.GetMetricSnapshotUseCase;
 import com.example.skyeos.domain.usecase.GetIdealHourlyRateUseCase;
+import com.example.skyeos.domain.usecase.GetCurrentMonthBasicLivingCostUseCase;
+import com.example.skyeos.domain.usecase.GetCurrentMonthFixedSubscriptionCostUseCase;
 import com.example.skyeos.domain.usecase.GetOverviewUseCase;
 import com.example.skyeos.domain.usecase.GetProjectOptionsUseCase;
 import com.example.skyeos.domain.usecase.GetRecentRecordsUseCase;
@@ -42,6 +44,8 @@ import com.example.skyeos.domain.usecase.RegisterExternalBackupUseCase;
 import com.example.skyeos.domain.usecase.RecomputeMetricSnapshotUseCase;
 import com.example.skyeos.domain.usecase.RestoreBackupUseCase;
 import com.example.skyeos.domain.usecase.SetIdealHourlyRateUseCase;
+import com.example.skyeos.domain.usecase.SetCurrentMonthBasicLivingCostUseCase;
+import com.example.skyeos.domain.usecase.SetCurrentMonthFixedSubscriptionCostUseCase;
 
 public final class AppGraph {
     private static volatile AppGraph instance;
@@ -83,6 +87,10 @@ public final class AppGraph {
                 new GetMetricSnapshotUseCase(metricsRepository),
                 new GetIdealHourlyRateUseCase(metricsRepository),
                 new SetIdealHourlyRateUseCase(metricsRepository),
+                new GetCurrentMonthBasicLivingCostUseCase(metricsRepository),
+                new SetCurrentMonthBasicLivingCostUseCase(metricsRepository),
+                new GetCurrentMonthFixedSubscriptionCostUseCase(metricsRepository),
+                new SetCurrentMonthFixedSubscriptionCostUseCase(metricsRepository),
                 new GetOverviewUseCase(readRepository),
                 new GetRecentRecordsUseCase(readRepository),
                 new GetProjectOptionsUseCase(readRepository),

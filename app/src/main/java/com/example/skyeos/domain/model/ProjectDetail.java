@@ -23,6 +23,8 @@ public class ProjectDetail {
     public final long profitCents;
     public final long breakEvenIncomeCents;
     public final long benchmarkHourlyRateCents;
+    public final long lastYearHourlyRateCents;
+    public final long idealHourlyRateCents;
 
     // derived
     public final double hourlyRateYuan;
@@ -34,7 +36,7 @@ public class ProjectDetail {
             String note,
             long totalTimeMinutes, long totalIncomeCents, long totalExpenseCents,
             long timeCostCents, long totalCostCents, long profitCents, long breakEvenIncomeCents,
-            long benchmarkHourlyRateCents,
+            long benchmarkHourlyRateCents, long lastYearHourlyRateCents, long idealHourlyRateCents,
             double hourlyRateYuan, double roiPerc, List<RecentRecordItem> recentRecords) {
         this.id = id;
         this.name = name;
@@ -51,6 +53,8 @@ public class ProjectDetail {
         this.profitCents = profitCents;
         this.breakEvenIncomeCents = breakEvenIncomeCents;
         this.benchmarkHourlyRateCents = benchmarkHourlyRateCents;
+        this.lastYearHourlyRateCents = lastYearHourlyRateCents;
+        this.idealHourlyRateCents = idealHourlyRateCents;
         this.hourlyRateYuan = hourlyRateYuan;
         this.roiPerc = roiPerc;
         this.recentRecords = recentRecords;

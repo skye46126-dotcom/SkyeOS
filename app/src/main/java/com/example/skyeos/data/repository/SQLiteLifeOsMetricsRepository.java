@@ -12,6 +12,7 @@ import com.example.skyeos.domain.repository.LifeOsMetricsRepository;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -49,6 +50,8 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
                 range.startDate,
                 range.endDate
         );
+        long structuralExpense = structuralExpenseForWindow(userId, range.startDate, range.endDate, false);
+        totalExpense += structuralExpense;
         long passiveIncome = scalarLong(
                 "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND is_passive = 1 AND occurred_on >= ? AND occurred_on <= ?",
                 userId,
@@ -61,6 +64,8 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
                 range.startDate,
                 range.endDate
         );
+        long structuralNecessaryExpense = structuralExpenseForWindow(userId, range.startDate, range.endDate, true);
+        necessaryExpense += structuralNecessaryExpense;
         long totalWorkMinutes = scalarLong(
                 "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
                 userId,
@@ -167,6 +172,34 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         }
     }
 
+    @Override
+    public long getCurrentMonthBasicLivingCents() {
+        String userId = userContext.requireCurrentUserId();
+        String month = YearMonth.now().toString();
+        return scalarLong(
+                "SELECT COALESCE(basic_living_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                userId, month);
+    }
+
+    @Override
+    public void setCurrentMonthBasicLivingCents(long cents) {
+        upsertCurrentMonthBaseline(Math.max(0L, cents), null);
+    }
+
+    @Override
+    public long getCurrentMonthFixedSubscriptionCents() {
+        String userId = userContext.requireCurrentUserId();
+        String month = YearMonth.now().toString();
+        return scalarLong(
+                "SELECT COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                userId, month);
+    }
+
+    @Override
+    public void setCurrentMonthFixedSubscriptionCents(long cents) {
+        upsertCurrentMonthBaseline(null, Math.max(0L, cents));
+    }
+
     private String queryTimezone() {
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery("SELECT timezone FROM users WHERE id = ? LIMIT 1",
@@ -189,6 +222,95 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
             }
             return cursor.getLong(0);
         }
+    }
+
+    private void upsertCurrentMonthBaseline(Long basicLivingCents, Long fixedSubscriptionCents) {
+        String userId = userContext.requireCurrentUserId();
+        String month = YearMonth.now().toString();
+        SQLiteDatabase db = database.writableDb();
+        String now = Instant.now().toString();
+        db.beginTransaction();
+        try {
+            long currentBasic = scalarLong(
+                    "SELECT COALESCE(basic_living_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                    userId, month);
+            long currentFixed = scalarLong(
+                    "SELECT COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                    userId, month);
+            ContentValues values = new ContentValues();
+            values.put("owner_user_id", userId);
+            values.put("month", month);
+            values.put("basic_living_cents", basicLivingCents != null ? basicLivingCents : currentBasic);
+            values.put("fixed_subscription_cents", fixedSubscriptionCents != null ? fixedSubscriptionCents : currentFixed);
+            values.put("updated_at", now);
+            values.put("created_at", now);
+            db.insertWithOnConflict("expense_baseline_month", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private long structuralExpenseForWindow(String userId, String startDate, String endDate, boolean necessaryOnly) {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        if (end.isBefore(start)) {
+            return 0L;
+        }
+        long total = 0L;
+        YearMonth cursor = YearMonth.from(start);
+        YearMonth target = YearMonth.from(end);
+        while (!cursor.isAfter(target)) {
+            LocalDate monthStart = cursor.atDay(1);
+            LocalDate monthEnd = cursor.atEndOfMonth();
+            LocalDate overlapStart = start.isAfter(monthStart) ? start : monthStart;
+            LocalDate overlapEnd = end.isBefore(monthEnd) ? end : monthEnd;
+            if (!overlapEnd.isBefore(overlapStart)) {
+                long overlapDays = java.time.temporal.ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                int monthDays = cursor.lengthOfMonth();
+                long baselineMonthly = baselineMonthlyCost(userId, cursor.toString(), necessaryOnly);
+                long recurringMonthly = recurringMonthlyCost(userId, cursor.toString(), necessaryOnly);
+                long capexMonthly = capexMonthlyCost(userId, cursor.toString(), necessaryOnly);
+                long monthTotal = baselineMonthly + recurringMonthly + capexMonthly;
+                total += monthTotal * overlapDays / monthDays;
+            }
+            cursor = cursor.plusMonths(1);
+        }
+        return total;
+    }
+
+    private long baselineMonthlyCost(String userId, String month, boolean necessaryOnly) {
+        if (necessaryOnly) {
+            return scalarLong(
+                    "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                    userId, month);
+        }
+        return scalarLong(
+                "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                userId, month);
+    }
+
+    private long recurringMonthlyCost(String userId, String month, boolean necessaryOnly) {
+        if (necessaryOnly) {
+            return scalarLong(
+                    "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule " +
+                            "WHERE owner_user_id = ? AND is_active = 1 AND is_necessary = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                    userId, month, month);
+        }
+        return scalarLong(
+                "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule " +
+                        "WHERE owner_user_id = ? AND is_active = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                userId, month, month);
+    }
+
+    private long capexMonthlyCost(String userId, String month, boolean necessaryOnly) {
+        if (necessaryOnly) {
+            return 0L;
+        }
+        return scalarLong(
+                "SELECT COALESCE(SUM(monthly_amortized_cents), 0) FROM expense_capex " +
+                        "WHERE owner_user_id = ? AND is_active = 1 AND amortization_start_month <= ? AND amortization_end_month >= ?",
+                userId, month, month);
     }
 
     private static MetricSnapshotSummary mapSnapshot(Cursor cursor) {

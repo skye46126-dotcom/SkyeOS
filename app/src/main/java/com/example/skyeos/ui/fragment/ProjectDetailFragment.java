@@ -98,7 +98,7 @@ public class ProjectDetailFragment extends Fragment {
         btnDelete = view.findViewById(R.id.btn_delete_project);
         btnDelete.setOnClickListener(v -> {
             // TODO: call generic soft delete usecase
-            Toast.makeText(requireContext(), "Delete not implemented yet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Delete is not available yet", Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -115,7 +115,7 @@ public class ProjectDetailFragment extends Fragment {
 
         tvTitle.setText(detail.name);
         tvScore.setText("⭐ " + detail.score);
-        tvStatus.setText(detail.status);
+        tvStatus.setText(mapStatusLabel(detail.status));
         etNote.setText(detail.note);
 
         long hours = detail.totalTimeMinutes / 60;
@@ -126,10 +126,12 @@ public class ProjectDetailFragment extends Fragment {
         tvHourly.setText(String.format(Locale.US, "¥%.2f / hour", detail.hourlyRateYuan));
         tvTimeCost.setText(formatYuan(detail.timeCostCents));
         tvTotalCost.setText(formatYuan(detail.totalCostCents));
-        String profitLabel = detail.profitCents >= 0 ? "利润" : "亏损";
-        tvProfitBreakEven.setText(String.format(Locale.CHINESE, "%s %s | 保本线 %s | 成本时薪 %s/h",
+        String profitLabel = detail.profitCents >= 0 ? "Profit" : "Loss";
+        tvProfitBreakEven.setText(String.format(Locale.US,
+                "%s %s | Break-even %s | Benchmark hourly (last-year preferred) %s/h | Ideal %s/h",
                 profitLabel, formatYuan(Math.abs(detail.profitCents)),
-                formatYuan(detail.breakEvenIncomeCents), formatYuan(detail.benchmarkHourlyRateCents)));
+                formatYuan(detail.breakEvenIncomeCents), formatYuan(detail.benchmarkHourlyRateCents),
+                formatYuan(detail.idealHourlyRateCents)));
 
         if ("done".equals(detail.status)) {
             btnMarkDone.setText("Mark as Active");
@@ -162,8 +164,18 @@ public class ProjectDetailFragment extends Fragment {
 
     private static String formatYuan(long cents) {
         if (cents % 100 == 0) {
-            return String.format(Locale.CHINESE, "¥%,d", cents / 100);
+            return String.format(Locale.US, "¥%,d", cents / 100);
         }
         return String.format(Locale.US, "¥%.2f", cents / 100.0);
+    }
+
+    private String mapStatusLabel(String status) {
+        if ("done".equalsIgnoreCase(status)) {
+            return "Done";
+        }
+        if ("paused".equalsIgnoreCase(status)) {
+            return "Paused";
+        }
+        return "Active";
     }
 }

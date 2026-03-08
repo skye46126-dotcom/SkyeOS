@@ -29,11 +29,8 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
     @NonNull
     @Override
     public RecordViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // We'll reuse item_project.xml but strip some info, or create a simple text
-        // view item.
-        // A minimal text-based row for the timeline.
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(android.R.layout.simple_list_item_2, parent, false);
+                .inflate(R.layout.item_recent_record, parent, false);
         return new RecordViewHolder(view);
     }
 
@@ -53,8 +50,8 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
 
         public RecordViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvTitle = itemView.findViewById(android.R.id.text1);
-            tvSubtitle = itemView.findViewById(android.R.id.text2);
+            tvTitle = itemView.findViewById(R.id.tv_record_title);
+            tvSubtitle = itemView.findViewById(R.id.tv_record_subtitle);
         }
 
         public void bind(RecentRecordItem record) {

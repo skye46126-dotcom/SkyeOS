@@ -10,6 +10,7 @@ public final class CreateIncomeInput {
     public final String type;
     public final long amountCents;
     public final boolean isPassive;
+    public final Integer aiAssistRatio;
     public final String note;
     public final List<ProjectAllocation> projectAllocations;
     public final List<String> tagIds;
@@ -20,6 +21,7 @@ public final class CreateIncomeInput {
             String type,
             long amountCents,
             boolean isPassive,
+            Integer aiAssistRatio,
             String note,
             List<ProjectAllocation> projectAllocations,
             List<String> tagIds
@@ -29,6 +31,7 @@ public final class CreateIncomeInput {
         this.type = type;
         this.amountCents = amountCents;
         this.isPassive = isPassive;
+        this.aiAssistRatio = aiAssistRatio;
         this.note = note;
         this.projectAllocations = projectAllocations;
         this.tagIds = tagIds;

@@ -9,34 +9,34 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:paddingTop="56dp"
+        android:paddingLeft="18dp"
+        android:paddingRight="18dp"
+        android:paddingTop="60dp"
         android:paddingBottom="24dp">
 
         <!-- Header -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="云与设置"
+            android:text="Cloud &amp; Settings"
             android:textColor="@color/textPrimary"
-            android:textSize="26sp"
-            android:fontFamily="sans-serif-medium"
+            android:textSize="30sp"
+            android:textStyle="bold"
             android:layout_marginBottom="4dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="备份、同步、API 配置"
+            android:text="Backup, sync, cost settings, and AI config"
             android:textColor="@color/textSecondary"
-            android:textSize="14sp"
-            android:layout_marginBottom="24dp"/>
+            android:textSize="13sp"
+            android:layout_marginBottom="14dp"/>
 
         <!-- Cloud Sync Section Title -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="☁️ 云备份"
+            android:text="☁️ Cloud Backup"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -48,7 +48,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="服务器地址 (https://...)"
+            android:hint="Server URL (https://...)"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_server_url"
@@ -80,7 +80,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="设备标识 (如 android-self)"
+            android:hint="Device ID (e.g. android-self)"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_device_id"
@@ -96,13 +96,13 @@
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="保存配置"
+            android:text="Save Config"
             android:layout_marginBottom="12dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="💵 成本参数"
+            android:text="💵 Cost Settings"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -112,10 +112,38 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="理想时薪（元/小时）"
-            android:layout_marginBottom="16dp">
+            android:hint="Ideal hourly rate (CNY/hour)"
+            android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ideal_hourly_yuan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Basic living cost (monthly, CNY)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_month_basic_living_yuan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Fixed subscription cost (monthly, CNY)"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_month_fixed_subscription_yuan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="numberDecimal"
@@ -126,7 +154,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🤖 AI 解析 API"
+            android:text="🤖 AI Parsing API"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -149,7 +177,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI Base URL (OpenAI 兼容，如 https://api.openai.com)"
+            android:hint="AI Base URL (OpenAI-compatible, e.g. https://api.openai.com)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_base_url"
@@ -177,7 +205,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI Model (如 gpt-4o-mini / deepseek-chat)"
+            android:hint="AI Model (e.g. gpt-4o-mini / deepseek-chat)"
             android:layout_marginBottom="14dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_model"
@@ -191,7 +219,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI System Prompt（可自定义）"
+            android:hint="AI System Prompt (customizable)"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_system_prompt"
@@ -215,9 +243,9 @@
                 style="@style/Widget.LifeOS.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:strokeColor="@color/lifePurple"
-                android:textColor="@color/lifePurple"
-                android:text="测试连接 (Ping)"/>
+                app:strokeColor="@color/lifeBlue"
+                android:textColor="@color/lifeBlue"
+                android:text="Test Connection (Ping)"/>
             <TextView
                 android:id="@+id/tv_ai_test_result"
                 android:layout_width="0dp"
@@ -235,7 +263,7 @@
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="⬆ 上传最新备份"
+            android:text="⬆ Upload Latest Backup"
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.button.MaterialButton
@@ -243,7 +271,7 @@
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="📋 列出远端备份"
+            android:text="📋 List Remote Backups"
             android:layout_marginBottom="16dp"/>
 
         <!-- Divider -->
@@ -257,7 +285,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔄 恢复备份"
+            android:text="🔄 Restore Backup"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -269,7 +297,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="文件名（从列表中复制）"
+            android:hint="Filename (copy from list)"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_download_filename"
@@ -283,7 +311,7 @@
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="⬇ 下载并恢复"
+            android:text="⬇ Download &amp; Restore"
             android:layout_marginBottom="16dp"/>
 
         <!-- Status card -->
@@ -301,7 +329,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="状态日志"
+                    android:text="Status Log"
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp"
                     android:layout_marginBottom="6dp"/>
@@ -309,7 +337,7 @@
                     android:id="@+id/tv_cloud_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="就绪"
+                    android:text="Ready"
                     android:textColor="@color/textPrimary"
                     android:textSize="13sp"/>
                 <TextView
@@ -326,7 +354,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="标签管理"
+            android:text="Tag Management"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -337,7 +365,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="标签名称"
+            android:hint="Tag name"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_tag_name"
@@ -385,7 +413,7 @@
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="创建标签"
+            android:text="Create Tag"
             android:layout_marginBottom="10dp"/>
 
         <androidx.cardview.widget.CardView
@@ -402,7 +430,7 @@
                 android:padding="12dp"
                 android:textColor="@color/textPrimary"
                 android:textSize="13sp"
-                android:text="标签加载中..."/>
+                android:text="Loading tags..."/>
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>

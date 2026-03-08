@@ -7,7 +7,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Horizontal type-selector chip row -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose record type"
+        android:textColor="@color/textSecondary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,44 +33,43 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_time"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⏱ 时间"
+                android:text="⏱ Time"
                 android:checked="true"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_income"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💰 收入"/>
+                android:text="💰 Income"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_expense"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🛒 支出"/>
+                android:text="🛒 Expense"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_learning"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📚 学习"/>
+                android:text="📚 Learning"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_project"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📁 项目"/>
+                android:text="📁 Project"/>
 
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
 
-    <!-- Dynamic form content: inflated per type -->
     <FrameLayout
         android:id="@+id/manual_form_holder"
         android:layout_width="match_parent"

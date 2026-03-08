@@ -26,6 +26,9 @@ public class ReviewReport {
     public final Double passiveCoverRatio;
     public final Double freedomDelta; // nullable: no baseline => null
     public final Double currentFreedomPercentage; // nullable: unavailable => null
+    public final Double aiAssistRate; // nullable: unavailable => null
+    public final Double workEfficiencyAvg; // nullable: unavailable => null
+    public final Double learningEfficiencyAvg; // nullable: unavailable => null
 
     // Time Allocation
     public final List<TimeCategoryAllocation> timeAllocations; // e.g., { "Learning": 15, "Project A": 40 }
@@ -47,6 +50,7 @@ public class ReviewReport {
             Double incomeChangeRatio, Double expenseChangeRatio, Double workChangeRatio, Long actualHourlyRateCents,
             long idealHourlyRateCents, Long timeDebtCents,
             Double passiveCoverRatio, Double freedomDelta, Double currentFreedomPercentage,
+            Double aiAssistRate, Double workEfficiencyAvg, Double learningEfficiencyAvg,
             List<TimeCategoryAllocation> timeAllocations, List<ProjectProgressItem> topProjects,
             List<ProjectProgressItem> sinkholeProjects, List<RecentRecordItem> keyEvents,
             List<RecentRecordItem> incomeHistory, List<RecentRecordItem> historyRecords,
@@ -69,6 +73,9 @@ public class ReviewReport {
         this.passiveCoverRatio = passiveCoverRatio;
         this.freedomDelta = freedomDelta;
         this.currentFreedomPercentage = currentFreedomPercentage;
+        this.aiAssistRate = aiAssistRate;
+        this.workEfficiencyAvg = workEfficiencyAvg;
+        this.learningEfficiencyAvg = learningEfficiencyAvg;
         this.timeAllocations = timeAllocations;
         this.topProjects = topProjects;
         this.sinkholeProjects = sinkholeProjects;

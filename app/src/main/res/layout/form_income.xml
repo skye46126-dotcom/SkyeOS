@@ -12,13 +12,20 @@
         android:orientation="vertical"
         android:padding="4dp">
 
-        <!-- Amount -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Income record (supports project binding and tag metrics)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="8dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_income_amount"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="金额（元）"
+            android:hint="Amount (CNY)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_income_amount"
@@ -27,13 +34,12 @@
                 android:inputType="numberDecimal"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Type -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_income_type"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="类型"
+            android:hint="Type"
             android:layout_marginBottom="10dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_income_type"
@@ -42,13 +48,12 @@
                 android:inputType="none"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Source -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_income_source"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="来源名称"
+            android:hint="Source name"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_income_source"
@@ -56,13 +61,33 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Project Allocation -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI assist ratio (0-100, optional)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_income_ai_ratio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Related project (optional)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_income_project"
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="绑定项目（可选）"
+            android:hint="Bind project (optional)"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_income_project"
@@ -80,7 +105,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="标签（可多选）"
+            android:text="Tags (multi-select)"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -92,13 +117,12 @@
             android:layout_marginBottom="16dp"
             app:singleSelection="false"/>
 
-        <!-- Submit -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_submit_income"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="记录收入"/>
+            android:text="Save Income Record"/>
 
     </LinearLayout>
 </ScrollView>

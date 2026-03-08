@@ -12,6 +12,7 @@ import com.example.skyeos.domain.model.ReviewReport;
 import com.example.skyeos.domain.repository.LifeOsReviewRepository;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -168,6 +169,7 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         totalExpense = scalarLong(db,
                 "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
                 userId, startTimeString, endTimeString);
+        totalExpense += structuralExpenseForWindow(userId, startTimeString.substring(0, 10), endTimeString.substring(0, 10), false);
         totalWorkMinutes = scalarLong(db,
                 "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'work'",
                 userId, startTimeString, endTimeString);
@@ -177,15 +179,16 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         prevExpense = scalarLong(db,
                 "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
                 userId, prevStartTimeString, prevEndTimeString);
+        prevExpense += structuralExpenseForWindow(userId, prevStartTimeString.substring(0, 10), prevEndTimeString.substring(0, 10), false);
         prevWorkMinutes = scalarLong(db,
                 "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'work'",
                 userId, prevStartTimeString, prevEndTimeString);
 
         // 3. Project ROI (Top vs Sinkhole)
         String projSql = "SELECT p.id, p.name, " +
-                "  COALESCE((SELECT SUM(duration_minutes) FROM time_log t JOIN fact_project_allocation f ON t.id = f.record_id WHERE f.project_id = p.id AND f.record_type = 'time_log' AND t.updated_at >= ? AND t.updated_at <= ? AND t.is_deleted = 0), 0) as pt, "
+                "  COALESCE((SELECT SUM(t.duration_minutes) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = p.id AND t.updated_at >= ? AND t.updated_at <= ? AND t.is_deleted = 0), 0) as pt, "
                 +
-                "  COALESCE((SELECT SUM(amount_cents) FROM income i JOIN fact_project_allocation f ON i.id = f.record_id WHERE f.project_id = p.id AND f.record_type = 'income' AND i.updated_at >= ? AND i.updated_at <= ? AND i.is_deleted = 0), 0) as pi "
+                "  COALESCE((SELECT SUM(i.amount_cents) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = p.id AND i.updated_at >= ? AND i.updated_at <= ? AND i.is_deleted = 0), 0) as pi "
                 +
                 "FROM project p WHERE p.is_deleted = 0 AND (p.owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = p.id AND pm.user_id = ?)) HAVING pt > 0 OR pi > 0 ORDER BY pi DESC, pt DESC";
 
@@ -237,10 +240,41 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         long necessaryExpense = scalarLong(db,
                 "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'necessary'",
                 userId, startTimeString, endTimeString);
+        necessaryExpense += structuralExpenseForWindow(userId, startTimeString.substring(0, 10), endTimeString.substring(0, 10), true);
         Double passiveCoverRatio = necessaryExpense > 0 ? (double) passiveIncome / (double) necessaryExpense : null;
 
         Double freedomDelta = null;
         Double currentFreedomPercentage = null;
+        double aiAssistMinutes = scalarDouble(db,
+                "SELECT COALESCE(SUM((duration_minutes * COALESCE(ai_assist_ratio, 0)) / 100.0), 0) " +
+                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
+                userId, startTimeString, endTimeString);
+        Double aiAssistRate = totalTime > 0 ? (aiAssistMinutes / (double) totalTime) : null;
+        double weightedWorkEffNumerator = scalarDouble(db,
+                "SELECT COALESCE(SUM(duration_minutes * efficiency_score), 0) " +
+                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "AND is_deleted = 0 AND category = 'work' AND efficiency_score IS NOT NULL",
+                userId, startTimeString, endTimeString);
+        long weightedWorkEffDenominator = scalarLong(db,
+                "SELECT COALESCE(SUM(duration_minutes), 0) " +
+                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "AND is_deleted = 0 AND category = 'work' AND efficiency_score IS NOT NULL",
+                userId, startTimeString, endTimeString);
+        Double workEfficiencyAvg = weightedWorkEffDenominator > 0 ? (weightedWorkEffNumerator / weightedWorkEffDenominator) : null;
+
+        double weightedLearningEffNumerator = scalarDouble(db,
+                "SELECT COALESCE(SUM(duration_minutes * efficiency_score), 0) " +
+                        "FROM learning_record WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "AND is_deleted = 0 AND efficiency_score IS NOT NULL",
+                userId, startTimeString, endTimeString);
+        long weightedLearningEffDenominator = scalarLong(db,
+                "SELECT COALESCE(SUM(duration_minutes), 0) " +
+                        "FROM learning_record WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "AND is_deleted = 0 AND efficiency_score IS NOT NULL",
+                userId, startTimeString, endTimeString);
+        Double learningEfficiencyAvg = weightedLearningEffDenominator > 0
+                ? (weightedLearningEffNumerator / weightedLearningEffDenominator)
+                : null;
         String summary;
         if (totalTime <= 0 && totalIncome <= 0 && totalExpense <= 0) {
             summary = "本期暂无有效记录。";
@@ -248,6 +282,15 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
             summary = String.format(
                     "本期投入 %d 小时，收入 ¥%.2f，支出 ¥%.2f。",
                     totalTime / 60, totalIncome / 100.0, totalExpense / 100.0);
+            if (aiAssistRate != null) {
+                summary = summary + String.format(" AI辅助率 %.1f%%。", aiAssistRate * 100.0);
+            }
+            if (workEfficiencyAvg != null) {
+                summary = summary + String.format(" 工作效率均分 %.2f/10。", workEfficiencyAvg);
+            }
+            if (learningEfficiencyAvg != null) {
+                summary = summary + String.format(" 学习效率均分 %.2f/10。", learningEfficiencyAvg);
+            }
         }
         Double incomeChangeRatio = ratioChange(totalIncome, prevIncome);
         Double expenseChangeRatio = ratioChange(totalExpense, prevExpense);
@@ -256,7 +299,8 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return new ReviewReport(periodName, summary, totalTime, totalWorkMinutes, totalIncome, totalExpense,
                 prevIncome, prevExpense, prevWorkMinutes, incomeChangeRatio, expenseChangeRatio, workChangeRatio,
                 actualHourlyRateCents, idealHourlyRateCents, timeDebtCents, passiveCoverRatio, freedomDelta,
-                currentFreedomPercentage, allocations, topProjects, sinkholeProjects, keyEvents, incomeHistory,
+                currentFreedomPercentage, aiAssistRate, workEfficiencyAvg, learningEfficiencyAvg,
+                allocations, topProjects, sinkholeProjects, keyEvents, incomeHistory,
                 historyRecords, timeTagMetrics, expenseTagMetrics);
     }
 
@@ -400,12 +444,72 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return result;
     }
 
+    private long structuralExpenseForWindow(String userId, String startDate, String endDate, boolean necessaryOnly) {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        if (end.isBefore(start)) {
+            return 0L;
+        }
+        SQLiteDatabase db = database.readableDb();
+        long total = 0L;
+        YearMonth cursor = YearMonth.from(start);
+        YearMonth target = YearMonth.from(end);
+        while (!cursor.isAfter(target)) {
+            LocalDate monthStart = cursor.atDay(1);
+            LocalDate monthEnd = cursor.atEndOfMonth();
+            LocalDate overlapStart = start.isAfter(monthStart) ? start : monthStart;
+            LocalDate overlapEnd = end.isBefore(monthEnd) ? end : monthEnd;
+            if (!overlapEnd.isBefore(overlapStart)) {
+                long overlapDays = java.time.temporal.ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                int monthDays = cursor.lengthOfMonth();
+                long monthTotal = baselineMonthlyCost(db, userId, cursor.toString())
+                        + recurringMonthlyCost(db, userId, cursor.toString(), necessaryOnly)
+                        + (necessaryOnly ? 0L : capexMonthlyCost(db, userId, cursor.toString()));
+                total += monthTotal * overlapDays / monthDays;
+            }
+            cursor = cursor.plusMonths(1);
+        }
+        return total;
+    }
+
+    private long baselineMonthlyCost(SQLiteDatabase db, String userId, String month) {
+        return scalarLong(db,
+                "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                userId, month);
+    }
+
+    private long recurringMonthlyCost(SQLiteDatabase db, String userId, String month, boolean necessaryOnly) {
+        if (necessaryOnly) {
+            return scalarLong(db,
+                    "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule WHERE owner_user_id = ? AND is_active = 1 AND is_necessary = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                    userId, month, month);
+        }
+        return scalarLong(db,
+                "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule WHERE owner_user_id = ? AND is_active = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                userId, month, month);
+    }
+
+    private long capexMonthlyCost(SQLiteDatabase db, String userId, String month) {
+        return scalarLong(db,
+                "SELECT COALESCE(SUM(monthly_amortized_cents), 0) FROM expense_capex WHERE owner_user_id = ? AND is_active = 1 AND amortization_start_month <= ? AND amortization_end_month >= ?",
+                userId, month, month);
+    }
+
     private long scalarLong(SQLiteDatabase db, String sql, String... args) {
         try (Cursor cursor = db.rawQuery(sql, args)) {
             if (!cursor.moveToFirst() || cursor.isNull(0)) {
                 return 0L;
             }
             return cursor.getLong(0);
+        }
+    }
+
+    private double scalarDouble(SQLiteDatabase db, String sql, String... args) {
+        try (Cursor cursor = db.rawQuery(sql, args)) {
+            if (!cursor.moveToFirst() || cursor.isNull(0)) {
+                return 0.0;
+            }
+            return cursor.getDouble(0);
         }
     }
 }
