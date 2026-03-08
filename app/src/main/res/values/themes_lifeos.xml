@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Main LifeOS theme using Material 3 -->
+    <style name="Theme.LifeOS" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary -->
+        <item name="colorPrimary">@color/lifeBlue</item>
+        <item name="colorPrimaryVariant">@color/lifeBlueDark</item>
+        <item name="colorOnPrimary">@color/textOnBlue</item>
+        <!-- Secondary -->
+        <item name="colorSecondary">@color/lifePurple</item>
+        <item name="colorSecondaryVariant">@color/lifePurpleLight</item>
+        <item name="colorOnSecondary">@color/textOnBlue</item>
+        <!-- Background -->
+        <item name="android:colorBackground">@color/bgGradientStart</item>
+        <item name="colorSurface">@color/surfaceWhite</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <!-- Text -->
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="android:textColorHint">@color/textHint</item>
+        <!-- Shapes -->
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.LifeOS.MediumCard</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.LifeOS.LargeCard</item>
+    </style>
+
+    <!-- Card shapes -->
+    <style name="ShapeAppearance.LifeOS.MediumCard" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="ShapeAppearance.LifeOS.LargeCard" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <!-- Glass Card style -->
+    <style name="Widget.LifeOS.GlassCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/glassCardBg</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="strokeColor">@color/glassCardBorder</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <!-- Primary Button style -->
+    <style name="Widget.LifeOS.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/lifeBlue</item>
+        <item name="android:textColor">@color/textOnBlue</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- Outlined Button style -->
+    <style name="Widget.LifeOS.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/lifeBlue</item>
+        <item name="android:textColor">@color/lifeBlue</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- Section Header text -->
+    <style name="TextAppearance.LifeOS.SectionTitle" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Metric Value text -->
+    <style name="TextAppearance.LifeOS.MetricValue" parent="TextAppearance.MaterialComponents.Headline5">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Metric Label text -->
+    <style name="TextAppearance.LifeOS.MetricLabel" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/textSecondary</item>
+    </style>
+
+    <!-- TextInputLayout style -->
+    <style name="Widget.LifeOS.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeColor">@color/divider</item>
+        <item name="hintTextColor">@color/textSecondary</item>
+        <item name="boxBackgroundColor">@color/surfaceWhite</item>
+    </style>
+
+    <!-- Exposed Dropdown TextInputLayout style -->
+    <style name="Widget.LifeOS.TextInputLayout.ExposedDropdownMenu" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeColor">@color/divider</item>
+        <item name="hintTextColor">@color/textSecondary</item>
+        <item name="boxBackgroundColor">@color/surfaceWhite</item>
+    </style>
+</resources>

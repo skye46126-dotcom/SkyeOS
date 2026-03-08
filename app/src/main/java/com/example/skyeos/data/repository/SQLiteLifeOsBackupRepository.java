@@ -3,9 +3,11 @@ package com.example.skyeos.data.repository;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
 import com.example.skyeos.data.db.LifeOsDatabase;
 import com.example.skyeos.domain.model.BackupResult;
 import com.example.skyeos.domain.model.RestoreResult;
@@ -35,15 +37,18 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
 
     private final Context appContext;
     private final LifeOsDatabase database;
+    private final CurrentUserContext userContext;
 
-    public SQLiteLifeOsBackupRepository(Context context, LifeOsDatabase database) {
+    public SQLiteLifeOsBackupRepository(Context context, LifeOsDatabase database, CurrentUserContext userContext) {
         this.appContext = context.getApplicationContext();
         this.database = database;
+        this.userContext = userContext;
     }
 
     @Override
     public BackupResult createBackup(String backupType) {
         String type = normalizeBackupType(backupType);
+        String userId = userContext.requireCurrentUserId();
         String id = UUID.randomUUID().toString();
         String createdAt = Instant.now().toString();
         File backupFile = null;
@@ -51,7 +56,12 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
         long fileSize = 0L;
         try {
             SQLiteDatabase db = database.writableDb();
-            db.execSQL("PRAGMA wal_checkpoint(FULL)");
+            // PRAGMA wal_checkpoint returns rows, so it must be executed via query API.
+            try (Cursor ignored = db.rawQuery("PRAGMA wal_checkpoint(FULL)", null)) {
+                // no-op: execute checkpoint to flush WAL before file copy
+            } catch (SQLException ignored) {
+                // Continue backup even if checkpoint is not available on some SQLite variants.
+            }
             database.close();
 
             File sourceDb = database.databaseFile();
@@ -70,12 +80,12 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
             checksum = sha256(backupFile);
 
             database.warmUp();
-            insertBackupRecord(id, type, backupFile.getAbsolutePath(), fileSize, checksum, "success", null, createdAt);
+            insertBackupRecord(id, userId, type, backupFile.getAbsolutePath(), fileSize, checksum, "success", null, createdAt);
             return new BackupResult(id, type, backupFile.getAbsolutePath(), fileSize, checksum, true, null, createdAt);
         } catch (Exception e) {
             database.warmUp();
             String filePath = backupFile == null ? null : backupFile.getAbsolutePath();
-            insertBackupRecord(id, type, filePath, fileSize, checksum, "failed", e.getMessage(), createdAt);
+            insertBackupRecord(id, userId, type, filePath, fileSize, checksum, "failed", e.getMessage(), createdAt);
             return new BackupResult(id, type, filePath, fileSize, checksum, false, e.getMessage(), createdAt);
         }
     }
@@ -86,10 +96,12 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
             throw new IllegalArgumentException("filePath is required");
         }
         String type = normalizeBackupType(backupType);
+        String userId = userContext.requireCurrentUserId();
         String id = UUID.randomUUID().toString();
         String createdAt = Instant.now().toString();
         insertBackupRecord(
                 id,
+                userId,
                 type,
                 filePath.trim(),
                 Math.max(0L, fileSizeBytes),
@@ -115,11 +127,12 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
         if (TextUtils.isEmpty(backupRecordId) || TextUtils.isEmpty(backupRecordId.trim())) {
             throw new IllegalArgumentException("backupRecordId is required");
         }
+        String userId = userContext.requireCurrentUserId();
         BackupRecord record = queryBackupRecord(backupRecordId.trim());
         String restoreId = UUID.randomUUID().toString();
         String restoredAt = Instant.now().toString();
         if (record == null || !"success".equals(record.status) || TextUtils.isEmpty(record.filePath)) {
-            insertRestoreRecord(restoreId, null, "failed", "backup record not found or invalid", restoredAt);
+            insertRestoreRecord(restoreId, userId, null, "failed", "backup record not found or invalid", restoredAt);
             return new RestoreResult(restoreId, backupRecordId, false, "backup record not found or invalid", restoredAt);
         }
         try {
@@ -131,11 +144,11 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
             File targetDb = database.databaseFile();
             Files.copy(backupFile.toPath(), targetDb.toPath(), StandardCopyOption.REPLACE_EXISTING);
             database.warmUp();
-            insertRestoreRecord(restoreId, backupRecordId, "success", null, restoredAt);
+            insertRestoreRecord(restoreId, userId, backupRecordId, "success", null, restoredAt);
             return new RestoreResult(restoreId, backupRecordId, true, null, restoredAt);
         } catch (Exception e) {
             database.warmUp();
-            insertRestoreRecord(restoreId, backupRecordId, "failed", e.getMessage(), restoredAt);
+            insertRestoreRecord(restoreId, userId, backupRecordId, "failed", e.getMessage(), restoredAt);
             return new RestoreResult(restoreId, backupRecordId, false, e.getMessage(), restoredAt);
         }
     }
@@ -143,11 +156,12 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
     @Override
     public BackupResult getLatestBackup(String backupType) {
         String type = normalizeBackupType(backupType);
+        String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery(
                 "SELECT id, backup_type, file_path, file_size_bytes, checksum, status, error_message, created_at " +
-                        "FROM backup_record WHERE backup_type = ? ORDER BY created_at DESC LIMIT 1",
-                new String[]{type}
+                        "FROM backup_record WHERE owner_user_id = ? AND backup_type = ? ORDER BY created_at DESC LIMIT 1",
+                new String[]{userId, type}
         )) {
             if (!cursor.moveToFirst()) {
                 return null;
@@ -158,6 +172,7 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
 
     private void insertBackupRecord(
             String id,
+            String userId,
             String type,
             String filePath,
             long fileSize,
@@ -168,6 +183,7 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
     ) {
         ContentValues values = new ContentValues();
         values.put("id", id);
+        values.put("owner_user_id", userId);
         values.put("backup_type", type);
         values.put("file_path", filePath == null ? "" : filePath);
         values.put("file_size_bytes", fileSize);
@@ -178,9 +194,10 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
         database.writableDb().insertWithOnConflict("backup_record", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
-    private void insertRestoreRecord(String id, String backupRecordId, String status, String error, String restoredAt) {
+    private void insertRestoreRecord(String id, String userId, String backupRecordId, String status, String error, String restoredAt) {
         ContentValues values = new ContentValues();
         values.put("id", id);
+        values.put("owner_user_id", userId);
         values.put("backup_record_id", backupRecordId);
         values.put("status", status);
         values.put("error_message", error);
@@ -189,10 +206,11 @@ public final class SQLiteLifeOsBackupRepository implements LifeOsBackupRepositor
     }
 
     private BackupRecord queryBackupRecord(String id) {
+        String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery(
-                "SELECT id, backup_type, file_path, file_size_bytes, checksum, status, error_message, created_at FROM backup_record WHERE id = ? LIMIT 1",
-                new String[]{id}
+                "SELECT id, backup_type, file_path, file_size_bytes, checksum, status, error_message, created_at FROM backup_record WHERE id = ? AND owner_user_id = ? LIMIT 1",
+                new String[]{id, userId}
         )) {
             if (!cursor.moveToFirst()) {
                 return null;

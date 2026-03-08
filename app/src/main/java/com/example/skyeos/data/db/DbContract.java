@@ -4,7 +4,7 @@ public final class DbContract {
     private DbContract() {}
 
     public static final String DATABASE_NAME = "lifeos.db";
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 3;
 
     public static final class MigrationTable {
         public static final String NAME = "migration";
@@ -16,4 +16,3 @@ public final class DbContract {
         private MigrationTable() {}
     }
 }
-

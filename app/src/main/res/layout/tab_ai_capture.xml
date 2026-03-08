@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AI Parse tab content -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <!-- Date selector row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="日期："
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_ai_date"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ai_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:cursorVisible="false"
+                android:textSize="14sp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Mode selector chip group -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_parser_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mode_auto"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Auto"
+                android:checked="true"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mode_rule"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rule"/>
+
+        </com.google.android.material.chip.ChipGroup>
+    </LinearLayout>
+
+    <!-- Natural language input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_ai_raw"
+        style="@style/Widget.LifeOS.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:hint="粘贴自然语言记录..."
+        android:layout_marginBottom="10dp">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_ai_raw"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="6"
+            android:gravity="top|start"
+            android:inputType="textMultiLine"
+            android:scrollbars="vertical"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Action buttons row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_ai_parse"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="🤖 解析"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_ai_commit"
+            style="@style/Widget.LifeOS.Button.Primary"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="✓ 确认提交"/>
+    </LinearLayout>
+
+    <!-- Loading Indicator -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress_ai_parse"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Parse preview card -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_ai_preview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/glassCardBg"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="解析预览"
+                android:textColor="@color/textSecondary"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tv_ai_feedback"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/lifePurple"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/tv_ai_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/textPrimary"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp"
+                android:fontFamily="monospace"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</LinearLayout>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Manual: New Project form -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <!-- Project Name -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_project_name"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="项目名称"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_project_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Start Date -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_project_start"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="开始日期 (YYYY-MM-DD)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_project_start"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:cursorVisible="false"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="标签（可多选）"
+            android:textSize="13sp"
+            android:textColor="@color/textSecondary"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_tags_project"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:singleSelection="false"/>
+
+        <!-- Submit -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_submit_project"
+            style="@style/Widget.LifeOS.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="创建项目"/>
+
+    </LinearLayout>
+</ScrollView>

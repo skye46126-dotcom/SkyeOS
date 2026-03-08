@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="56dp"
+        android:paddingBottom="24dp">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="云与设置"
+            android:textColor="@color/textPrimary"
+            android:textSize="26sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="备份、同步、API 配置"
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Cloud Sync Section Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☁️ 云备份"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Server URL input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_server_url"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="服务器地址 (https://...)"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_server_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri"
+                android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- API Key input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_api_key"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="API Key"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_api_key"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textVisiblePassword"
+                android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Device ID input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_device_id"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="设备标识 (如 android-self)"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_device_id"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Save Config button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save_config"
+            style="@style/Widget.LifeOS.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="保存配置"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💵 成本参数"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="理想时薪（元/小时）"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ideal_hourly_yuan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- AI config section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🤖 AI 解析 API"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI Provider (custom / deepseek / siliconflow)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/et_ai_provider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI Base URL (OpenAI 兼容，如 https://api.openai.com)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ai_base_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri"
+                android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI API Key"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ai_api_key"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textVisiblePassword"
+                android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI Model (如 gpt-4o-mini / deepseek-chat)"
+            android:layout_marginBottom="14dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ai_model"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="AI System Prompt（可自定义）"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_ai_system_prompt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="4"
+                android:maxLines="6"
+                android:paddingTop="16dp"
+                android:inputType="textMultiLine"
+                android:gravity="top|start"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_test_ai"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:strokeColor="@color/lifePurple"
+                android:textColor="@color/lifePurple"
+                android:text="测试连接 (Ping)"/>
+            <TextView
+                android:id="@+id/tv_ai_test_result"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp"
+                android:text=""/>
+        </LinearLayout>
+
+        <!-- Action buttons -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_upload_backup"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="⬆ 上传最新备份"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_list_backups"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="📋 列出远端备份"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Restore section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔄 恢复备份"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Download filename input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_download_filename"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="文件名（从列表中复制）"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_download_filename"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_download_restore"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="⬇ 下载并恢复"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Status card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/glassCardBg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="状态日志"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="6dp"/>
+                <TextView
+                    android:id="@+id/tv_cloud_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="就绪"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp"/>
+                <TextView
+                    android:id="@+id/tv_remote_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="标签管理"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="标签名称"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_tag_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:hint="emoji">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_tag_emoji"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:hint="scope">
+                <AutoCompleteTextView
+                    android:id="@+id/et_tag_scope"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_create_tag"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="创建标签"
+            android:layout_marginBottom="10dp"/>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/glassCardBg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp">
+
+            <TextView
+                android:id="@+id/tv_tag_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:textColor="@color/textPrimary"
+                android:textSize="13sp"
+                android:text="标签加载中..."/>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>

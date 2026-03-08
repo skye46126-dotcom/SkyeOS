@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
 import com.example.skyeos.data.db.LifeOsDatabase;
 import com.example.skyeos.domain.model.MetricSnapshotSummary;
 import com.example.skyeos.domain.repository.LifeOsMetricsRepository;
@@ -21,44 +22,54 @@ import java.util.UUID;
 public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsRepository {
     private static final Set<String> WINDOW_TYPES = Set.of("day", "week", "month", "year");
     private final LifeOsDatabase database;
+    private final CurrentUserContext userContext;
 
-    public SQLiteLifeOsMetricsRepository(LifeOsDatabase database) {
+    public SQLiteLifeOsMetricsRepository(LifeOsDatabase database, CurrentUserContext userContext) {
         this.database = database;
+        this.userContext = userContext;
     }
 
     @Override
     public MetricSnapshotSummary recomputeSnapshot(String snapshotDate, String windowType) {
         String date = normalizeDate(snapshotDate);
         String window = normalizeWindow(windowType);
+        String userId = userContext.requireCurrentUserId();
         String timezone = queryTimezone();
         WindowRange range = WindowRange.from(date, window, timezone);
 
         long totalIncome = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId,
                 range.startDate,
                 range.endDate
         );
         long totalExpense = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM expense WHERE is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId,
                 range.startDate,
                 range.endDate
         );
         long passiveIncome = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE is_deleted = 0 AND is_passive = 1 AND occurred_on >= ? AND occurred_on <= ?",
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND is_passive = 1 AND occurred_on >= ? AND occurred_on <= ?",
+                userId,
                 range.startDate,
                 range.endDate
         );
         long necessaryExpense = scalarLong(
-                "SELECT COALESCE(SUM(amount_cents), 0) FROM expense WHERE is_deleted = 0 AND category = 'necessary' AND occurred_on >= ? AND occurred_on <= ?",
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'necessary' AND occurred_on >= ? AND occurred_on <= ?",
+                userId,
                 range.startDate,
                 range.endDate
         );
         long totalWorkMinutes = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId,
                 range.startAtUtc,
                 range.endAtUtcExclusive
         );
-        long idealHourlyRate = scalarLong("SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM user_profile LIMIT 1");
+        long idealHourlyRate = scalarLong(
+                "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
+                userId);
 
         Long hourlyRate = totalWorkMinutes > 0 ? (totalIncome * 60) / totalWorkMinutes : null;
         Long timeDebt = hourlyRate == null ? null : (idealHourlyRate - hourlyRate);
@@ -70,6 +81,7 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         SQLiteDatabase db = database.writableDb();
         ContentValues values = new ContentValues();
         values.put("id", id);
+        values.put("owner_user_id", userId);
         values.put("snapshot_date", date);
         values.put("window_type", window);
         if (hourlyRate != null) {
@@ -95,11 +107,12 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
     public MetricSnapshotSummary getSnapshot(String snapshotDate, String windowType) {
         String date = normalizeDate(snapshotDate);
         String window = normalizeWindow(windowType);
+        String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery(
                 "SELECT id,snapshot_date,window_type,hourly_rate_cents,time_debt_cents,passive_cover_ratio,freedom_cents,total_income_cents,total_expense_cents,total_work_minutes,generated_at " +
-                        "FROM metric_snapshot WHERE snapshot_date = ? AND window_type = ? LIMIT 1",
-                new String[]{date, window}
+                        "FROM metric_snapshot WHERE owner_user_id = ? AND snapshot_date = ? AND window_type = ? LIMIT 1",
+                new String[]{userId, date, window}
         )) {
             if (!cursor.moveToFirst()) {
                 return null;
@@ -111,11 +124,12 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
     @Override
     public MetricSnapshotSummary getLatestSnapshot(String windowType) {
         String window = normalizeWindow(windowType);
+        String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery(
                 "SELECT id,snapshot_date,window_type,hourly_rate_cents,time_debt_cents,passive_cover_ratio,freedom_cents,total_income_cents,total_expense_cents,total_work_minutes,generated_at " +
-                        "FROM metric_snapshot WHERE window_type = ? ORDER BY snapshot_date DESC LIMIT 1",
-                new String[]{window}
+                        "FROM metric_snapshot WHERE owner_user_id = ? AND window_type = ? ORDER BY snapshot_date DESC LIMIT 1",
+                new String[]{userId, window}
         )) {
             if (!cursor.moveToFirst()) {
                 return null;
@@ -124,9 +138,39 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         }
     }
 
+    @Override
+    public long getIdealHourlyRateCents() {
+        return scalarLong(
+                "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
+                userContext.requireCurrentUserId());
+    }
+
+    @Override
+    public void setIdealHourlyRateCents(long cents) {
+        long value = Math.max(0L, cents);
+        SQLiteDatabase db = database.writableDb();
+        ContentValues values = new ContentValues();
+        values.put("ideal_hourly_rate_cents", value);
+        values.put("updated_at", Instant.now().toString());
+        String userId = userContext.requireCurrentUserId();
+        int updated = db.update("users", values, "id = ?", new String[] { userId });
+        if (updated <= 0) {
+            values.put("id", userId);
+            values.put("username", "owner");
+            values.put("display_name", "Owner");
+            values.put("password_hash", "__SET_ME__");
+            values.put("status", "active");
+            values.put("timezone", "Asia/Shanghai");
+            values.put("currency_code", "CNY");
+            values.put("created_at", Instant.now().toString());
+            db.insertWithOnConflict("users", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        }
+    }
+
     private String queryTimezone() {
         SQLiteDatabase db = database.readableDb();
-        try (Cursor cursor = db.rawQuery("SELECT timezone FROM user_profile LIMIT 1", null)) {
+        try (Cursor cursor = db.rawQuery("SELECT timezone FROM users WHERE id = ? LIMIT 1",
+                new String[] { userContext.requireCurrentUserId() })) {
             if (cursor.moveToFirst()) {
                 String value = cursor.getString(0);
                 if (!TextUtils.isEmpty(value)) {
@@ -227,4 +271,3 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         }
     }
 }
-

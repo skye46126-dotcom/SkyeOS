@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand -->
+    <color name="lifeBlue">#2563EB</color>
+    <color name="lifeBlueLight">#3B82F6</color>
+    <color name="lifeBlueDark">#1D4ED8</color>
+
+    <!-- Accent -->
+    <color name="lifePurple">#7C3AED</color>
+    <color name="lifePurpleLight">#8B5CF6</color>
+    
+    <color name="lifeRed">#EF4444</color>
+
+    <!-- Background Gradient (use via code or vector drawable) -->
+    <color name="bgGradientStart">#EFF6FF</color>
+    <color name="bgGradientEnd">#F5F3FF</color>
+
+    <!-- Glass Cards -->
+    <color name="glassCardBg">#CCFFFFFF</color>
+    <color name="glassCardBorder">#33FFFFFF</color>
+
+    <!-- Category Colors -->
+    <color name="catTime">#3B82F6</color>
+    <color name="catIncome">#10B981</color>
+    <color name="catExpense">#F59E0B</color>
+    <color name="catLearning">#8B5CF6</color>
+    <color name="catProject">#EF4444</color>
+    <color name="catSocial">#EC4899</color>
+
+    <!-- Text -->
+    <color name="textPrimary">#1E293B</color>
+    <color name="textSecondary">#64748B</color>
+    <color name="textHint">#94A3B8</color>
+    <color name="textOnBlue">#FFFFFF</color>
+
+    <!-- Surface -->
+    <color name="surfaceWhite">#FFFFFF</color>
+    <color name="surfaceLight">#F8FAFC</color>
+    <color name="divider">#E2E8F0</color>
+
+    <!-- Status -->
+    <color name="statusPositive">#10B981</color>
+    <color name="statusNegative">#EF4444</color>
+    <color name="statusWarning">#F59E0B</color>
+</resources>

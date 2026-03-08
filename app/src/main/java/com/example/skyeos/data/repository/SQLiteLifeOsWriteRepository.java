@@ -2,8 +2,10 @@ package com.example.skyeos.data.repository;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.Cursor;
 import android.text.TextUtils;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
 import com.example.skyeos.data.db.LifeOsDatabase;
 import com.example.skyeos.domain.model.ProjectAllocation;
 import com.example.skyeos.domain.model.input.CreateExpenseInput;
@@ -24,15 +26,20 @@ import java.util.UUID;
 
 public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository {
     private static final Set<String> PROJECT_STATUS = setOf("active", "paused", "done");
-    private static final Set<String> TIME_CATEGORY = setOf("work", "learning", "life", "entertainment", "rest", "social");
+    private static final Set<String> TIME_CATEGORY = setOf("work", "learning", "life", "entertainment", "rest",
+            "social");
     private static final Set<String> INCOME_TYPE = setOf("salary", "project", "investment", "system", "other");
     private static final Set<String> EXPENSE_CATEGORY = setOf("necessary", "experience", "subscription", "investment");
     private static final Set<String> LEARNING_LEVEL = setOf("input", "applied", "result");
+    private static final Set<String> TAG_SCOPE = setOf("global", "time", "project", "income", "expense", "learning",
+            "investment");
 
     private final LifeOsDatabase database;
+    private final CurrentUserContext userContext;
 
-    public SQLiteLifeOsWriteRepository(LifeOsDatabase database) {
+    public SQLiteLifeOsWriteRepository(LifeOsDatabase database, CurrentUserContext userContext) {
         this.database = database;
+        this.userContext = userContext;
     }
 
     @Override
@@ -48,23 +55,51 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             throw new IllegalArgumentException("project.score must be 1-10");
         }
 
+        List<String> tagIds = safeList(input.tagIds);
         String id = randomId();
         String now = nowIso();
-        ContentValues values = new ContentValues();
-        values.put("id", id);
-        values.put("name", input.name.trim());
-        values.put("status", status);
-        values.put("started_on", input.startedOn.trim());
-        if (input.aiEnableRatio != null) {
-            values.put("ai_enable_ratio", input.aiEnableRatio);
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("id", id);
+            values.put("name", input.name.trim());
+            values.put("status", status);
+            values.put("started_on", input.startedOn.trim());
+            if (input.aiEnableRatio != null) {
+                values.put("ai_enable_ratio", input.aiEnableRatio);
+            }
+            if (input.score != null) {
+                values.put("score", input.score);
+            }
+            values.put("note", nullSafe(input.note));
+            values.put("owner_user_id", userId);
+            values.put("created_at", now);
+            values.put("updated_at", now);
+            db.insertOrThrow("project", null, values);
+
+            ContentValues ownerMember = new ContentValues();
+            ownerMember.put("project_id", id);
+            ownerMember.put("user_id", userId);
+            ownerMember.put("role", "owner");
+            ownerMember.put("created_at", now);
+            db.insertWithOnConflict("project_member", null, ownerMember, SQLiteDatabase.CONFLICT_IGNORE);
+
+            for (String tagId : tagIds) {
+                if (TextUtils.isEmpty(tagId)) {
+                    continue;
+                }
+                ContentValues item = new ContentValues();
+                item.put("project_id", id);
+                item.put("tag_id", tagId.trim());
+                item.put("created_at", now);
+                db.insertOrThrow("project_tag", null, item);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
-        if (input.score != null) {
-            values.put("score", input.score);
-        }
-        values.put("note", nullSafe(input.note));
-        values.put("created_at", now);
-        values.put("updated_at", now);
-        insert("project", values);
         return id;
     }
 
@@ -82,6 +117,8 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
         List<String> tagIds = safeList(input.tagIds);
         boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        validateProjectAccess(database.readableDb(), allocations, userId, "timeLog.projectAllocations");
 
         String id = randomId();
         String now = nowIso();
@@ -103,6 +140,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("is_public_pool", toInt(isPublicPool));
+            values.put("owner_user_id", userId);
             values.put("created_at", now);
             values.put("updated_at", now);
             db.insertOrThrow("time_log", null, values);
@@ -146,7 +184,10 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         validateAllocations(input.projectAllocations, "income.projectAllocations");
 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
+        List<String> tagIds = safeList(input.tagIds);
         boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        validateProjectAccess(database.readableDb(), allocations, userId, "income.projectAllocations");
         String id = randomId();
         String now = nowIso();
         SQLiteDatabase db = database.writableDb();
@@ -162,6 +203,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("is_public_pool", toInt(isPublicPool));
+            values.put("owner_user_id", userId);
             values.put("created_at", now);
             values.put("updated_at", now);
             db.insertOrThrow("income", null, values);
@@ -173,6 +215,17 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
                 item.put("weight_ratio", allocation.weightRatio);
                 item.put("created_at", now);
                 db.insertOrThrow("income_project", null, item);
+            }
+
+            for (String tagId : tagIds) {
+                if (TextUtils.isEmpty(tagId)) {
+                    continue;
+                }
+                ContentValues item = new ContentValues();
+                item.put("income_id", id);
+                item.put("tag_id", tagId.trim());
+                item.put("created_at", now);
+                db.insertOrThrow("income_tag", null, item);
             }
 
             db.setTransactionSuccessful();
@@ -191,18 +244,38 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             throw new IllegalArgumentException("expense.amountCents must be >= 0");
         }
 
+        List<String> tagIds = safeList(input.tagIds);
+        String userId = userContext.requireCurrentUserId();
         String id = randomId();
         String now = nowIso();
-        ContentValues values = new ContentValues();
-        values.put("id", id);
-        values.put("occurred_on", input.occurredOn.trim());
-        values.put("category", category);
-        values.put("amount_cents", input.amountCents);
-        values.put("note", nullSafe(input.note));
-        values.put("source", "manual");
-        values.put("created_at", now);
-        values.put("updated_at", now);
-        insert("expense", values);
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("id", id);
+            values.put("occurred_on", input.occurredOn.trim());
+            values.put("category", category);
+            values.put("amount_cents", input.amountCents);
+            values.put("note", nullSafe(input.note));
+            values.put("source", "manual");
+            values.put("owner_user_id", userId);
+            values.put("created_at", now);
+            values.put("updated_at", now);
+            db.insertOrThrow("expense", null, values);
+            for (String tagId : tagIds) {
+                if (TextUtils.isEmpty(tagId)) {
+                    continue;
+                }
+                ContentValues item = new ContentValues();
+                item.put("expense_id", id);
+                item.put("tag_id", tagId.trim());
+                item.put("created_at", now);
+                db.insertOrThrow("expense_tag", null, item);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
         return id;
     }
 
@@ -220,6 +293,8 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
         List<String> tagIds = safeList(input.tagIds);
         boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        validateProjectAccess(database.readableDb(), allocations, userId, "learning.projectAllocations");
         String id = randomId();
         String now = nowIso();
         SQLiteDatabase db = database.writableDb();
@@ -234,6 +309,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("note", nullSafe(input.note));
             values.put("source", "manual");
             values.put("is_public_pool", toInt(isPublicPool));
+            values.put("owner_user_id", userId);
             values.put("created_at", now);
             values.put("updated_at", now);
             db.insertOrThrow("learning_record", null, values);
@@ -263,6 +339,58 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         } finally {
             db.endTransaction();
         }
+    }
+
+    @Override
+    public String createTag(String name, String emoji, String tagGroup, String scope) {
+        requireNotBlank(name, "tag.name");
+        String normalizedScope = normalizeOrDefault(scope, "global");
+        requireContains(TAG_SCOPE, normalizedScope, "tag.scope");
+        String id = randomId();
+        String now = nowIso();
+        String userId = userContext.requireCurrentUserId();
+        ContentValues values = new ContentValues();
+        values.put("id", id);
+        values.put("name", name.trim());
+        values.put("emoji", nullSafe(emoji));
+        values.put("tag_group", TextUtils.isEmpty(tagGroup) ? "custom" : tagGroup.trim().toLowerCase());
+        values.put("scope", normalizedScope);
+        values.put("sort_order", 0);
+        values.put("is_system", 0);
+        values.put("is_active", 1);
+        values.put("owner_user_id", userId);
+        values.put("created_at", now);
+        values.put("updated_at", now);
+        insert("tag", values);
+        return id;
+    }
+
+    @Override
+    public void updateProject(String projectId, String status, int score, String note, String endedOn) {
+        if (TextUtils.isEmpty(projectId))
+            return;
+
+        ContentValues values = new ContentValues();
+        if (!TextUtils.isEmpty(status)) {
+            requireContains(PROJECT_STATUS, status, "project.status");
+            values.put("status", status);
+        }
+        if (score >= 1 && score <= 10) {
+            values.put("score", score);
+        }
+        if (note != null) {
+            values.put("note", note.trim());
+        }
+        if (!TextUtils.isEmpty(endedOn)) {
+            values.put("ended_on", endedOn.trim());
+        }
+        values.put("updated_at", nowIso());
+        String userId = userContext.requireCurrentUserId();
+        database.writableDb().update(
+                "project",
+                values,
+                "id = ? AND is_deleted = 0 AND (owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = project.id AND pm.user_id = ?))",
+                new String[] { projectId, userId, userId });
     }
 
     private void insert(String table, ContentValues values) {
@@ -323,6 +451,26 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             }
             if (allocation.weightRatio <= 0) {
                 throw new IllegalArgumentException(field + ".weightRatio must be > 0");
+            }
+        }
+    }
+
+    private static void validateProjectAccess(SQLiteDatabase db, List<ProjectAllocation> allocations, String userId, String field) {
+        if (allocations == null || allocations.isEmpty()) {
+            return;
+        }
+        for (ProjectAllocation allocation : allocations) {
+            if (allocation == null || TextUtils.isEmpty(allocation.projectId)) {
+                continue;
+            }
+            String projectId = allocation.projectId.trim();
+            try (Cursor cursor = db.rawQuery(
+                    "SELECT 1 FROM project p WHERE p.id = ? AND p.is_deleted = 0 " +
+                            "AND (p.owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = p.id AND pm.user_id = ?)) LIMIT 1",
+                    new String[] { projectId, userId, userId })) {
+                if (!cursor.moveToFirst()) {
+                    throw new IllegalArgumentException(field + " contains inaccessible projectId: " + projectId);
+                }
             }
         }
     }

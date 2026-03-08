@@ -7,6 +7,7 @@ public final class CreateProjectInput {
     public final Integer aiEnableRatio;
     public final Integer score;
     public final String note;
+    public final java.util.List<String> tagIds;
 
     public CreateProjectInput(
             String name,
@@ -14,7 +15,8 @@ public final class CreateProjectInput {
             String status,
             Integer aiEnableRatio,
             Integer score,
-            String note
+            String note,
+            java.util.List<String> tagIds
     ) {
         this.name = name;
         this.startedOn = startedOn;
@@ -22,6 +24,6 @@ public final class CreateProjectInput {
         this.aiEnableRatio = aiEnableRatio;
         this.score = score;
         this.note = note;
+        this.tagIds = tagIds;
     }
 }
-

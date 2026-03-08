@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Review icon - bar chart -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M5,9.2H3V19H5V9.2ZM11,3H9V19H11V3ZM17,13H15V19H17V13ZM19.5,21H2.5V23H19.5V21ZM23,19H21V7H23V19Z" />
+</vector>

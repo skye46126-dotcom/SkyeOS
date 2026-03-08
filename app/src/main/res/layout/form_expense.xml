@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Manual: Expense form -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <!-- Amount -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_expense_amount"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="金额（元）"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_expense_amount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Category -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_expense_cat"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="分类"
+            android:layout_marginBottom="10dp">
+            <AutoCompleteTextView
+                android:id="@+id/acv_expense_cat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Note -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_expense_note"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="备注"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_expense_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="标签（可多选）"
+            android:textSize="13sp"
+            android:textColor="@color/textSecondary"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_tags_expense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:singleSelection="false"/>
+
+        <!-- Submit -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_submit_expense"
+            style="@style/Widget.LifeOS.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="记录支出"/>
+
+    </LinearLayout>
+</ScrollView>

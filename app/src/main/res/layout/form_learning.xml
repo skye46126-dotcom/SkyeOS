@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Manual: Learning form -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <!-- Content -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_learning_content"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="学习内容"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_learning_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Duration in minutes -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_learning_duration"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="时长（分钟）"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_learning_duration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Level -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_learning_level"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="学习等级"
+            android:layout_marginBottom="10dp">
+            <AutoCompleteTextView
+                android:id="@+id/acv_learning_level"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Project Allocation -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_learning_project"
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="相关项目（可选）"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_learning_project"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_projects_learning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            app:singleSelection="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="标签（可多选）"
+            android:textSize="13sp"
+            android:textColor="@color/textSecondary"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_tags_learning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:singleSelection="false"/>
+
+        <!-- Submit -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_submit_learning"
+            style="@style/Widget.LifeOS.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="记录学习"/>
+
+    </LinearLayout>
+</ScrollView>

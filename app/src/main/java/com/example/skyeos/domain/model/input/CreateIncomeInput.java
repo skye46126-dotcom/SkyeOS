@@ -12,6 +12,7 @@ public final class CreateIncomeInput {
     public final boolean isPassive;
     public final String note;
     public final List<ProjectAllocation> projectAllocations;
+    public final List<String> tagIds;
 
     public CreateIncomeInput(
             String occurredOn,
@@ -20,7 +21,8 @@ public final class CreateIncomeInput {
             long amountCents,
             boolean isPassive,
             String note,
-            List<ProjectAllocation> projectAllocations
+            List<ProjectAllocation> projectAllocations,
+            List<String> tagIds
     ) {
         this.occurredOn = occurredOn;
         this.sourceName = sourceName;
@@ -29,6 +31,6 @@ public final class CreateIncomeInput {
         this.isPassive = isPassive;
         this.note = note;
         this.projectAllocations = projectAllocations;
+        this.tagIds = tagIds;
     }
 }
-

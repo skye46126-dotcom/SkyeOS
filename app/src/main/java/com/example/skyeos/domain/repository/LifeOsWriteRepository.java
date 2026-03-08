@@ -16,5 +16,8 @@ public interface LifeOsWriteRepository {
     String createExpense(CreateExpenseInput input);
 
     String createLearning(CreateLearningInput input);
-}
 
+    String createTag(String name, String emoji, String tagGroup, String scope);
+
+    void updateProject(String projectId, String status, int score, String note, String endedOn);
+}

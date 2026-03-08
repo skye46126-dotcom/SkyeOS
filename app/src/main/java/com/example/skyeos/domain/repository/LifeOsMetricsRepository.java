@@ -8,5 +8,8 @@ public interface LifeOsMetricsRepository {
     MetricSnapshotSummary getSnapshot(String snapshotDate, String windowType);
 
     MetricSnapshotSummary getLatestSnapshot(String windowType);
-}
 
+    long getIdealHourlyRateCents();
+
+    void setIdealHourlyRateCents(long cents);
+}
