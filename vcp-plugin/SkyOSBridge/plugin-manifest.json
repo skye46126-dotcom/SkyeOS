@@ -1,0 +1,64 @@
+{
+  "manifestVersion": "1.0.0",
+  "name": "SkyOSBridge",
+  "version": "1.0.0",
+  "displayName": "SkyOS 桥接插件",
+  "description": "通过 VCP 调用 SkyOS 后端接口，完成解析提交、查询总览、最近记录、备份上传与恢复。",
+  "author": "LifeOS",
+  "pluginType": "synchronous",
+  "entryPoint": {
+    "type": "nodejs",
+    "command": "node SkyOSBridge.js"
+  },
+  "communication": {
+    "protocol": "stdio",
+    "timeout": 30000
+  },
+  "requiresAdmin": false,
+  "configSchema": {
+    "SKYOS_BASE_URL": {
+      "type": "string",
+      "description": "SkyOS API 基础地址，例如 https://your-domain.com/skyos",
+      "default": ""
+    },
+    "SKYOS_API_KEY": {
+      "type": "string",
+      "description": "SkyOS 服务调用密钥（服务间）",
+      "default": ""
+    },
+    "SKYOS_TIMEOUT_MS": {
+      "type": "number",
+      "description": "HTTP 超时时间（毫秒）",
+      "default": 15000
+    }
+  },
+  "capabilities": {
+    "invocationCommands": [
+      {
+        "command": "SkyOSParseInput",
+        "description": "将自然语言解析为 SkyOS 草稿条目（不入库）。参数：raw_text(必需), context_date(可选, YYYY-MM-DD), parser_hint(可选: auto|vcp|rule)。"
+      },
+      {
+        "command": "SkyOSCommitEntries",
+        "description": "将草稿条目提交到 SkyOS。参数：request_id(必需), entries(必需, 数组)。"
+      },
+      {
+        "command": "SkyOSGetOverview",
+        "description": "获取 SkyOS 总览指标。参数：window(可选: day|week|month|year), date(可选, YYYY-MM-DD)。"
+      },
+      {
+        "command": "SkyOSListRecent",
+        "description": "获取 SkyOS 最近记录。参数：limit(可选, 1-200)。"
+      },
+      {
+        "command": "SkyOSBackupUpload",
+        "description": "触发 SkyOS 备份上传。参数：backup_type(可选, 默认 manual)。"
+      },
+      {
+        "command": "SkyOSBackupRestore",
+        "description": "触发 SkyOS 按文件名恢复。参数：filename(必需), requireAdmin(可选，当插件开启管理员保护时必需)。"
+      }
+    ]
+  }
+}
+
