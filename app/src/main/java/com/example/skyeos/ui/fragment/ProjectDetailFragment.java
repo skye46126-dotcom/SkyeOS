@@ -37,8 +37,11 @@ public class ProjectDetailFragment extends Fragment {
     private TextView tvRoi;
     private TextView tvHourly;
     private TextView tvTimeCost;
-    private TextView tvTotalCost;
-    private TextView tvProfitBreakEven;
+    private TextView tvDirectExpense;
+    private TextView tvStructuralAllocated;
+    private TextView tvOperating;
+    private TextView tvFullyLoaded;
+    private TextView tvCostMethod;
     private TextInputEditText etNote;
     private RecyclerView rvRecords;
     private MaterialButton btnMarkDone;
@@ -83,8 +86,11 @@ public class ProjectDetailFragment extends Fragment {
         tvRoi = view.findViewById(R.id.tv_detail_roi);
         tvHourly = view.findViewById(R.id.tv_detail_hourly);
         tvTimeCost = view.findViewById(R.id.tv_detail_time_cost);
-        tvTotalCost = view.findViewById(R.id.tv_detail_total_cost);
-        tvProfitBreakEven = view.findViewById(R.id.tv_detail_profit_break_even);
+        tvDirectExpense = view.findViewById(R.id.tv_detail_direct_expense);
+        tvStructuralAllocated = view.findViewById(R.id.tv_detail_structural_allocated);
+        tvOperating = view.findViewById(R.id.tv_detail_operating);
+        tvFullyLoaded = view.findViewById(R.id.tv_detail_fully_loaded);
+        tvCostMethod = view.findViewById(R.id.tv_detail_cost_method);
         etNote = view.findViewById(R.id.et_project_note);
 
         view.findViewById(R.id.btn_save_note).setOnClickListener(v -> saveNote());
@@ -122,15 +128,26 @@ public class ProjectDetailFragment extends Fragment {
         long mins = detail.totalTimeMinutes % 60;
         tvTime.setText(String.format(Locale.US, "⏱ %dh %02dm", hours, mins));
 
-        tvRoi.setText(String.format(Locale.US, "%.1f%%", detail.roiPerc));
+        tvRoi.setText(String.format(Locale.US, "Op %.1f%% | Full %.1f%%", detail.operatingRoiPerc, detail.fullyLoadedRoiPerc));
         tvHourly.setText(String.format(Locale.US, "¥%.2f / hour", detail.hourlyRateYuan));
         tvTimeCost.setText(formatYuan(detail.timeCostCents));
-        tvTotalCost.setText(formatYuan(detail.totalCostCents));
-        String profitLabel = detail.profitCents >= 0 ? "Profit" : "Loss";
-        tvProfitBreakEven.setText(String.format(Locale.US,
-                "%s %s | Break-even %s | Benchmark hourly (last-year preferred) %s/h | Ideal %s/h",
-                profitLabel, formatYuan(Math.abs(detail.profitCents)),
-                formatYuan(detail.breakEvenIncomeCents), formatYuan(detail.benchmarkHourlyRateCents),
+        tvDirectExpense.setText(formatYuan(detail.directExpenseCents));
+        tvStructuralAllocated.setText(formatYuan(detail.allocatedStructuralCostCents));
+        tvOperating.setText(buildProfitBlock(
+                detail.operatingProfitCents,
+                detail.operatingCostCents,
+                detail.operatingBreakEvenIncomeCents,
+                detail.operatingRoiPerc));
+        tvFullyLoaded.setText(buildProfitBlock(
+                detail.fullyLoadedProfitCents,
+                detail.fullyLoadedCostCents,
+                detail.fullyLoadedBreakEvenIncomeCents,
+                detail.fullyLoadedRoiPerc));
+        tvCostMethod.setText(String.format(Locale.US,
+                "Window %s → %s | Benchmark hourly %s/h | Ideal %s/h | Structural allocation by project work minutes share",
+                detail.analysisStartDate,
+                detail.analysisEndDate,
+                formatYuan(detail.benchmarkHourlyRateCents),
                 formatYuan(detail.idealHourlyRateCents)));
 
         if ("done".equals(detail.status)) {
@@ -163,10 +180,25 @@ public class ProjectDetailFragment extends Fragment {
     }
 
     private static String formatYuan(long cents) {
+        if (cents == 0L) {
+            return "--";
+        }
         if (cents % 100 == 0) {
             return String.format(Locale.US, "¥%,d", cents / 100);
         }
         return String.format(Locale.US, "¥%.2f", cents / 100.0);
+    }
+
+    private static String buildProfitBlock(long profitCents, long costCents, long breakEvenCents, double roiPerc) {
+        String label = profitCents >= 0 ? "Profit" : "Loss";
+        return String.format(
+                Locale.US,
+                "%s %s | Cost %s | Break-even %s | ROI %.1f%%",
+                label,
+                formatYuan(Math.abs(profitCents)),
+                formatYuan(costCents),
+                formatYuan(breakEvenCents),
+                roiPerc);
     }
 
     private String mapStatusLabel(String status) {

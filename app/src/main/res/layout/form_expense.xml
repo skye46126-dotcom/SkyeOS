@@ -75,6 +75,33 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Related project (optional)"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Bind project (optional)"
+            android:layout_marginBottom="10dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_expense_project"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_projects_expense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            app:singleSelection="false"/>
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Tags (multi-select)"

@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="2dp">
+    android:padding="2dp"
+    android:paddingBottom="88dp">
 
     <TextView
         android:layout_width="match_parent"
@@ -104,7 +105,11 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="🤖 Parse Draft"/>
+            android:ellipsize="end"
+            android:maxLines="1"
+            app:icon="@drawable/ic_robot"
+            app:iconGravity="textStart"
+            android:text="Parse"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_ai_commit"
@@ -113,7 +118,9 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:enabled="false"
-            android:text="✓ Commit"/>
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Commit"/>
     </LinearLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator

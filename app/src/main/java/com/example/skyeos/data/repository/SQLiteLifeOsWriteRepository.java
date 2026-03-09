@@ -18,6 +18,7 @@ import com.example.skyeos.domain.repository.LifeOsWriteRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -252,13 +253,15 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         requireNotBlank(input.occurredOn, "expense.occurredOn");
         String category = normalizeOrDefault(input.category, "necessary");
         requireContains(EXPENSE_CATEGORY, category, "expense.category");
-        if (input.amountCents < 0) {
-            throw new IllegalArgumentException("expense.amountCents must be >= 0");
+        if (input.amountCents <= 0) {
+            throw new IllegalArgumentException("expense.amountCents must be > 0");
         }
         validatePercentage(input.aiAssistRatio, "expense.aiAssistRatio");
 
+        List<ProjectAllocation> allocations = safeList(input.projectAllocations);
         List<String> tagIds = safeList(input.tagIds);
         String userId = userContext.requireCurrentUserId();
+        validateProjectAccess(database.readableDb(), allocations, userId, "expense.projectAllocations");
         String id = randomId();
         String now = nowIso();
         SQLiteDatabase db = database.writableDb();
@@ -278,6 +281,14 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
             values.put("created_at", now);
             values.put("updated_at", now);
             db.insertOrThrow("expense", null, values);
+            for (ProjectAllocation allocation : allocations) {
+                ContentValues item = new ContentValues();
+                item.put("expense_id", id);
+                item.put("project_id", allocation.projectId.trim());
+                item.put("weight_ratio", allocation.weightRatio);
+                item.put("created_at", now);
+                db.insertOrThrow("expense_project", null, item);
+            }
             for (String tagId : tagIds) {
                 if (TextUtils.isEmpty(tagId)) {
                     continue;
@@ -301,8 +312,24 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         requireNotBlank(input.content, "learning.content");
         String level = normalizeOrDefault(input.applicationLevel, "input");
         requireContains(LEARNING_LEVEL, level, "learning.applicationLevel");
-        if (input.durationMinutes < 0) {
-            throw new IllegalArgumentException("learning.durationMinutes must be >= 0");
+        String startedAt = trimmedOrNull(input.startedAt);
+        String endedAt = trimmedOrNull(input.endedAt);
+        int durationMinutes = input.durationMinutes;
+        String occurredOn = input.occurredOn.trim();
+        if (!TextUtils.isEmpty(startedAt) || !TextUtils.isEmpty(endedAt)) {
+            if (TextUtils.isEmpty(startedAt) || TextUtils.isEmpty(endedAt)) {
+                throw new IllegalArgumentException("learning.startedAt and learning.endedAt must both be provided");
+            }
+            Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
+            Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
+            if (!endInstant.isAfter(startInstant)) {
+                throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
+            }
+            durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
+            occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
+        }
+        if (durationMinutes <= 0) {
+            throw new IllegalArgumentException("learning.durationMinutes must be > 0");
         }
         validateScore(input.efficiencyScore, "learning.efficiencyScore");
         validatePercentage(input.aiAssistRatio, "learning.aiAssistRatio");
@@ -320,9 +347,15 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         try {
             ContentValues values = new ContentValues();
             values.put("id", id);
-            values.put("occurred_on", input.occurredOn.trim());
+            values.put("occurred_on", occurredOn);
+            if (!TextUtils.isEmpty(startedAt)) {
+                values.put("started_at", startedAt);
+            }
+            if (!TextUtils.isEmpty(endedAt)) {
+                values.put("ended_at", endedAt);
+            }
             values.put("content", input.content.trim());
-            values.put("duration_minutes", input.durationMinutes);
+            values.put("duration_minutes", durationMinutes);
             if (input.efficiencyScore != null) {
                 values.put("efficiency_score", input.efficiencyScore);
             }
@@ -441,6 +474,35 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
 
     private static String nullSafe(String value) {
         return TextUtils.isEmpty(value) ? null : value.trim();
+    }
+
+    private static String trimmedOrNull(String value) {
+        return TextUtils.isEmpty(value) ? null : value.trim();
+    }
+
+    private static Instant parseInstantStrict(String value, String fieldName) {
+        try {
+            return Instant.parse(value);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(fieldName + " must be ISO-8601 UTC instant");
+        }
+    }
+
+    private ZoneId resolveZoneId() {
+        String timezone = "Asia/Shanghai";
+        try (Cursor cursor = database.readableDb().rawQuery(
+                "SELECT COALESCE(timezone, 'Asia/Shanghai') FROM users WHERE id = ? LIMIT 1",
+                new String[] { userContext.requireCurrentUserId() })) {
+            if (cursor.moveToFirst() && !cursor.isNull(0) && !TextUtils.isEmpty(cursor.getString(0))) {
+                timezone = cursor.getString(0);
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            return ZoneId.of(timezone);
+        } catch (Exception ignored) {
+            return ZoneId.of("Asia/Shanghai");
+        }
     }
 
     private static String normalizeOrDefault(String value, String fallback) {

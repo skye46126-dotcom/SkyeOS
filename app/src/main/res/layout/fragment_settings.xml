@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,7 +13,7 @@
         android:paddingLeft="18dp"
         android:paddingRight="18dp"
         android:paddingTop="60dp"
-        android:paddingBottom="24dp">
+        android:paddingBottom="104dp">
 
         <!-- Header -->
         <TextView
@@ -27,7 +28,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Backup, sync, cost settings, and AI config"
+            android:text="Backup, sync, AI config, and tag management"
             android:textColor="@color/textSecondary"
             android:textSize="13sp"
             android:layout_marginBottom="14dp"/>
@@ -100,55 +101,20 @@
             android:layout_marginBottom="12dp"/>
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="💵 Cost Settings"
-            android:textColor="@color/textPrimary"
-            android:textSize="15sp"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ideal hourly rate (CNY/hour)"
-            android:layout_marginBottom="10dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_ideal_hourly_yuan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:imeOptions="actionDone"/>
-        </com.google.android.material.textfield.TextInputLayout>
+            android:layout_marginBottom="16dp"
+            android:text="Cost logic has moved out of Settings. Use Cost Management for ideal rate, monthly baseline, recurring costs, and capex."
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"/>
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.LifeOS.TextInputLayout"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_open_cost_management"
+            style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Basic living cost (monthly, CNY)"
-            android:layout_marginBottom="10dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_month_basic_living_yuan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:imeOptions="actionDone"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.LifeOS.TextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Fixed subscription cost (monthly, CNY)"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_month_fixed_subscription_yuan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:imeOptions="actionDone"/>
-        </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="48dp"
+            android:layout_marginBottom="20dp"
+            android:text="Open Cost Management"/>
 
         <!-- AI config section -->
         <TextView

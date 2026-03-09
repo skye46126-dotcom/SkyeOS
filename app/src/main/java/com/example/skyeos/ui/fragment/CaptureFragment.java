@@ -35,6 +35,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -76,13 +77,14 @@ public class CaptureFragment extends Fragment {
     private final List<String> selectedIncomeTagIds = new ArrayList<>();
 
     // ─── Expense form fields ───
-    private TextInputEditText etExpenseAmount, etExpenseNote, etExpenseAiRatio;
+    private TextInputEditText etExpenseAmount, etExpenseNote, etExpenseAiRatio, etExpenseProject;
     private AutoCompleteTextView acvExpenseCat;
-    private ChipGroup chipTagsExpense;
+    private ChipGroup chipProjectsExpense, chipTagsExpense;
     private final List<String> selectedExpenseTagIds = new ArrayList<>();
 
     // ─── Learning form fields ───
-    private TextInputEditText etLearningContent, etLearningDuration, etLearningProject, etLearningAiRatio;
+    private TextInputEditText etLearningDate, etLearningStart, etLearningEnd, etLearningContent, etLearningDuration,
+            etLearningProject, etLearningAiRatio, etLearningNote;
     private TextInputEditText etLearningEfficiencyScore;
     private AutoCompleteTextView acvLearningLevel;
     private ChipGroup chipProjectsLearning, chipTagsLearning;
@@ -245,15 +247,15 @@ public class CaptureFragment extends Fragment {
         buildTagChips("time", chipTagsTime, selectedTimeTagIds);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_time);
-        btnSubmit.setOnClickListener(x -> submitTimeLog(catVals));
+        btnSubmit.setOnClickListener(x -> submitTimeLog(cats, catVals));
     }
 
-    private void submitTimeLog(String[] catVals) {
+    private void submitTimeLog(String[] catLabels, String[] catVals) {
         try {
             String startStr = text(etTimeStart);
             String endStr = text(etTimeEnd);
             String catLabel = text(acvTimeCategory);
-            String catVal = mapCategoryValue(catLabel, catVals);
+            String catVal = mapCategoryValue(catLabel, catLabels, catVals);
             String note = text(etTimeNote);
             String allocStr = text(etTimeProject);
             Integer efficiencyScore = parseOptionalScore(text(etTimeEfficiencyScore));
@@ -302,15 +304,15 @@ public class CaptureFragment extends Fragment {
         buildTagChips("income", chipTagsIncome, selectedIncomeTagIds);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_income);
-        btnSubmit.setOnClickListener(x -> submitIncome(incomeVals));
+        btnSubmit.setOnClickListener(x -> submitIncome(incomeLabels, incomeVals));
     }
 
-    private void submitIncome(String[] typeVals) {
+    private void submitIncome(String[] typeLabels, String[] typeVals) {
         try {
             String amountStr = text(etIncomeAmount);
             long amountCents = yuanToCents(amountStr);
             String typeLabel = text(acvIncomeType);
-            String typeVal = mapCategoryValue(typeLabel, typeVals);
+            String typeVal = mapCategoryValue(typeLabel, typeLabels, typeVals);
             String source = text(etIncomeSource);
             String alloc = text(etIncomeProject);
             Integer aiRatio = parseOptionalPercentage(text(etIncomeAiRatio));
@@ -344,24 +346,31 @@ public class CaptureFragment extends Fragment {
         etExpenseAmount = v.findViewById(R.id.et_expense_amount);
         etExpenseNote = v.findViewById(R.id.et_expense_note);
         etExpenseAiRatio = v.findViewById(R.id.et_expense_ai_ratio);
+        etExpenseProject = v.findViewById(R.id.et_expense_project);
         acvExpenseCat = v.findViewById(R.id.acv_expense_cat);
+        chipProjectsExpense = v.findViewById(R.id.chip_group_projects_expense);
         chipTagsExpense = v.findViewById(R.id.chip_group_tags_expense);
 
         String[] expenseLabels = { "Essential", "Experience", "Subscription", "Investment" };
         String[] expenseVals = { "necessary", "experience", "subscription", "investment" };
         setupDropdown(acvExpenseCat, expenseLabels);
+        buildProjectChips(chipProjectsExpense, etExpenseProject);
         buildTagChips("expense", chipTagsExpense, selectedExpenseTagIds);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_expense);
-        btnSubmit.setOnClickListener(x -> submitExpense(expenseVals));
+        btnSubmit.setOnClickListener(x -> submitExpense(expenseLabels, expenseVals));
     }
 
-    private void submitExpense(String[] catVals) {
+    private void submitExpense(String[] catLabels, String[] catVals) {
         try {
             long amountCents = yuanToCents(text(etExpenseAmount));
+            if (amountCents <= 0) {
+                throw new IllegalArgumentException("Please enter an expense amount greater than 0");
+            }
             String catLabel = text(acvExpenseCat);
-            String catVal = mapCategoryValue(catLabel, catVals);
+            String catVal = mapCategoryValue(catLabel, catLabels, catVals);
             String note = text(etExpenseNote);
+            String alloc = text(etExpenseProject);
             Integer aiRatio = parseOptionalPercentage(text(etExpenseAiRatio));
 
             graph.useCases.createExpense.execute(new CreateExpenseInput(
@@ -370,11 +379,13 @@ public class CaptureFragment extends Fragment {
                     amountCents,
                     aiRatio,
                     note,
+                    FormParsers.parseAllocations(alloc),
                     new ArrayList<>(selectedExpenseTagIds)));
             snack("✓ Expense saved");
             etExpenseAmount.setText("");
             etExpenseNote.setText("");
             etExpenseAiRatio.setText("");
+            etExpenseProject.setText("");
             selectedExpenseTagIds.clear();
             if (chipTagsExpense != null) {
                 chipTagsExpense.clearCheck();
@@ -387,14 +398,23 @@ public class CaptureFragment extends Fragment {
     // ── Learning form ───────────────────────────
 
     private void bindLearningForm(View v) {
+        etLearningDate = v.findViewById(R.id.et_learning_date);
+        etLearningStart = v.findViewById(R.id.et_learning_start);
+        etLearningEnd = v.findViewById(R.id.et_learning_end);
         etLearningContent = v.findViewById(R.id.et_learning_content);
         etLearningDuration = v.findViewById(R.id.et_learning_duration);
         etLearningProject = v.findViewById(R.id.et_learning_project);
         etLearningAiRatio = v.findViewById(R.id.et_learning_ai_ratio);
+        etLearningNote = v.findViewById(R.id.et_learning_note);
         etLearningEfficiencyScore = v.findViewById(R.id.et_learning_efficiency_score);
         acvLearningLevel = v.findViewById(R.id.acv_learning_level);
         chipProjectsLearning = v.findViewById(R.id.chip_group_projects_learning);
         chipTagsLearning = v.findViewById(R.id.chip_group_tags_learning);
+
+        etLearningDate.setText(LocalDate.now().format(DATE_FMT));
+        etLearningDate.setOnClickListener(x -> pickDate(etLearningDate));
+        etLearningStart.setOnClickListener(x -> pickDateTime(etLearningStart));
+        etLearningEnd.setOnClickListener(x -> pickDateTime(etLearningEnd));
 
         String[] levelLabels = { "Input learning", "Applied learning", "Result learning" };
         String[] levelVals = { "input", "applied", "result" };
@@ -403,35 +423,45 @@ public class CaptureFragment extends Fragment {
         buildTagChips("learning", chipTagsLearning, selectedLearningTagIds);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_learning);
-        btnSubmit.setOnClickListener(x -> submitLearning(levelVals));
+        btnSubmit.setOnClickListener(x -> submitLearning(levelLabels, levelVals));
     }
 
-    private void submitLearning(String[] levelVals) {
+    private void submitLearning(String[] levelLabels, String[] levelVals) {
         try {
+            String occurredOn = text(etLearningDate);
+            String startedAt = learningDateTimeOrNull(etLearningStart);
+            String endedAt = learningDateTimeOrNull(etLearningEnd);
             String content = text(etLearningContent);
-            int duration = FormParsers.parseInt(text(etLearningDuration), 60);
+            int duration = resolveLearningDurationMinutes(startedAt, endedAt, text(etLearningDuration));
             String lvlLabel = text(acvLearningLevel);
-            String lvlVal = mapCategoryValue(lvlLabel, levelVals);
+            String lvlVal = mapCategoryValue(lvlLabel, levelLabels, levelVals);
             String alloc = text(etLearningProject);
             Integer efficiencyScore = parseOptionalScore(text(etLearningEfficiencyScore));
             Integer aiRatio = parseOptionalPercentage(text(etLearningAiRatio));
+            String note = text(etLearningNote);
 
             graph.useCases.createLearning.execute(new CreateLearningInput(
-                    LocalDate.now().format(DATE_FMT),
+                    occurredOn,
+                    startedAt,
+                    endedAt,
                     content,
                     duration,
                     efficiencyScore,
                     lvlVal,
                     aiRatio,
-                    "manual capture",
+                    note,
                     FormParsers.parseAllocations(alloc),
                     new ArrayList<>(selectedLearningTagIds)));
             snack("✓ Learning record saved");
+            etLearningDate.setText(LocalDate.now().format(DATE_FMT));
+            etLearningStart.setText("");
+            etLearningEnd.setText("");
             etLearningContent.setText("");
             etLearningDuration.setText("");
             etLearningProject.setText("");
             etLearningEfficiencyScore.setText("");
             etLearningAiRatio.setText("");
+            etLearningNote.setText("");
             selectedLearningTagIds.clear();
             if (chipTagsLearning != null) {
                 chipTagsLearning.clearCheck();
@@ -615,19 +645,24 @@ public class CaptureFragment extends Fragment {
                         toCents(valueOr(p, "amount", "0")),
                         expenseAiRatio,
                         valueOr(p, "note", "ai capture"),
+                        null,
                         null));
                 break;
             case "learning":
                 Integer learningAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 Integer learningEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
+                String learningStartAt = valueOr(p, "start_hour", "").isEmpty() ? null : buildAiStartAt(p, contextDate);
+                String learningEndAt = valueOr(p, "end_hour", "").isEmpty() ? null : buildAiEndAt(p, contextDate);
                 graph.useCases.createLearning.execute(new CreateLearningInput(
                         contextDate,
+                        learningStartAt,
+                        learningEndAt,
                         valueOr(p, "content", "Learning"),
                         FormParsers.parseInt(valueOr(p, "duration_minutes", "60"), 60),
                         learningEfficiencyScore,
                         valueOr(p, "application_level", "input"),
                         learningAiRatio,
-                        "ai capture", null, null));
+                        valueOr(p, "note", "ai capture"), null, null));
                 break;
             case "time_log":
                 String startAt = buildAiStartAt(p, contextDate);
@@ -719,9 +754,21 @@ public class CaptureFragment extends Fragment {
             acv.setText(items[0], false);
     }
 
-    private String mapCategoryValue(String label, String[] vals) {
-        // vals array matches order of items passed to setupDropdown
-        return vals[0]; // default to first; for production map by index
+    private String mapCategoryValue(String label, String[] labels, String[] vals) {
+        if (vals == null || vals.length == 0) {
+            return "";
+        }
+        if (labels == null || labels.length != vals.length || label == null) {
+            return vals[0];
+        }
+        String normalized = label.trim();
+        for (int i = 0; i < labels.length; i++) {
+            String candidate = labels[i] == null ? "" : labels[i].trim();
+            if (candidate.equalsIgnoreCase(normalized)) {
+                return vals[i];
+            }
+        }
+        return vals[0];
     }
 
     private void pickDate(TextInputEditText target) {
@@ -745,6 +792,34 @@ public class CaptureFragment extends Fragment {
                 .atZone(ZoneId.of("Asia/Shanghai"))
                 .withZoneSameInstant(ZoneOffset.UTC)
                 .toInstant().toString();
+    }
+
+    private String learningDateTimeOrNull(TextInputEditText target) {
+        String value = text(target);
+        if (value.isEmpty()) {
+            return null;
+        }
+        return toUtcInstant(value);
+    }
+
+    private int resolveLearningDurationMinutes(String startedAt, String endedAt, String manualDurationText) {
+        boolean hasStart = startedAt != null && !startedAt.isEmpty();
+        boolean hasEnd = endedAt != null && !endedAt.isEmpty();
+        if (hasStart || hasEnd) {
+            if (!hasStart || !hasEnd) {
+                throw new IllegalArgumentException("Please provide both learning start and end time");
+            }
+            long minutes = Duration.between(java.time.Instant.parse(startedAt), java.time.Instant.parse(endedAt)).toMinutes();
+            if (minutes <= 0) {
+                throw new IllegalArgumentException("Learning end time must be after start time");
+            }
+            return (int) minutes;
+        }
+        int duration = FormParsers.parseInt(manualDurationText, 0);
+        if (duration <= 0) {
+            throw new IllegalArgumentException("Please enter duration or provide both start and end time");
+        }
+        return duration;
     }
 
     private String buildAiStartAt(Map<String, String> p, String contextDate) {

@@ -45,6 +45,18 @@ public final class MigrationRegistry {
                 "db/migrations/V006__efficiency_scores.sql",
                 "v006-efficiency-scores"
         ));
+        migrations.add(new MigrationSpec(
+                7,
+                "learning_timeline_fields",
+                "db/migrations/V007__learning_timeline_fields.sql",
+                "v007-learning-timeline-fields"
+        ));
+        migrations.add(new MigrationSpec(
+                8,
+                "expense_project_relation",
+                "db/migrations/V008__expense_project_relation.sql",
+                "v008-expense-project-relation"
+        ));
         return Collections.unmodifiableList(migrations);
     }
 }

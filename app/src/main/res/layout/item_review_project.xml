@@ -47,13 +47,24 @@
             tools:text="⏱ 12h 30m"
             android:layout_marginEnd="16dp"/>
             
-        <TextView
-            android:id="@+id/tv_project_income"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/catIncome"
-            android:textSize="13sp"
-            tools:text="💰 ¥1500" />
+    <TextView
+        android:id="@+id/tv_project_income"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/catIncome"
+        android:textSize="13sp"
+        tools:text="💰 ¥1500" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_project_roi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="@color/textSecondary"
+        android:textSize="12sp"
+        tools:text="Op 28.0% | Full 12.0% | Direct ¥200 | Shared ¥80" />
     
 </LinearLayout>

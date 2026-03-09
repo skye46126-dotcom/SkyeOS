@@ -1,5 +1,6 @@
 package com.example.skyeos.ui.fragment;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,9 +14,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.skyeos.AppGraph;
+import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ReviewReport;
 import com.example.skyeos.domain.usecase.LifeOsUseCases;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.tabs.TabLayout;
@@ -35,6 +38,7 @@ public class ReviewFragment extends Fragment {
     private TabLayout tabReviewPeriod;
     private TextView tvReviewTitle;
     private TextView tvReviewSubtitle;
+    private TextView tvReviewAnchor;
     private TextView tvAiSummary;
     private TextView tvCostDebtSummary;
     private TextView tvTrendSummary;
@@ -86,6 +90,7 @@ public class ReviewFragment extends Fragment {
 
         tvReviewTitle = view.findViewById(R.id.tv_review_title);
         tvReviewSubtitle = view.findViewById(R.id.tv_review_subtitle);
+        tvReviewAnchor = view.findViewById(R.id.tv_review_anchor);
         tvAiSummary = view.findViewById(R.id.tv_ai_summary);
         tvCostDebtSummary = view.findViewById(R.id.tv_cost_debt_summary);
         tvTrendSummary = view.findViewById(R.id.tv_trend_summary);
@@ -95,10 +100,15 @@ public class ReviewFragment extends Fragment {
         tvTrendDetailTitle = view.findViewById(R.id.tv_trend_detail_title);
 
         tabReviewPeriod = view.findViewById(R.id.tab_review_period);
+        MaterialButton btnReviewPrev = view.findViewById(R.id.btn_review_prev);
+        MaterialButton btnReviewNext = view.findViewById(R.id.btn_review_next);
+        MaterialButton btnReviewToday = view.findViewById(R.id.btn_review_today);
+        MaterialButton btnReviewOpenDayDetail = view.findViewById(R.id.btn_review_open_day_detail);
         tabReviewPeriod.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 currentTabPosition = tab.getPosition();
+                updateAnchorUi();
                 loadReportForTab(tab.getPosition());
             }
 
@@ -109,9 +119,19 @@ public class ReviewFragment extends Fragment {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
                 currentTabPosition = tab.getPosition();
+                updateAnchorUi();
                 loadReportForTab(tab.getPosition());
             }
         });
+        btnReviewPrev.setOnClickListener(v -> shiftAnchor(-1));
+        btnReviewNext.setOnClickListener(v -> shiftAnchor(1));
+        btnReviewToday.setOnClickListener(v -> {
+            currentDate = LocalDate.now();
+            updateAnchorUi();
+            loadReportForCurrentTab();
+        });
+        btnReviewOpenDayDetail.setOnClickListener(v -> openAnchorDayDetail());
+        tvReviewAnchor.setOnClickListener(v -> openAnchorDatePicker());
 
         // Setup RecyclerViews
         rvTimeAllocation = view.findViewById(R.id.rv_time_allocation);
@@ -171,6 +191,7 @@ public class ReviewFragment extends Fragment {
         // is index 0)
         // Let's default to index 1 (Weekly) if you want a larger perspective.
         tabReviewPeriod.selectTab(tabReviewPeriod.getTabAt(1));
+        updateAnchorUi();
 
         return view;
     }
@@ -185,6 +206,8 @@ public class ReviewFragment extends Fragment {
                     report = useCases.reviewUseCases.getWeeklyReview(currentDate);
                 } else if (tabPosition == 2) {
                     report = useCases.reviewUseCases.getMonthlyReview(currentDate);
+                } else if (tabPosition == 3) {
+                    report = useCases.reviewUseCases.getYearlyReview(currentDate);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -330,8 +353,10 @@ public class ReviewFragment extends Fragment {
                 rows = useCases.reviewUseCases.getDailyTagDetail(currentDate, scope, metric.tagName, 20);
             } else if (currentTabPosition == 1) {
                 rows = useCases.reviewUseCases.getWeeklyTagDetail(currentDate, scope, metric.tagName, 20);
-            } else {
+            } else if (currentTabPosition == 2) {
                 rows = useCases.reviewUseCases.getMonthlyTagDetail(currentDate, scope, metric.tagName, 20);
+            } else {
+                rows = useCases.reviewUseCases.getYearlyTagDetail(currentDate, scope, metric.tagName, 20);
             }
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> tagDetailAdapter.submitList(rows));
@@ -394,7 +419,10 @@ public class ReviewFragment extends Fragment {
             if (currentTabPosition == 1) {
                 return useCases.reviewUseCases.getWeeklyReview(currentDate.minusWeeks(1));
             }
-            return useCases.reviewUseCases.getMonthlyReview(currentDate.minusMonths(1));
+            if (currentTabPosition == 2) {
+                return useCases.reviewUseCases.getMonthlyReview(currentDate.minusMonths(1));
+            }
+            return useCases.reviewUseCases.getYearlyReview(currentDate.minusYears(1));
         } catch (Exception e) {
             return null;
         }
@@ -534,6 +562,9 @@ public class ReviewFragment extends Fragment {
         if (tabPosition == 2) {
             return "Monthly Report";
         }
+        if (tabPosition == 3) {
+            return "Yearly Report";
+        }
         return (fallback == null || fallback.trim().isEmpty()) ? "Review" : fallback;
     }
 
@@ -547,6 +578,67 @@ public class ReviewFragment extends Fragment {
         if (tabPosition == 2) {
             return "Focus on monthly freedom and long-term direction";
         }
+        if (tabPosition == 3) {
+            return "Focus on yearly trends and long-term drift";
+        }
         return "Focus on key changes";
+    }
+
+    private void loadReportForCurrentTab() {
+        loadReportForTab(currentTabPosition);
+    }
+
+    private void shiftAnchor(int direction) {
+        if (direction == 0) {
+            return;
+        }
+        if (currentTabPosition == 0) {
+            currentDate = currentDate.plusDays(direction);
+        } else if (currentTabPosition == 1) {
+            currentDate = currentDate.plusWeeks(direction);
+        } else if (currentTabPosition == 2) {
+            currentDate = currentDate.plusMonths(direction);
+        } else {
+            currentDate = currentDate.plusYears(direction);
+        }
+        updateAnchorUi();
+        loadReportForCurrentTab();
+    }
+
+    private void updateAnchorUi() {
+        if (tvReviewAnchor == null) {
+            return;
+        }
+        String windowLabel;
+        if (currentTabPosition == 0) {
+            windowLabel = "D";
+        } else if (currentTabPosition == 1) {
+            windowLabel = "W";
+        } else if (currentTabPosition == 2) {
+            windowLabel = "M";
+        } else {
+            windowLabel = "Y";
+        }
+        tvReviewAnchor.setText(String.format(Locale.US, "%s · %s", windowLabel, currentDate));
+    }
+
+    private void openAnchorDatePicker() {
+        DatePickerDialog dialog = new DatePickerDialog(
+                requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    currentDate = LocalDate.of(year, month + 1, dayOfMonth);
+                    updateAnchorUi();
+                    loadReportForCurrentTab();
+                },
+                currentDate.getYear(),
+                currentDate.getMonthValue() - 1,
+                currentDate.getDayOfMonth());
+        dialog.show();
+    }
+
+    private void openAnchorDayDetail() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).openDayDetail(currentDate.toString());
+        }
     }
 }

@@ -7,15 +7,22 @@ import android.text.TextUtils;
 
 import com.example.skyeos.data.auth.CurrentUserContext;
 import com.example.skyeos.data.db.LifeOsDatabase;
+import com.example.skyeos.domain.model.CapexCostSummary;
 import com.example.skyeos.domain.model.MetricSnapshotSummary;
+import com.example.skyeos.domain.model.MonthlyCostBaseline;
+import com.example.skyeos.domain.model.RateComparisonSummary;
+import com.example.skyeos.domain.model.RecurringCostRuleSummary;
 import com.example.skyeos.domain.repository.LifeOsMetricsRepository;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -144,6 +151,50 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
     }
 
     @Override
+    public RateComparisonSummary getRateComparison(String anchorDate, String windowType) {
+        String date = normalizeDate(anchorDate);
+        String window = normalizeWindow(windowType);
+        String userId = userContext.requireCurrentUserId();
+        String timezone = queryTimezone();
+        WindowRange range = WindowRange.from(date, window, timezone);
+
+        long idealHourlyRate = getIdealHourlyRateCents();
+        long currentIncome = scalarLong(
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId, range.startDate, range.endDate);
+        long currentWorkMinutes = scalarLong(
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId, range.startAtUtc, range.endAtUtcExclusive);
+        Long actualHourlyRate = currentWorkMinutes > 0 ? (currentIncome * 60) / currentWorkMinutes : null;
+
+        int previousYear = LocalDate.parse(date).minusYears(1).getYear();
+        String previousYearStart = String.format(Locale.US, "%04d-01-01", previousYear);
+        String previousYearEnd = String.format(Locale.US, "%04d-12-31", previousYear);
+        String previousYearStartAtUtc = toUtcStart(previousYearStart, timezone);
+        String previousYearEndAtUtcExclusive = toUtcEndExclusive(previousYearEnd, timezone);
+        long previousYearIncome = scalarLong(
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId, previousYearStart, previousYearEnd);
+        long previousYearWorkMinutes = scalarLong(
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId, previousYearStartAtUtc, previousYearEndAtUtcExclusive);
+        Long previousYearAverageHourlyRate = previousYearWorkMinutes > 0
+                ? (previousYearIncome * 60) / previousYearWorkMinutes
+                : null;
+
+        return new RateComparisonSummary(
+                date,
+                window,
+                idealHourlyRate,
+                previousYearAverageHourlyRate,
+                actualHourlyRate,
+                previousYearIncome,
+                previousYearWorkMinutes,
+                currentIncome,
+                currentWorkMinutes);
+    }
+
+    @Override
     public long getIdealHourlyRateCents() {
         return scalarLong(
                 "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
@@ -200,6 +251,151 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         upsertCurrentMonthBaseline(null, Math.max(0L, cents));
     }
 
+    @Override
+    public MonthlyCostBaseline getMonthlyBaseline(String month) {
+        String normalizedMonth = normalizeMonth(month);
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.readableDb();
+        try (Cursor cursor = db.rawQuery(
+                "SELECT COALESCE(basic_living_cents, 0), COALESCE(fixed_subscription_cents, 0) " +
+                        "FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                new String[]{userId, normalizedMonth})) {
+            if (!cursor.moveToFirst()) {
+                return new MonthlyCostBaseline(normalizedMonth, 0L, 0L);
+            }
+            return new MonthlyCostBaseline(
+                    normalizedMonth,
+                    cursor.isNull(0) ? 0L : cursor.getLong(0),
+                    cursor.isNull(1) ? 0L : cursor.getLong(1));
+        }
+    }
+
+    @Override
+    public void upsertMonthlyBaseline(String month, long basicLivingCents, long fixedSubscriptionCents) {
+        upsertBaselineForMonth(
+                normalizeMonth(month),
+                Math.max(0L, basicLivingCents),
+                Math.max(0L, fixedSubscriptionCents));
+    }
+
+    @Override
+    public List<RecurringCostRuleSummary> listRecurringCostRules() {
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.readableDb();
+        List<RecurringCostRuleSummary> items = new ArrayList<>();
+        try (Cursor cursor = db.rawQuery(
+                "SELECT id, name, category, monthly_amount_cents, is_necessary, start_month, end_month, is_active, COALESCE(note,'') " +
+                        "FROM expense_recurring_rule WHERE owner_user_id = ? ORDER BY is_active DESC, start_month DESC, updated_at DESC",
+                new String[]{userId})) {
+            while (cursor.moveToNext()) {
+                items.add(new RecurringCostRuleSummary(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getLong(3),
+                        cursor.getInt(4) == 1,
+                        cursor.getString(5),
+                        cursor.isNull(6) ? null : cursor.getString(6),
+                        cursor.getInt(7) == 1,
+                        cursor.getString(8)));
+            }
+        }
+        return items;
+    }
+
+    @Override
+    public void createRecurringCostRule(String name, String category, long monthlyAmountCents, boolean isNecessary,
+            String startMonth, String endMonth, String note) {
+        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
+            throw new IllegalArgumentException("Recurring cost name is required");
+        }
+        String normalizedCategory = normalizeExpenseCategory(category);
+        String normalizedStartMonth = normalizeMonth(startMonth);
+        String normalizedEndMonth = TextUtils.isEmpty(endMonth) ? null : normalizeMonth(endMonth);
+        if (normalizedEndMonth != null && normalizedEndMonth.compareTo(normalizedStartMonth) < 0) {
+            throw new IllegalArgumentException("endMonth must be >= startMonth");
+        }
+        long safeAmount = Math.max(0L, monthlyAmountCents);
+        String userId = userContext.requireCurrentUserId();
+        String now = Instant.now().toString();
+        ContentValues values = new ContentValues();
+        values.put("id", UUID.randomUUID().toString());
+        values.put("owner_user_id", userId);
+        values.put("name", name.trim());
+        values.put("category", normalizedCategory);
+        values.put("monthly_amount_cents", safeAmount);
+        values.put("is_necessary", isNecessary ? 1 : 0);
+        values.put("start_month", normalizedStartMonth);
+        values.put("end_month", normalizedEndMonth);
+        values.put("is_active", 1);
+        values.put("note", TextUtils.isEmpty(note) ? null : note.trim());
+        values.put("created_at", now);
+        values.put("updated_at", now);
+        database.writableDb().insertOrThrow("expense_recurring_rule", null, values);
+    }
+
+    @Override
+    public List<CapexCostSummary> listCapexCosts() {
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.readableDb();
+        List<CapexCostSummary> items = new ArrayList<>();
+        try (Cursor cursor = db.rawQuery(
+                "SELECT id, name, purchase_date, purchase_amount_cents, monthly_amortized_cents, amortization_start_month, amortization_end_month, is_active, COALESCE(note,'') " +
+                        "FROM expense_capex WHERE owner_user_id = ? ORDER BY is_active DESC, purchase_date DESC, updated_at DESC",
+                new String[]{userId})) {
+            while (cursor.moveToNext()) {
+                items.add(new CapexCostSummary(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getLong(3),
+                        cursor.getLong(4),
+                        cursor.getString(5),
+                        cursor.getString(6),
+                        cursor.getInt(7) == 1,
+                        cursor.getString(8)));
+            }
+        }
+        return items;
+    }
+
+    @Override
+    public void createCapexCost(String name, String purchaseDate, long purchaseAmountCents, int usefulMonths,
+            int residualRateBps, String note) {
+        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
+            throw new IllegalArgumentException("Capex name is required");
+        }
+        LocalDate normalizedPurchaseDate = LocalDate.parse(purchaseDate == null ? LocalDate.now().toString() : purchaseDate.trim());
+        if (usefulMonths <= 0) {
+            throw new IllegalArgumentException("usefulMonths must be > 0");
+        }
+        int safeResidualRateBps = Math.max(0, Math.min(10000, residualRateBps));
+        long safePurchaseAmount = Math.max(0L, purchaseAmountCents);
+        long residualCents = Math.round(safePurchaseAmount * (safeResidualRateBps / 10000.0));
+        long amortizableCents = Math.max(0L, safePurchaseAmount - residualCents);
+        long monthlyAmortizedCents = usefulMonths <= 0 ? 0L : Math.round(amortizableCents / (double) usefulMonths);
+        YearMonth startMonth = YearMonth.from(normalizedPurchaseDate);
+        YearMonth endMonth = startMonth.plusMonths(Math.max(0, usefulMonths - 1L));
+        String userId = userContext.requireCurrentUserId();
+        String now = Instant.now().toString();
+        ContentValues values = new ContentValues();
+        values.put("id", UUID.randomUUID().toString());
+        values.put("owner_user_id", userId);
+        values.put("name", name.trim());
+        values.put("purchase_date", normalizedPurchaseDate.toString());
+        values.put("purchase_amount_cents", safePurchaseAmount);
+        values.put("residual_rate_bps", safeResidualRateBps);
+        values.put("useful_months", usefulMonths);
+        values.put("monthly_amortized_cents", monthlyAmortizedCents);
+        values.put("amortization_start_month", startMonth.toString());
+        values.put("amortization_end_month", endMonth.toString());
+        values.put("is_active", 1);
+        values.put("note", TextUtils.isEmpty(note) ? null : note.trim());
+        values.put("created_at", now);
+        values.put("updated_at", now);
+        database.writableDb().insertOrThrow("expense_capex", null, values);
+    }
+
     private String queryTimezone() {
         SQLiteDatabase db = database.readableDb();
         try (Cursor cursor = db.rawQuery("SELECT timezone FROM users WHERE id = ? LIMIT 1",
@@ -225,30 +421,12 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
     }
 
     private void upsertCurrentMonthBaseline(Long basicLivingCents, Long fixedSubscriptionCents) {
-        String userId = userContext.requireCurrentUserId();
         String month = YearMonth.now().toString();
-        SQLiteDatabase db = database.writableDb();
-        String now = Instant.now().toString();
-        db.beginTransaction();
-        try {
-            long currentBasic = scalarLong(
-                    "SELECT COALESCE(basic_living_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
-                    userId, month);
-            long currentFixed = scalarLong(
-                    "SELECT COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
-                    userId, month);
-            ContentValues values = new ContentValues();
-            values.put("owner_user_id", userId);
-            values.put("month", month);
-            values.put("basic_living_cents", basicLivingCents != null ? basicLivingCents : currentBasic);
-            values.put("fixed_subscription_cents", fixedSubscriptionCents != null ? fixedSubscriptionCents : currentFixed);
-            values.put("updated_at", now);
-            values.put("created_at", now);
-            db.insertWithOnConflict("expense_baseline_month", null, values, SQLiteDatabase.CONFLICT_REPLACE);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
+        MonthlyCostBaseline current = getMonthlyBaseline(month);
+        upsertBaselineForMonth(
+                month,
+                basicLivingCents != null ? basicLivingCents : current.basicLivingCents,
+                fixedSubscriptionCents != null ? fixedSubscriptionCents : current.fixedSubscriptionCents);
     }
 
     private long structuralExpenseForWindow(String userId, String startDate, String endDate, boolean necessaryOnly) {
@@ -342,6 +520,47 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
             throw new IllegalArgumentException("Invalid windowType: " + value);
         }
         return value;
+    }
+
+    private String normalizeMonth(String raw) {
+        if (TextUtils.isEmpty(raw)) {
+            return YearMonth.now().toString();
+        }
+        return YearMonth.parse(raw.trim()).toString();
+    }
+
+    private void upsertBaselineForMonth(String month, long basicLivingCents, long fixedSubscriptionCents) {
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.writableDb();
+        String now = Instant.now().toString();
+        ContentValues values = new ContentValues();
+        values.put("owner_user_id", userId);
+        values.put("month", month);
+        values.put("basic_living_cents", Math.max(0L, basicLivingCents));
+        values.put("fixed_subscription_cents", Math.max(0L, fixedSubscriptionCents));
+        values.put("updated_at", now);
+        values.put("created_at", now);
+        db.insertWithOnConflict("expense_baseline_month", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    private static String normalizeExpenseCategory(String raw) {
+        String value = TextUtils.isEmpty(raw) ? "necessary" : raw.trim().toLowerCase(Locale.US);
+        if (!Set.of("necessary", "experience", "subscription", "investment").contains(value)) {
+            throw new IllegalArgumentException("Invalid expense category: " + value);
+        }
+        return value;
+    }
+
+    private static String toUtcStart(String date, String timezone) {
+        ZoneId zoneId = ZoneId.of(TextUtils.isEmpty(timezone) ? "Asia/Shanghai" : timezone);
+        LocalDate localDate = LocalDate.parse(date);
+        return ZonedDateTime.of(localDate, LocalTime.MIN, zoneId).toInstant().toString();
+    }
+
+    private static String toUtcEndExclusive(String date, String timezone) {
+        ZoneId zoneId = ZoneId.of(TextUtils.isEmpty(timezone) ? "Asia/Shanghai" : timezone);
+        LocalDate localDate = LocalDate.parse(date).plusDays(1);
+        return ZonedDateTime.of(localDate, LocalTime.MIN, zoneId).toInstant().toString();
     }
 
     private static final class WindowRange {

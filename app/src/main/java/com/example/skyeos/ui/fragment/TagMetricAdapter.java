@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.skyeos.domain.model.ReviewReport;
+import com.example.skyeos.ui.util.CategoryIconHelper;
+import com.example.skyeos.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,7 @@ public class TagMetricAdapter extends RecyclerView.Adapter<TagMetricAdapter.VH> 
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(android.R.layout.simple_list_item_2, parent, false);
+                .inflate(R.layout.item_tag_metric, parent, false);
         return new VH(view);
     }
 
@@ -62,23 +64,26 @@ public class TagMetricAdapter extends RecyclerView.Adapter<TagMetricAdapter.VH> 
     }
 
     static final class VH extends RecyclerView.ViewHolder {
-        private final TextView t1;
-        private final TextView t2;
+        private final TextView tvName, tvValue, tvPercentage;
+        private final android.widget.ImageView ivIcon;
 
         VH(@NonNull View itemView) {
             super(itemView);
-            t1 = itemView.findViewById(android.R.id.text1);
-            t2 = itemView.findViewById(android.R.id.text2);
+            tvName = itemView.findViewById(R.id.tv_tag_name);
+            tvValue = itemView.findViewById(R.id.tv_tag_value);
+            tvPercentage = itemView.findViewById(R.id.tv_tag_percentage);
+            ivIcon = itemView.findViewById(R.id.iv_tag_icon);
         }
 
         void bind(ReviewReport.TagMetric item, boolean expenseMode) {
-            String emoji = item.emoji == null || item.emoji.isEmpty() ? "" : item.emoji + " ";
-            t1.setText(emoji + item.tagName);
+            ivIcon.setImageResource(CategoryIconHelper.getIconRes(item.emoji));
+            tvName.setText(item.tagName);
             if (expenseMode) {
-                t2.setText(String.format(Locale.US, "¥%.2f | %.1f%%", item.value / 100.0, item.percentage));
+                tvValue.setText(String.format(Locale.US, "¥%.2f", item.value / 100.0));
             } else {
-                t2.setText(String.format(Locale.US, "%d min | %.1f%%", item.value, item.percentage));
+                tvValue.setText(String.format(Locale.US, "%d min", item.value));
             }
+            tvPercentage.setText(String.format(Locale.US, "%.1f%%", item.percentage));
         }
     }
 }

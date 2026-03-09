@@ -1,6 +1,12 @@
 package com.example.skyeos.domain.repository;
 
 import com.example.skyeos.domain.model.MetricSnapshotSummary;
+import com.example.skyeos.domain.model.MonthlyCostBaseline;
+import com.example.skyeos.domain.model.RateComparisonSummary;
+import com.example.skyeos.domain.model.RecurringCostRuleSummary;
+import com.example.skyeos.domain.model.CapexCostSummary;
+
+import java.util.List;
 
 public interface LifeOsMetricsRepository {
     MetricSnapshotSummary recomputeSnapshot(String snapshotDate, String windowType);
@@ -8,6 +14,8 @@ public interface LifeOsMetricsRepository {
     MetricSnapshotSummary getSnapshot(String snapshotDate, String windowType);
 
     MetricSnapshotSummary getLatestSnapshot(String windowType);
+
+    RateComparisonSummary getRateComparison(String anchorDate, String windowType);
 
     long getIdealHourlyRateCents();
 
@@ -20,4 +28,18 @@ public interface LifeOsMetricsRepository {
     long getCurrentMonthFixedSubscriptionCents();
 
     void setCurrentMonthFixedSubscriptionCents(long cents);
+
+    MonthlyCostBaseline getMonthlyBaseline(String month);
+
+    void upsertMonthlyBaseline(String month, long basicLivingCents, long fixedSubscriptionCents);
+
+    List<RecurringCostRuleSummary> listRecurringCostRules();
+
+    void createRecurringCostRule(String name, String category, long monthlyAmountCents, boolean isNecessary,
+            String startMonth, String endMonth, String note);
+
+    List<CapexCostSummary> listCapexCosts();
+
+    void createCapexCost(String name, String purchaseDate, long purchaseAmountCents, int usefulMonths,
+            int residualRateBps, String note);
 }

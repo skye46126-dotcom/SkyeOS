@@ -40,9 +40,11 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         long totalIncome = scalarLong(
                 "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
                 userId, range.startDate, range.endDate);
-        long totalExpense = scalarLong(
+        long actualExpense = scalarLong(
                 "SELECT COALESCE(SUM(amount_cents), 0) FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
                 userId, range.startDate, range.endDate);
+        long structuralExpense = structuralExpenseForWindow(userId, range.startDate, range.endDate, false);
+        long totalExpense = actualExpense + structuralExpense;
         long totalWorkMinutes = scalarLong(
                 "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
                 userId, range.startDate, range.endDate);
@@ -73,10 +75,13 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 range.startDate,
                 range.endDate,
                 totalIncome,
+                actualExpense,
+                structuralExpense,
                 totalExpense,
                 netIncome,
                 totalWorkMinutes,
                 totalTimeMinutes,
+                totalLearningMinutes,
                 publicTimeRatio,
                 publicIncomeRatio,
                 publicLearningRatio);
@@ -91,17 +96,46 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 "SELECT 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 "
+                "SELECT 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 "
+                "SELECT 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'learning' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, content AS title, duration_minutes || ' min' AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0"
+                "SELECT 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0"
                 +
                 ") ORDER BY occurred_at DESC LIMIT " + safeLimit;
         List<RecentRecordItem> result = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(sql, new String[] { userId, userId, userId, userId })) {
+            while (cursor.moveToNext()) {
+                result.add(new RecentRecordItem(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getString(3)));
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<RecentRecordItem> getRecordsForDate(String anchorDate, int limit) {
+        String date = normalizeDate(anchorDate);
+        int safeLimit = Math.max(1, Math.min(limit, 300));
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.readableDb();
+        String sql = "SELECT type, occurred_at, title, detail FROM (" +
+                "SELECT 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND date(started_at) = ? " +
+                "UNION ALL " +
+                "SELECT 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                "UNION ALL " +
+                "SELECT 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                "UNION ALL " +
+                "SELECT 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                ") ORDER BY occurred_at DESC LIMIT " + safeLimit;
+        List<RecentRecordItem> result = new ArrayList<>();
+        String[] args = new String[] { userId, date, userId, date, userId, date, userId, date };
+        try (Cursor cursor = db.rawQuery(sql, args)) {
             while (cursor.moveToNext()) {
                 result.add(new RecentRecordItem(
                         cursor.getString(0),
@@ -201,7 +235,24 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         long totalIncome = scalarLong(
                 "SELECT COALESCE(SUM(i.amount_cents), 0) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0",
                 projectId);
-        long totalExpense = 0L;
+        long totalExpense = scalarLong(
+                "SELECT COALESCE(SUM(e.amount_cents), 0) FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0",
+                projectId);
+        String analysisStartDate = normalizeProjectBoundary(
+                startedOn,
+                firstProjectActivityDate(projectId),
+                LocalDate.now().toString());
+        String analysisEndDate = normalizeProjectBoundary(
+                endedOn,
+                lastProjectActivityDate(projectId),
+                LocalDate.now().toString());
+        if (LocalDate.parse(analysisEndDate).isBefore(LocalDate.parse(analysisStartDate))) {
+            analysisEndDate = analysisStartDate;
+        }
+        long structuralCostWindow = structuralExpenseForWindow(userId, analysisStartDate, analysisEndDate, false);
+        long globalWorkMinutesInWindow = scalarLong(
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
+                userId, analysisStartDate, analysisEndDate);
         long globalWorkMinutes = scalarLong(
                 "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work'",
                 userId);
@@ -227,9 +278,19 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 ? lastYearHourlyRateCents
                 : (idealHourlyRateCents > 0 ? idealHourlyRateCents : actualHourlyRateCents);
         long timeCostCents = benchmarkHourlyRateCents > 0 ? (benchmarkHourlyRateCents * totalTime / 60) : 0L;
-        long totalCostCents = totalExpense + timeCostCents;
-        long profitCents = totalIncome - totalCostCents;
-        long breakEvenIncomeCents = totalCostCents;
+        long allocatedStructuralCostCents = 0L;
+        if (structuralCostWindow > 0 && globalWorkMinutesInWindow > 0 && totalTime > 0) {
+            allocatedStructuralCostCents = structuralCostWindow * totalTime / globalWorkMinutesInWindow;
+        }
+        long operatingCostCents = totalExpense + timeCostCents;
+        long operatingProfitCents = totalIncome - operatingCostCents;
+        long operatingBreakEvenIncomeCents = operatingCostCents;
+        long fullyLoadedCostCents = operatingCostCents + allocatedStructuralCostCents;
+        long fullyLoadedProfitCents = totalIncome - fullyLoadedCostCents;
+        long fullyLoadedBreakEvenIncomeCents = fullyLoadedCostCents;
+        long totalCostCents = fullyLoadedCostCents;
+        long profitCents = fullyLoadedProfitCents;
+        long breakEvenIncomeCents = fullyLoadedBreakEvenIncomeCents;
 
         double hourlyRate = 0;
         if (totalTime > 0) {
@@ -237,10 +298,9 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
             hourlyRate = (totalIncome / 100.0) / hours;
         }
 
-        double roi = 0;
-        if (totalExpense > 0) {
-            roi = ((double) (totalIncome - totalExpense) / totalExpense) * 100.0;
-        }
+        double operatingRoi = roi(totalIncome, operatingCostCents);
+        double fullyLoadedRoi = roi(totalIncome, fullyLoadedCostCents);
+        double roi = fullyLoadedRoi;
 
         // 3. Get recent records associated with this project
         String recentsSql = "SELECT type, occurred_at, title, detail FROM (" +
@@ -249,10 +309,13 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 "UNION ALL " +
                 "SELECT 'income' as type, i.occurred_on || 'T00:00:00Z', i.source_name, i.amount_cents || ' cents' FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 "
                 +
+                "UNION ALL " +
+                "SELECT 'expense' as type, e.occurred_on || 'T00:00:00Z', e.category, e.amount_cents || ' cents' || CASE WHEN e.note IS NULL OR e.note = '' THEN '' ELSE ' | ' || e.note END FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0 "
+                +
                 ") ORDER BY occurred_at DESC LIMIT 50";
 
         List<RecentRecordItem> recentRecords = new ArrayList<>();
-        try (Cursor cursor = db.rawQuery(recentsSql, new String[] { projectId, projectId })) {
+        try (Cursor cursor = db.rawQuery(recentsSql, new String[] { projectId, projectId, projectId })) {
             while (cursor.moveToNext()) {
                 recentRecords.add(new RecentRecordItem(
                         cursor.getString(0),
@@ -264,9 +327,12 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
 
         return new ProjectDetail(
                 projectId, name, status, startedOn, endedOn, score, note,
-                totalTime, totalIncome, totalExpense, timeCostCents, totalCostCents, profitCents,
-                breakEvenIncomeCents, benchmarkHourlyRateCents, lastYearHourlyRateCents, idealHourlyRateCents,
-                hourlyRate, roi, recentRecords);
+                analysisStartDate, analysisEndDate,
+                totalTime, totalIncome, totalExpense, totalExpense, timeCostCents, totalCostCents, profitCents,
+                breakEvenIncomeCents, allocatedStructuralCostCents, operatingCostCents, operatingProfitCents,
+                operatingBreakEvenIncomeCents, fullyLoadedCostCents, fullyLoadedProfitCents,
+                fullyLoadedBreakEvenIncomeCents, benchmarkHourlyRateCents, lastYearHourlyRateCents,
+                idealHourlyRateCents, hourlyRate, roi, operatingRoi, fullyLoadedRoi, recentRecords);
     }
 
     @Override
@@ -312,11 +378,113 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         }
     }
 
+    private String scalarString(String sql, String... args) {
+        SQLiteDatabase db = database.readableDb();
+        try (Cursor cursor = db.rawQuery(sql, args)) {
+            if (!cursor.moveToFirst() || cursor.isNull(0)) {
+                return null;
+            }
+            return cursor.getString(0);
+        }
+    }
+
     private static double ratio(long numerator, long denominator) {
         if (denominator <= 0) {
             return 0.0;
         }
         return (double) numerator / (double) denominator;
+    }
+
+    private static double roi(long incomeCents, long costCents) {
+        if (costCents <= 0) {
+            return 0.0;
+        }
+        return ((double) (incomeCents - costCents) / costCents) * 100.0;
+    }
+
+    private String firstProjectActivityDate(String projectId) {
+        return scalarString(
+                "SELECT MIN(activity_date) FROM (" +
+                        "SELECT date(t.started_at) AS activity_date FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 " +
+                        "UNION ALL " +
+                        "SELECT i.occurred_on AS activity_date FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 " +
+                        "UNION ALL " +
+                        "SELECT e.occurred_on AS activity_date FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0" +
+                        ")",
+                projectId, projectId, projectId);
+    }
+
+    private String lastProjectActivityDate(String projectId) {
+        return scalarString(
+                "SELECT MAX(activity_date) FROM (" +
+                        "SELECT date(t.started_at) AS activity_date FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 " +
+                        "UNION ALL " +
+                        "SELECT i.occurred_on AS activity_date FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 " +
+                        "UNION ALL " +
+                        "SELECT e.occurred_on AS activity_date FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0" +
+                        ")",
+                projectId, projectId, projectId);
+    }
+
+    private static String normalizeProjectBoundary(String preferred, String fallback, String hardFallback) {
+        if (!TextUtils.isEmpty(preferred)) {
+            return LocalDate.parse(preferred.trim()).toString();
+        }
+        if (!TextUtils.isEmpty(fallback)) {
+            return LocalDate.parse(fallback.trim()).toString();
+        }
+        return LocalDate.parse(hardFallback.trim()).toString();
+    }
+
+    private long structuralExpenseForWindow(String userId, String startDate, String endDate, boolean necessaryOnly) {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        if (end.isBefore(start)) {
+            return 0L;
+        }
+        SQLiteDatabase db = database.readableDb();
+        long total = 0L;
+        java.time.YearMonth cursor = java.time.YearMonth.from(start);
+        java.time.YearMonth target = java.time.YearMonth.from(end);
+        while (!cursor.isAfter(target)) {
+            LocalDate monthStart = cursor.atDay(1);
+            LocalDate monthEnd = cursor.atEndOfMonth();
+            LocalDate overlapStart = start.isAfter(monthStart) ? start : monthStart;
+            LocalDate overlapEnd = end.isBefore(monthEnd) ? end : monthEnd;
+            if (!overlapEnd.isBefore(overlapStart)) {
+                long overlapDays = java.time.temporal.ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                int monthDays = cursor.lengthOfMonth();
+                long monthTotal = baselineMonthlyCost(db, userId, cursor.toString())
+                        + recurringMonthlyCost(db, userId, cursor.toString(), necessaryOnly)
+                        + (necessaryOnly ? 0L : capexMonthlyCost(db, userId, cursor.toString()));
+                total += monthTotal * overlapDays / monthDays;
+            }
+            cursor = cursor.plusMonths(1);
+        }
+        return total;
+    }
+
+    private long baselineMonthlyCost(SQLiteDatabase db, String userId, String month) {
+        return scalarLong(
+                "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                userId, month);
+    }
+
+    private long recurringMonthlyCost(SQLiteDatabase db, String userId, String month, boolean necessaryOnly) {
+        if (necessaryOnly) {
+            return scalarLong(
+                    "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule WHERE owner_user_id = ? AND is_active = 1 AND is_necessary = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                    userId, month, month);
+        }
+        return scalarLong(
+                "SELECT COALESCE(SUM(monthly_amount_cents), 0) FROM expense_recurring_rule WHERE owner_user_id = ? AND is_active = 1 AND start_month <= ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)",
+                userId, month, month);
+    }
+
+    private long capexMonthlyCost(SQLiteDatabase db, String userId, String month) {
+        return scalarLong(
+                "SELECT COALESCE(SUM(monthly_amortized_cents), 0) FROM expense_capex WHERE owner_user_id = ? AND is_active = 1 AND amortization_start_month <= ? AND amortization_end_month >= ?",
+                userId, month, month);
     }
 
     private static String normalizeDate(String value) {

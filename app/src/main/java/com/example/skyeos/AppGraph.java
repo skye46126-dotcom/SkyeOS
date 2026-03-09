@@ -28,24 +28,32 @@ import com.example.skyeos.domain.usecase.CreateLearningUseCase;
 import com.example.skyeos.domain.usecase.CreateProjectUseCase;
 import com.example.skyeos.domain.usecase.CreateTagUseCase;
 import com.example.skyeos.domain.usecase.CreateTimeLogUseCase;
-import com.example.skyeos.domain.usecase.ProjectUseCases;
-import com.example.skyeos.domain.usecase.ReviewUseCases;
+import com.example.skyeos.domain.usecase.CreateCapexCostUseCase;
+import com.example.skyeos.domain.usecase.CreateRecurringCostRuleUseCase;
 import com.example.skyeos.domain.usecase.GetLatestBackupUseCase;
+import com.example.skyeos.domain.usecase.GetMonthlyCostBaselineUseCase;
 import com.example.skyeos.domain.usecase.GetMetricSnapshotUseCase;
+import com.example.skyeos.domain.usecase.GetRateComparisonUseCase;
 import com.example.skyeos.domain.usecase.GetIdealHourlyRateUseCase;
 import com.example.skyeos.domain.usecase.GetCurrentMonthBasicLivingCostUseCase;
 import com.example.skyeos.domain.usecase.GetCurrentMonthFixedSubscriptionCostUseCase;
 import com.example.skyeos.domain.usecase.GetOverviewUseCase;
 import com.example.skyeos.domain.usecase.GetProjectOptionsUseCase;
+import com.example.skyeos.domain.usecase.GetRecordsForDateUseCase;
 import com.example.skyeos.domain.usecase.GetRecentRecordsUseCase;
 import com.example.skyeos.domain.usecase.GetTagsUseCase;
+import com.example.skyeos.domain.usecase.ListCapexCostsUseCase;
+import com.example.skyeos.domain.usecase.ListRecurringCostRulesUseCase;
 import com.example.skyeos.domain.usecase.LifeOsUseCases;
+import com.example.skyeos.domain.usecase.ProjectUseCases;
 import com.example.skyeos.domain.usecase.RegisterExternalBackupUseCase;
 import com.example.skyeos.domain.usecase.RecomputeMetricSnapshotUseCase;
+import com.example.skyeos.domain.usecase.ReviewUseCases;
 import com.example.skyeos.domain.usecase.RestoreBackupUseCase;
 import com.example.skyeos.domain.usecase.SetIdealHourlyRateUseCase;
 import com.example.skyeos.domain.usecase.SetCurrentMonthBasicLivingCostUseCase;
 import com.example.skyeos.domain.usecase.SetCurrentMonthFixedSubscriptionCostUseCase;
+import com.example.skyeos.domain.usecase.UpsertMonthlyCostBaselineUseCase;
 
 public final class AppGraph {
     private static volatile AppGraph instance;
@@ -85,14 +93,22 @@ public final class AppGraph {
                 new CreateLearningUseCase(writeRepository),
                 new RecomputeMetricSnapshotUseCase(metricsRepository),
                 new GetMetricSnapshotUseCase(metricsRepository),
+                new GetRateComparisonUseCase(metricsRepository),
                 new GetIdealHourlyRateUseCase(metricsRepository),
                 new SetIdealHourlyRateUseCase(metricsRepository),
                 new GetCurrentMonthBasicLivingCostUseCase(metricsRepository),
                 new SetCurrentMonthBasicLivingCostUseCase(metricsRepository),
                 new GetCurrentMonthFixedSubscriptionCostUseCase(metricsRepository),
                 new SetCurrentMonthFixedSubscriptionCostUseCase(metricsRepository),
+                new GetMonthlyCostBaselineUseCase(metricsRepository),
+                new UpsertMonthlyCostBaselineUseCase(metricsRepository),
+                new ListRecurringCostRulesUseCase(metricsRepository),
+                new CreateRecurringCostRuleUseCase(metricsRepository),
+                new ListCapexCostsUseCase(metricsRepository),
+                new CreateCapexCostUseCase(metricsRepository),
                 new GetOverviewUseCase(readRepository),
                 new GetRecentRecordsUseCase(readRepository),
+                new GetRecordsForDateUseCase(readRepository),
                 new GetProjectOptionsUseCase(readRepository),
                 new GetTagsUseCase(readRepository),
                 new CreateTagUseCase(writeRepository),

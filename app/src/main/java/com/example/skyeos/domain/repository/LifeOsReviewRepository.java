@@ -30,5 +30,13 @@ public interface LifeOsReviewRepository {
      */
     ReviewReport getMonthlyReview(String monthStart, String monthEnd);
 
+    /**
+     * Gets a review report for a specific year.
+     *
+     * @param yearStart iso date yyyy-MM-dd
+     * @param yearEnd   iso date yyyy-MM-dd
+     */
+    ReviewReport getYearlyReview(String yearStart, String yearEnd);
+
     List<RecentRecordItem> getTagDetailRecords(String scope, String tagName, String startDate, String endDate, int limit);
 }

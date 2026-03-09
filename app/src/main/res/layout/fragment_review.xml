@@ -29,7 +29,68 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Month" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Year" />
     </com.google.android.material.tabs.TabLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingTop="10dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_review_prev"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:text="Prev" />
+
+        <TextView
+            android:id="@+id/tv_review_anchor"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="2026-03-09" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_review_next"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:text="Next" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_review_today"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:text="Today" />
+    </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -62,6 +123,18 @@
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 tools:text="Key changes and suggested actions for this window" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_open_day_detail"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="12dp"
+                android:ellipsize="end"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:maxLines="1"
+                android:text="Open Day Detail" />
 
             <!-- AI Summary Card -->
             <com.google.android.material.card.MaterialCardView
@@ -122,6 +195,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="2"
                             android:textColor="@color/textPrimary"
                             android:textSize="13sp"
                             android:textStyle="bold"
@@ -132,7 +207,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:ellipsize="end"
                             android:gravity="center_horizontal"
+                            android:maxLines="2"
                             android:textColor="@color/textPrimary"
                             android:textSize="13sp"
                             android:textStyle="bold"
@@ -143,7 +220,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:ellipsize="end"
                             android:gravity="end"
+                            android:maxLines="2"
                             android:textColor="@color/textPrimary"
                             android:textSize="13sp"
                             android:textStyle="bold"

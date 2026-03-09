@@ -14,6 +14,8 @@ public interface LifeOsReadRepository {
 
     List<RecentRecordItem> getRecentRecords(int limit);
 
+    List<RecentRecordItem> getRecordsForDate(String anchorDate, int limit);
+
     List<ProjectOption> getProjectOptions(boolean includeDone);
 
     List<ProjectOverview> getProjects(String status);

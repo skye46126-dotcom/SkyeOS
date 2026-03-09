@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.skyeos.AppGraph;
+import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.ai.AiApiConfig;
 import com.example.skyeos.ai.AiApiProvider;
@@ -36,8 +37,6 @@ public class SettingsFragment extends Fragment {
     private CloudSyncClient cloudSyncClient;
 
     private TextInputEditText etServerUrl, etApiKey, etDeviceId, etDownloadFilename;
-    private TextInputEditText etIdealHourlyYuan;
-    private TextInputEditText etMonthBasicLivingYuan, etMonthFixedSubscriptionYuan;
     private AutoCompleteTextView etAiProvider, etTagScope;
     private TextInputEditText etAiBaseUrl, etAiApiKey, etAiModel, etAiSystemPrompt;
     private TextInputEditText etTagName, etTagEmoji;
@@ -61,9 +60,6 @@ public class SettingsFragment extends Fragment {
         etApiKey = view.findViewById(R.id.et_api_key);
         etDeviceId = view.findViewById(R.id.et_device_id);
         etDownloadFilename = view.findViewById(R.id.et_download_filename);
-        etIdealHourlyYuan = view.findViewById(R.id.et_ideal_hourly_yuan);
-        etMonthBasicLivingYuan = view.findViewById(R.id.et_month_basic_living_yuan);
-        etMonthFixedSubscriptionYuan = view.findViewById(R.id.et_month_fixed_subscription_yuan);
         etAiProvider = view.findViewById(R.id.et_ai_provider);
         etAiBaseUrl = view.findViewById(R.id.et_ai_base_url);
         etAiApiKey = view.findViewById(R.id.et_ai_api_key);
@@ -94,18 +90,6 @@ public class SettingsFragment extends Fragment {
         etAiModel.setText(aiConfig.model);
         etAiSystemPrompt.setText(aiConfig.resolvedSystemPrompt());
         etTagScope.setText("global", false);
-        long idealHourlyCents = graph.useCases.getIdealHourlyRate.execute();
-        if (idealHourlyCents > 0) {
-            etIdealHourlyYuan.setText(String.format(java.util.Locale.US, "%.2f", idealHourlyCents / 100.0));
-        }
-        long monthBasicLivingCents = graph.useCases.getCurrentMonthBasicLivingCost.execute();
-        if (monthBasicLivingCents > 0) {
-            etMonthBasicLivingYuan.setText(String.format(java.util.Locale.US, "%.2f", monthBasicLivingCents / 100.0));
-        }
-        long monthFixedCents = graph.useCases.getCurrentMonthFixedSubscriptionCost.execute();
-        if (monthFixedCents > 0) {
-            etMonthFixedSubscriptionYuan.setText(String.format(java.util.Locale.US, "%.2f", monthFixedCents / 100.0));
-        }
         refreshTagList();
 
         MaterialButton btnSave = view.findViewById(R.id.btn_save_config);
@@ -114,6 +98,7 @@ public class SettingsFragment extends Fragment {
         MaterialButton btnDownload = view.findViewById(R.id.btn_download_restore);
         MaterialButton btnTestAi = view.findViewById(R.id.btn_test_ai);
         MaterialButton btnCreateTag = view.findViewById(R.id.btn_create_tag);
+        MaterialButton btnOpenCostManagement = view.findViewById(R.id.btn_open_cost_management);
 
         btnSave.setOnClickListener(v -> saveConfig());
         btnUpload.setOnClickListener(v -> uploadLatestManualBackup());
@@ -121,6 +106,7 @@ public class SettingsFragment extends Fragment {
         btnDownload.setOnClickListener(v -> downloadAndRestore());
         btnTestAi.setOnClickListener(v -> testAiConnection());
         btnCreateTag.setOnClickListener(v -> createTag());
+        btnOpenCostManagement.setOnClickListener(v -> openCostManagement());
     }
 
     private void saveConfig() {
@@ -128,13 +114,7 @@ public class SettingsFragment extends Fragment {
         configStore.save(config);
         AiApiConfig aiConfig = collectAiConfig();
         graph.aiApiConfigStore.save(aiConfig);
-        long idealHourlyCents = parseYuanToCents(text(etIdealHourlyYuan));
-        graph.useCases.setIdealHourlyRate.execute(idealHourlyCents);
-        long monthBasicLivingCents = parseYuanToCents(text(etMonthBasicLivingYuan));
-        graph.useCases.setCurrentMonthBasicLivingCost.execute(monthBasicLivingCents);
-        long monthFixedCents = parseYuanToCents(text(etMonthFixedSubscriptionYuan));
-        graph.useCases.setCurrentMonthFixedSubscriptionCost.execute(monthFixedCents);
-        status("Config saved ✓ (Cloud + AI + Cost settings)");
+        status("Config saved ✓ (Cloud + AI settings)");
     }
 
     private void testAiConnection() {
@@ -368,6 +348,12 @@ public class SettingsFragment extends Fragment {
         }
     }
 
+    private void openCostManagement() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).openCostManagement();
+        }
+    }
+
     private static String text(TextInputEditText et) {
         return et.getText() == null ? "" : et.getText().toString().trim();
     }
@@ -383,20 +369,5 @@ public class SettingsFragment extends Fragment {
     private void runOnUiThread(Runnable r) {
         if (getActivity() != null)
             getActivity().runOnUiThread(r);
-    }
-
-    private static long parseYuanToCents(String yuanText) {
-        if (yuanText == null || yuanText.trim().isEmpty()) {
-            return 0L;
-        }
-        try {
-            double value = Double.parseDouble(yuanText.trim());
-            if (value < 0) {
-                return 0L;
-            }
-            return Math.round(value * 100.0);
-        } catch (Exception ignored) {
-            return 0L;
-        }
     }
 }

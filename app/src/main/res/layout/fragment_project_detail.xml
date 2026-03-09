@@ -222,11 +222,34 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Total Cost"
+                            android:text="Direct Expense"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
-                            android:id="@+id/tv_detail_total_cost"
+                            android:id="@+id/tv_detail_direct_expense"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="¥0"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:layout_marginTop="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Allocated Structural"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:id="@+id/tv_detail_structural_allocated"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="¥0"
@@ -246,17 +269,64 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Profit &amp; Break-even"
+                            android:text="Operating Profit"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
-                            android:id="@+id/tv_detail_profit_break_even"
+                            android:id="@+id/tv_detail_operating"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Profit ¥0 | Break-even ¥0"
+                            android:text="Profit ¥0 | Cost ¥0"
                             android:textColor="@color/lifeBlue"
                             android:textSize="16sp"
                             android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_columnSpan="2"
+                        android:orientation="vertical"
+                        android:layout_marginTop="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Fully Loaded Profit"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:id="@+id/tv_detail_fully_loaded"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Profit ¥0 | Cost ¥0"
+                            android:textColor="@color/lifeBlueDark"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_columnSpan="2"
+                        android:orientation="vertical"
+                        android:layout_marginTop="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Cost Method"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:id="@+id/tv_detail_cost_method"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Window and cost method"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="13sp"
                             android:layout_marginTop="4dp" />
                     </LinearLayout>
 

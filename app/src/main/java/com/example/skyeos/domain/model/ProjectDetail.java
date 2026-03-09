@@ -14,14 +14,24 @@ public class ProjectDetail {
     public final String endedOn;
     public final int score;
     public final String note;
+    public final String analysisStartDate;
+    public final String analysisEndDate;
 
     public final long totalTimeMinutes;
     public final long totalIncomeCents;
     public final long totalExpenseCents;
+    public final long directExpenseCents;
     public final long timeCostCents;
     public final long totalCostCents;
     public final long profitCents;
     public final long breakEvenIncomeCents;
+    public final long allocatedStructuralCostCents;
+    public final long operatingCostCents;
+    public final long operatingProfitCents;
+    public final long operatingBreakEvenIncomeCents;
+    public final long fullyLoadedCostCents;
+    public final long fullyLoadedProfitCents;
+    public final long fullyLoadedBreakEvenIncomeCents;
     public final long benchmarkHourlyRateCents;
     public final long lastYearHourlyRateCents;
     public final long idealHourlyRateCents;
@@ -29,15 +39,22 @@ public class ProjectDetail {
     // derived
     public final double hourlyRateYuan;
     public final double roiPerc; // (income - expense)/expense * 100
+    public final double operatingRoiPerc;
+    public final double fullyLoadedRoiPerc;
 
     public final List<RecentRecordItem> recentRecords;
 
     public ProjectDetail(String id, String name, String status, String startedOn, String endedOn, int score,
             String note,
+            String analysisStartDate, String analysisEndDate,
             long totalTimeMinutes, long totalIncomeCents, long totalExpenseCents,
-            long timeCostCents, long totalCostCents, long profitCents, long breakEvenIncomeCents,
+            long directExpenseCents, long timeCostCents, long totalCostCents, long profitCents, long breakEvenIncomeCents,
+            long allocatedStructuralCostCents, long operatingCostCents, long operatingProfitCents,
+            long operatingBreakEvenIncomeCents, long fullyLoadedCostCents, long fullyLoadedProfitCents,
+            long fullyLoadedBreakEvenIncomeCents,
             long benchmarkHourlyRateCents, long lastYearHourlyRateCents, long idealHourlyRateCents,
-            double hourlyRateYuan, double roiPerc, List<RecentRecordItem> recentRecords) {
+            double hourlyRateYuan, double roiPerc, double operatingRoiPerc, double fullyLoadedRoiPerc,
+            List<RecentRecordItem> recentRecords) {
         this.id = id;
         this.name = name;
         this.status = status;
@@ -45,18 +62,30 @@ public class ProjectDetail {
         this.endedOn = endedOn;
         this.score = score;
         this.note = note;
+        this.analysisStartDate = analysisStartDate;
+        this.analysisEndDate = analysisEndDate;
         this.totalTimeMinutes = totalTimeMinutes;
         this.totalIncomeCents = totalIncomeCents;
         this.totalExpenseCents = totalExpenseCents;
+        this.directExpenseCents = directExpenseCents;
         this.timeCostCents = timeCostCents;
         this.totalCostCents = totalCostCents;
         this.profitCents = profitCents;
         this.breakEvenIncomeCents = breakEvenIncomeCents;
+        this.allocatedStructuralCostCents = allocatedStructuralCostCents;
+        this.operatingCostCents = operatingCostCents;
+        this.operatingProfitCents = operatingProfitCents;
+        this.operatingBreakEvenIncomeCents = operatingBreakEvenIncomeCents;
+        this.fullyLoadedCostCents = fullyLoadedCostCents;
+        this.fullyLoadedProfitCents = fullyLoadedProfitCents;
+        this.fullyLoadedBreakEvenIncomeCents = fullyLoadedBreakEvenIncomeCents;
         this.benchmarkHourlyRateCents = benchmarkHourlyRateCents;
         this.lastYearHourlyRateCents = lastYearHourlyRateCents;
         this.idealHourlyRateCents = idealHourlyRateCents;
         this.hourlyRateYuan = hourlyRateYuan;
         this.roiPerc = roiPerc;
+        this.operatingRoiPerc = operatingRoiPerc;
+        this.fullyLoadedRoiPerc = fullyLoadedRoiPerc;
         this.recentRecords = recentRecords;
     }
 }

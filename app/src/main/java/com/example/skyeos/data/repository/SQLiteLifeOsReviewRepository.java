@@ -68,6 +68,21 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
     }
 
     @Override
+    public ReviewReport getYearlyReview(String yearStart, String yearEnd) {
+        LocalDate ys = LocalDate.parse(yearStart);
+        LocalDate ye = LocalDate.parse(yearEnd);
+        LocalDate prevYearAnchor = ys.minusYears(1);
+        LocalDate prevStart = prevYearAnchor.withDayOfYear(1);
+        LocalDate prevEnd = prevYearAnchor.withDayOfYear(prevYearAnchor.lengthOfYear());
+        return buildReport(
+                "Yearly Report (" + yearStart + " to " + yearEnd + ")",
+                ys + " 00:00:00",
+                ye + " 23:59:59",
+                prevStart + " 00:00:00",
+                prevEnd + " 23:59:59");
+    }
+
+    @Override
     public List<RecentRecordItem> getTagDetailRecords(String scope, String tagName, String startDate, String endDate,
             int limit) {
         if (TextUtils.isEmpty(scope) || TextUtils.isEmpty(tagName)) {
@@ -81,13 +96,13 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         List<RecentRecordItem> rows = new ArrayList<>();
         String normalizedScope = scope.trim().toLowerCase();
         if ("time".equals(normalizedScope)) {
-            String sql = "SELECT tl.updated_at, tl.category, tl.duration_minutes, COALESCE(tl.note,'') " +
+            String sql = "SELECT tl.started_at, tl.category, tl.duration_minutes, COALESCE(tl.note,'') " +
                     "FROM time_log_tag tlt " +
                     "JOIN time_log tl ON tl.id = tlt.time_log_id " +
                     "JOIN tag tg ON tg.id = tlt.tag_id " +
-                    "WHERE tl.is_deleted = 0 AND tl.owner_user_id = ? AND tg.name = ? AND tl.updated_at >= ? AND tl.updated_at <= ? " +
-                    "ORDER BY tl.updated_at DESC LIMIT " + rowLimit;
-            try (Cursor c = db.rawQuery(sql, new String[] { userId, tagName, start, end })) {
+                    "WHERE tl.is_deleted = 0 AND tl.owner_user_id = ? AND tg.name = ? AND date(tl.started_at) >= ? AND date(tl.started_at) <= ? " +
+                    "ORDER BY tl.started_at DESC LIMIT " + rowLimit;
+            try (Cursor c = db.rawQuery(sql, new String[] { userId, tagName, startDate, endDate })) {
                 while (c.moveToNext()) {
                     String occurredAt = c.isNull(0) ? "" : c.getString(0);
                     String category = c.isNull(1) ? "-" : c.getString(1);
@@ -104,9 +119,9 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
                     "FROM expense_tag et " +
                     "JOIN expense e ON e.id = et.expense_id " +
                     "JOIN tag tg ON tg.id = et.tag_id " +
-                    "WHERE e.is_deleted = 0 AND e.owner_user_id = ? AND tg.name = ? AND e.updated_at >= ? AND e.updated_at <= ? " +
+                    "WHERE e.is_deleted = 0 AND e.owner_user_id = ? AND tg.name = ? AND e.occurred_on >= ? AND e.occurred_on <= ? " +
                     "ORDER BY e.occurred_on DESC, e.created_at DESC LIMIT " + rowLimit;
-            try (Cursor c = db.rawQuery(sql, new String[] { userId, tagName, start, end })) {
+            try (Cursor c = db.rawQuery(sql, new String[] { userId, tagName, startDate, endDate })) {
                 while (c.moveToNext()) {
                     String occurredAt = c.isNull(0) ? "" : c.getString(0) + "T00:00:00Z";
                     String category = c.isNull(1) ? "-" : c.getString(1);
@@ -125,6 +140,10 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
             String prevStartTimeString, String prevEndTimeString) {
         SQLiteDatabase db = database.readableDb();
         String userId = userContext.requireCurrentUserId();
+        String startDate = startTimeString.substring(0, 10);
+        String endDate = endTimeString.substring(0, 10);
+        String prevStartDate = prevStartTimeString.substring(0, 10);
+        String prevEndDate = prevEndTimeString.substring(0, 10);
 
         long totalTime = 0;
         long totalWorkMinutes = 0;
@@ -144,9 +163,9 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
 
         // 1. Time Allocation & Total Time
         String timeSql = "SELECT category, SUM(duration_minutes) as mins FROM time_log " +
-                "WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 " +
+                "WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? AND is_deleted = 0 " +
                 "GROUP BY category ORDER BY mins DESC";
-        try (Cursor cursor = db.rawQuery(timeSql, new String[] { userId, startTimeString, endTimeString })) {
+        try (Cursor cursor = db.rawQuery(timeSql, new String[] { userId, startDate, endDate })) {
             while (cursor.moveToNext()) {
                 String cat = cursor.getString(0);
                 long mins = cursor.getLong(1);
@@ -164,70 +183,89 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
 
         // 2. Financials
         totalIncome = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
-                userId, startTimeString, endTimeString);
+                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0",
+                userId, startDate, endDate);
         totalExpense = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
-                userId, startTimeString, endTimeString);
-        totalExpense += structuralExpenseForWindow(userId, startTimeString.substring(0, 10), endTimeString.substring(0, 10), false);
+                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0",
+                userId, startDate, endDate);
+        totalExpense += structuralExpenseForWindow(userId, startDate, endDate, false);
         totalWorkMinutes = scalarLong(db,
-                "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'work'",
-                userId, startTimeString, endTimeString);
+                "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? AND is_deleted = 0 AND category = 'work'",
+                userId, startDate, endDate);
         prevIncome = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
-                userId, prevStartTimeString, prevEndTimeString);
+                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0",
+                userId, prevStartDate, prevEndDate);
         prevExpense = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
-                userId, prevStartTimeString, prevEndTimeString);
-        prevExpense += structuralExpenseForWindow(userId, prevStartTimeString.substring(0, 10), prevEndTimeString.substring(0, 10), false);
+                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0",
+                userId, prevStartDate, prevEndDate);
+        prevExpense += structuralExpenseForWindow(userId, prevStartDate, prevEndDate, false);
         prevWorkMinutes = scalarLong(db,
-                "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'work'",
-                userId, prevStartTimeString, prevEndTimeString);
+                "SELECT SUM(duration_minutes) FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? AND is_deleted = 0 AND category = 'work'",
+                userId, prevStartDate, prevEndDate);
 
         // 3. Project ROI (Top vs Sinkhole)
+        long projectBenchmarkHourlyRateCents = benchmarkHourlyRateCents(db, userId);
+        long structuralExpenseWindow = structuralExpenseForWindow(userId, startDate, endDate, false);
         String projSql = "SELECT p.id, p.name, " +
-                "  COALESCE((SELECT SUM(t.duration_minutes) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = p.id AND t.updated_at >= ? AND t.updated_at <= ? AND t.is_deleted = 0), 0) as pt, "
+                "  COALESCE((SELECT SUM(t.duration_minutes) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = p.id AND date(t.started_at) >= ? AND date(t.started_at) <= ? AND t.is_deleted = 0), 0) as pt, "
                 +
-                "  COALESCE((SELECT SUM(i.amount_cents) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = p.id AND i.updated_at >= ? AND i.updated_at <= ? AND i.is_deleted = 0), 0) as pi "
+                "  COALESCE((SELECT SUM(i.amount_cents) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = p.id AND i.occurred_on >= ? AND i.occurred_on <= ? AND i.is_deleted = 0), 0) as pi, "
+                +
+                "  COALESCE((SELECT SUM(e.amount_cents) FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = p.id AND e.occurred_on >= ? AND e.occurred_on <= ? AND e.is_deleted = 0), 0) as pe "
                 +
                 "FROM project p WHERE p.is_deleted = 0 AND (p.owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = p.id AND pm.user_id = ?)) HAVING pt > 0 OR pi > 0 ORDER BY pi DESC, pt DESC";
 
         try (Cursor cursor = db.rawQuery(projSql,
-                new String[] { startTimeString, endTimeString, startTimeString, endTimeString, userId, userId })) {
+                new String[] { startDate, endDate, startDate, endDate, startDate, endDate, userId, userId })) {
             while (cursor.moveToNext()) {
                 String pId = cursor.getString(0);
                 String pName = cursor.getString(1);
                 long pt = cursor.getLong(2);
                 long pi = cursor.getLong(3);
+                long pe = cursor.getLong(4);
 
                 double hourly = 0;
                 if (pt > 0) {
                     hourly = ((double) pi / 100.0) / ((double) pt / 60.0);
                 }
+                long timeCostCents = projectBenchmarkHourlyRateCents > 0 ? (projectBenchmarkHourlyRateCents * pt / 60) : 0L;
+                long allocatedStructuralCostCents = 0L;
+                if (structuralExpenseWindow > 0 && totalWorkMinutes > 0 && pt > 0) {
+                    allocatedStructuralCostCents = structuralExpenseWindow * pt / totalWorkMinutes;
+                }
+                long operatingCostCents = pe + timeCostCents;
+                long fullyLoadedCostCents = operatingCostCents + allocatedStructuralCostCents;
+                double operatingRoi = roi(pi, operatingCostCents);
+                double fullyLoadedRoi = roi(pi, fullyLoadedCostCents);
 
                 String statusMsg;
-                if (hourly > 50.0 || (pi > 0 && pt == 0)) {
+                if (operatingRoi > 0 || (pi > 0 && pt == 0)) {
                     statusMsg = "positive";
-                    topProjects.add(new ProjectProgressItem(pId, pName, pt, pi, hourly, statusMsg));
+                    topProjects.add(new ProjectProgressItem(
+                            pId, pName, pt, pi, pe, allocatedStructuralCostCents,
+                            operatingCostCents, fullyLoadedCostCents, hourly, operatingRoi, fullyLoadedRoi, statusMsg));
                 } else if (pt > 120 && pi == 0) {
                     statusMsg = "warning";
-                    sinkholeProjects.add(new ProjectProgressItem(pId, pName, pt, pi, hourly, statusMsg));
+                    sinkholeProjects.add(new ProjectProgressItem(
+                            pId, pName, pt, pi, pe, allocatedStructuralCostCents,
+                            operatingCostCents, fullyLoadedCostCents, hourly, operatingRoi, fullyLoadedRoi, statusMsg));
                 } else {
                     statusMsg = "neutral";
-                    // maybe add to a generic list if needed, skipping for brevity
-                    if (hourly > 0) {
-                        topProjects.add(new ProjectProgressItem(pId, pName, pt, pi, hourly, statusMsg));
+                    if (pt > 0 || pi > 0 || pe > 0) {
+                        topProjects.add(new ProjectProgressItem(
+                                pId, pName, pt, pi, pe, allocatedStructuralCostCents,
+                                operatingCostCents, fullyLoadedCostCents, hourly, operatingRoi, fullyLoadedRoi, statusMsg));
                     }
                 }
             }
         }
 
         // 4. Key Events (e.g. big expenses, long time logs)
-        keyEvents = fetchKeyEvents(db, startTimeString, endTimeString);
-        incomeHistory = fetchIncomeHistory(db, userId, startTimeString, endTimeString);
-        historyRecords = fetchHistoryRecords(db, userId, startTimeString, endTimeString);
-        timeTagMetrics = fetchTimeTagMetrics(db, userId, startTimeString, endTimeString);
-        expenseTagMetrics = fetchExpenseTagMetrics(db, userId, startTimeString, endTimeString);
+        keyEvents = fetchKeyEvents(db, startDate, endDate);
+        incomeHistory = fetchIncomeHistory(db, userId, startDate, endDate);
+        historyRecords = fetchHistoryRecords(db, userId, startDate, endDate);
+        timeTagMetrics = fetchTimeTagMetrics(db, userId, startDate, endDate);
+        expenseTagMetrics = fetchExpenseTagMetrics(db, userId, startDate, endDate);
 
         long idealHourlyRateCents = scalarLong(db,
                 "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
@@ -235,43 +273,43 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         Long actualHourlyRateCents = totalWorkMinutes > 0 ? (totalIncome * 60 / totalWorkMinutes) : null;
         Long timeDebtCents = actualHourlyRateCents == null ? null : idealHourlyRateCents - actualHourlyRateCents;
         long passiveIncome = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND is_passive = 1",
-                userId, startTimeString, endTimeString);
+                "SELECT SUM(amount_cents) FROM income WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0 AND is_passive = 1",
+                userId, startDate, endDate);
         long necessaryExpense = scalarLong(db,
-                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 AND category = 'necessary'",
-                userId, startTimeString, endTimeString);
-        necessaryExpense += structuralExpenseForWindow(userId, startTimeString.substring(0, 10), endTimeString.substring(0, 10), true);
+                "SELECT SUM(amount_cents) FROM expense WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0 AND category = 'necessary'",
+                userId, startDate, endDate);
+        necessaryExpense += structuralExpenseForWindow(userId, startDate, endDate, true);
         Double passiveCoverRatio = necessaryExpense > 0 ? (double) passiveIncome / (double) necessaryExpense : null;
 
         Double freedomDelta = null;
         Double currentFreedomPercentage = null;
         double aiAssistMinutes = scalarDouble(db,
                 "SELECT COALESCE(SUM((duration_minutes * COALESCE(ai_assist_ratio, 0)) / 100.0), 0) " +
-                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0",
-                userId, startTimeString, endTimeString);
+                        "FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? AND is_deleted = 0",
+                userId, startDate, endDate);
         Double aiAssistRate = totalTime > 0 ? (aiAssistMinutes / (double) totalTime) : null;
         double weightedWorkEffNumerator = scalarDouble(db,
                 "SELECT COALESCE(SUM(duration_minutes * efficiency_score), 0) " +
-                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? " +
                         "AND is_deleted = 0 AND category = 'work' AND efficiency_score IS NOT NULL",
-                userId, startTimeString, endTimeString);
+                userId, startDate, endDate);
         long weightedWorkEffDenominator = scalarLong(db,
                 "SELECT COALESCE(SUM(duration_minutes), 0) " +
-                        "FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? " +
                         "AND is_deleted = 0 AND category = 'work' AND efficiency_score IS NOT NULL",
-                userId, startTimeString, endTimeString);
+                userId, startDate, endDate);
         Double workEfficiencyAvg = weightedWorkEffDenominator > 0 ? (weightedWorkEffNumerator / weightedWorkEffDenominator) : null;
 
         double weightedLearningEffNumerator = scalarDouble(db,
                 "SELECT COALESCE(SUM(duration_minutes * efficiency_score), 0) " +
-                        "FROM learning_record WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "FROM learning_record WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? " +
                         "AND is_deleted = 0 AND efficiency_score IS NOT NULL",
-                userId, startTimeString, endTimeString);
+                userId, startDate, endDate);
         long weightedLearningEffDenominator = scalarLong(db,
                 "SELECT COALESCE(SUM(duration_minutes), 0) " +
-                        "FROM learning_record WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? " +
+                        "FROM learning_record WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? " +
                         "AND is_deleted = 0 AND efficiency_score IS NOT NULL",
-                userId, startTimeString, endTimeString);
+                userId, startDate, endDate);
         Double learningEfficiencyAvg = weightedLearningEffDenominator > 0
                 ? (weightedLearningEffNumerator / weightedLearningEffDenominator)
                 : null;
@@ -311,20 +349,20 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return ((double) current - (double) previous) / (double) previous;
     }
 
-    private List<RecentRecordItem> fetchKeyEvents(SQLiteDatabase db, String start, String end) {
+    private List<RecentRecordItem> fetchKeyEvents(SQLiteDatabase db, String startDate, String endDate) {
         String userId = userContext.requireCurrentUserId();
         List<RecentRecordItem> evts = new ArrayList<>();
         // Fetch top 2 biggest expenses
-        String expSql = "SELECT amount_cents, category, updated_at, notes FROM expense WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 ORDER BY amount_cents DESC LIMIT 2";
-        try (Cursor c = db.rawQuery(expSql, new String[] { userId, start, end })) {
+        String expSql = "SELECT amount_cents, category, occurred_on, note FROM expense WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0 ORDER BY amount_cents DESC LIMIT 2";
+        try (Cursor c = db.rawQuery(expSql, new String[] { userId, startDate, endDate })) {
             while (c.moveToNext()) {
                 evts.add(new RecentRecordItem("expense", c.getString(2), "Big Expense: ¥" + (c.getLong(0) / 100.0),
                         c.getString(1) + " " + c.getString(3)));
             }
         }
         // Fetch top 2 longest time logs
-        String tSql = "SELECT duration_minutes, category, updated_at, notes FROM time_log WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 ORDER BY duration_minutes DESC LIMIT 2";
-        try (Cursor c = db.rawQuery(tSql, new String[] { userId, start, end })) {
+        String tSql = "SELECT duration_minutes, category, started_at, note FROM time_log WHERE owner_user_id = ? AND date(started_at) >= ? AND date(started_at) <= ? AND is_deleted = 0 ORDER BY duration_minutes DESC LIMIT 2";
+        try (Cursor c = db.rawQuery(tSql, new String[] { userId, startDate, endDate })) {
             while (c.moveToNext()) {
                 evts.add(new RecentRecordItem("time_log", c.getString(2), "Deep Work: " + c.getLong(0) + "m",
                         c.getString(1) + " " + c.getString(3)));
@@ -333,12 +371,12 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return evts;
     }
 
-    private List<RecentRecordItem> fetchIncomeHistory(SQLiteDatabase db, String userId, String start, String end) {
+    private List<RecentRecordItem> fetchIncomeHistory(SQLiteDatabase db, String userId, String startDate, String endDate) {
         List<RecentRecordItem> rows = new ArrayList<>();
         String sql = "SELECT occurred_on, source_name, amount_cents, type, note " +
-                "FROM income WHERE owner_user_id = ? AND updated_at >= ? AND updated_at <= ? AND is_deleted = 0 " +
+                "FROM income WHERE owner_user_id = ? AND occurred_on >= ? AND occurred_on <= ? AND is_deleted = 0 " +
                 "ORDER BY occurred_on DESC, created_at DESC LIMIT 120";
-        try (Cursor c = db.rawQuery(sql, new String[] { userId, start, end })) {
+        try (Cursor c = db.rawQuery(sql, new String[] { userId, startDate, endDate })) {
             while (c.moveToNext()) {
                 String occurredOn = c.isNull(0) ? "" : c.getString(0);
                 String sourceName = c.isNull(1) ? "-" : c.getString(1);
@@ -356,22 +394,22 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return rows;
     }
 
-    private List<RecentRecordItem> fetchHistoryRecords(SQLiteDatabase db, String userId, String start, String end) {
+    private List<RecentRecordItem> fetchHistoryRecords(SQLiteDatabase db, String userId, String startDate, String endDate) {
         List<RecentRecordItem> rows = new ArrayList<>();
         String sql = "SELECT type, occurred_at, title, detail FROM (" +
-                "SELECT 'time' AS type, t.updated_at AS occurred_at, t.category AS title, COALESCE(t.note, '') AS detail FROM time_log t " +
-                "WHERE t.owner_user_id = ? AND t.updated_at >= ? AND t.updated_at <= ? AND t.is_deleted = 0 " +
+                "SELECT 'time' AS type, t.started_at AS occurred_at, t.category AS title, COALESCE(t.note, '') AS detail FROM time_log t " +
+                "WHERE t.owner_user_id = ? AND date(t.started_at) >= ? AND date(t.started_at) <= ? AND t.is_deleted = 0 " +
                 "UNION ALL " +
-                "SELECT 'income' AS type, i.occurred_on || 'T00:00:00Z' AS occurred_at, i.source_name AS title, i.amount_cents || ' cents' AS detail FROM income i " +
-                "WHERE i.owner_user_id = ? AND i.updated_at >= ? AND i.updated_at <= ? AND i.is_deleted = 0 " +
+                "SELECT 'income' AS type, i.occurred_on || 'T00:00:00Z' AS occurred_at, i.source_name AS title, i.amount_cents || ' cents' || CASE WHEN i.note IS NULL OR i.note = '' THEN '' ELSE ' | ' || i.note END AS detail FROM income i " +
+                "WHERE i.owner_user_id = ? AND i.occurred_on >= ? AND i.occurred_on <= ? AND i.is_deleted = 0 " +
                 "UNION ALL " +
-                "SELECT 'expense' AS type, e.occurred_on || 'T00:00:00Z' AS occurred_at, e.category AS title, e.amount_cents || ' cents' AS detail FROM expense e " +
-                "WHERE e.owner_user_id = ? AND e.updated_at >= ? AND e.updated_at <= ? AND e.is_deleted = 0 " +
+                "SELECT 'expense' AS type, e.occurred_on || 'T00:00:00Z' AS occurred_at, e.category AS title, e.amount_cents || ' cents' || CASE WHEN e.note IS NULL OR e.note = '' THEN '' ELSE ' | ' || e.note END AS detail FROM expense e " +
+                "WHERE e.owner_user_id = ? AND e.occurred_on >= ? AND e.occurred_on <= ? AND e.is_deleted = 0 " +
                 "UNION ALL " +
-                "SELECT 'learning' AS type, l.occurred_on || 'T00:00:00Z' AS occurred_at, l.content AS title, l.duration_minutes || ' min' AS detail FROM learning_record l " +
-                "WHERE l.owner_user_id = ? AND l.updated_at >= ? AND l.updated_at <= ? AND l.is_deleted = 0" +
+                "SELECT 'learning' AS type, COALESCE(l.started_at, l.occurred_on || 'T00:00:00Z') AS occurred_at, l.content AS title, l.duration_minutes || ' min' || CASE WHEN l.note IS NULL OR l.note = '' THEN '' ELSE ' | ' || l.note END AS detail FROM learning_record l " +
+                "WHERE l.owner_user_id = ? AND l.occurred_on >= ? AND l.occurred_on <= ? AND l.is_deleted = 0" +
                 ") ORDER BY occurred_at DESC LIMIT 200";
-        String[] args = new String[] { userId, start, end, userId, start, end, userId, start, end, userId, start, end };
+        String[] args = new String[] { userId, startDate, endDate, userId, startDate, endDate, userId, startDate, endDate, userId, startDate, endDate };
         try (Cursor c = db.rawQuery(sql, args)) {
             while (c.moveToNext()) {
                 rows.add(new RecentRecordItem(
@@ -384,18 +422,18 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return rows;
     }
 
-    private List<ReviewReport.TagMetric> fetchTimeTagMetrics(SQLiteDatabase db, String userId, String start, String end) {
+    private List<ReviewReport.TagMetric> fetchTimeTagMetrics(SQLiteDatabase db, String userId, String startDate, String endDate) {
         List<ReviewReport.TagMetric> result = new ArrayList<>();
         String sql = "SELECT tg.name, COALESCE(tg.emoji,''), SUM(tl.duration_minutes) AS total_minutes " +
                 "FROM time_log_tag tlt " +
                 "JOIN time_log tl ON tl.id = tlt.time_log_id " +
                 "JOIN tag tg ON tg.id = tlt.tag_id " +
-                "WHERE tl.owner_user_id = ? AND tl.updated_at >= ? AND tl.updated_at <= ? AND tl.is_deleted = 0 AND tg.is_active = 1 " +
+                "WHERE tl.owner_user_id = ? AND date(tl.started_at) >= ? AND date(tl.started_at) <= ? AND tl.is_deleted = 0 AND tg.is_active = 1 " +
                 "GROUP BY tg.id, tg.name, tg.emoji " +
                 "ORDER BY total_minutes DESC LIMIT 8";
         long sum = 0L;
         List<Object[]> rows = new ArrayList<>();
-        try (Cursor c = db.rawQuery(sql, new String[] { userId, start, end })) {
+        try (Cursor c = db.rawQuery(sql, new String[] { userId, startDate, endDate })) {
             while (c.moveToNext()) {
                 String name = c.isNull(0) ? "-" : c.getString(0);
                 String emoji = c.isNull(1) ? "" : c.getString(1);
@@ -414,18 +452,18 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
         return result;
     }
 
-    private List<ReviewReport.TagMetric> fetchExpenseTagMetrics(SQLiteDatabase db, String userId, String start, String end) {
+    private List<ReviewReport.TagMetric> fetchExpenseTagMetrics(SQLiteDatabase db, String userId, String startDate, String endDate) {
         List<ReviewReport.TagMetric> result = new ArrayList<>();
         String sql = "SELECT tg.name, COALESCE(tg.emoji,''), SUM(e.amount_cents) AS total_cents " +
                 "FROM expense_tag et " +
                 "JOIN expense e ON e.id = et.expense_id " +
                 "JOIN tag tg ON tg.id = et.tag_id " +
-                "WHERE e.owner_user_id = ? AND e.updated_at >= ? AND e.updated_at <= ? AND e.is_deleted = 0 AND tg.is_active = 1 " +
+                "WHERE e.owner_user_id = ? AND e.occurred_on >= ? AND e.occurred_on <= ? AND e.is_deleted = 0 AND tg.is_active = 1 " +
                 "GROUP BY tg.id, tg.name, tg.emoji " +
                 "ORDER BY total_cents DESC LIMIT 8";
         long sum = 0L;
         List<Object[]> rows = new ArrayList<>();
-        try (Cursor c = db.rawQuery(sql, new String[] { userId, start, end })) {
+        try (Cursor c = db.rawQuery(sql, new String[] { userId, startDate, endDate })) {
             while (c.moveToNext()) {
                 String name = c.isNull(0) ? "-" : c.getString(0);
                 String emoji = c.isNull(1) ? "" : c.getString(1);
@@ -511,5 +549,40 @@ public class SQLiteLifeOsReviewRepository implements LifeOsReviewRepository {
             }
             return cursor.getDouble(0);
         }
+    }
+
+    private long benchmarkHourlyRateCents(SQLiteDatabase db, String userId) {
+        long idealHourlyRateCents = scalarLong(db,
+                "SELECT COALESCE(ideal_hourly_rate_cents, 0) FROM users WHERE id = ? LIMIT 1",
+                userId);
+        int lastYear = LocalDate.now().minusYears(1).getYear();
+        String lastYearStart = String.format(java.util.Locale.US, "%04d-01-01", lastYear);
+        String lastYearEnd = String.format(java.util.Locale.US, "%04d-12-31", lastYear);
+        long lastYearIncomeCents = scalarLong(db,
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
+                userId, lastYearStart, lastYearEnd);
+        long lastYearWorkMinutes = scalarLong(db,
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
+                userId, lastYearStart, lastYearEnd);
+        if (lastYearWorkMinutes > 0) {
+            return lastYearIncomeCents * 60 / lastYearWorkMinutes;
+        }
+        if (idealHourlyRateCents > 0) {
+            return idealHourlyRateCents;
+        }
+        long totalIncome = scalarLong(db,
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0",
+                userId);
+        long totalWorkMinutes = scalarLong(db,
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work'",
+                userId);
+        return totalWorkMinutes > 0 ? (totalIncome * 60 / totalWorkMinutes) : 0L;
+    }
+
+    private static double roi(long incomeCents, long costCents) {
+        if (costCents <= 0L) {
+            return 0.0;
+        }
+        return ((double) (incomeCents - costCents) / costCents) * 100.0;
     }
 }

@@ -50,6 +50,7 @@ public class ReviewProjectAdapter extends RecyclerView.Adapter<ReviewProjectAdap
         TextView tvProjectHourly;
         TextView tvProjectTime;
         TextView tvProjectIncome;
+        TextView tvProjectRoi;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -57,6 +58,7 @@ public class ReviewProjectAdapter extends RecyclerView.Adapter<ReviewProjectAdap
             tvProjectHourly = itemView.findViewById(R.id.tv_project_hourly);
             tvProjectTime = itemView.findViewById(R.id.tv_project_time);
             tvProjectIncome = itemView.findViewById(R.id.tv_project_income);
+            tvProjectRoi = itemView.findViewById(R.id.tv_project_roi);
         }
 
         public void bind(ProjectProgressItem item) {
@@ -80,6 +82,13 @@ public class ReviewProjectAdapter extends RecyclerView.Adapter<ReviewProjectAdap
             } else {
                 tvProjectIncome.setVisibility(View.GONE);
             }
+            tvProjectRoi.setText(String.format(
+                    Locale.US,
+                    "Op %.1f%% | Full %.1f%% | Direct %s | Shared %s",
+                    item.operatingRoiPerc,
+                    item.fullyLoadedRoiPerc,
+                    formatYuan(item.directExpenseCents),
+                    formatYuan(item.allocatedStructuralCostCents)));
 
             if ("warning".equals(item.evaluationStatus)) {
                 tvProjectName.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.statusNegative));
@@ -88,6 +97,16 @@ public class ReviewProjectAdapter extends RecyclerView.Adapter<ReviewProjectAdap
             } else {
                 tvProjectName.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.textPrimary));
             }
+        }
+
+        private static String formatYuan(long cents) {
+            if (cents <= 0L) {
+                return "--";
+            }
+            if (cents % 100 == 0) {
+                return String.format(Locale.US, "¥%,d", cents / 100);
+            }
+            return String.format(Locale.US, "¥%.2f", cents / 100.0);
         }
     }
 }

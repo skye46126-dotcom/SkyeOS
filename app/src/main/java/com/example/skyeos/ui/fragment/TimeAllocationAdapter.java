@@ -70,14 +70,20 @@ public class TimeAllocationAdapter extends RecyclerView.Adapter<TimeAllocationAd
             // Assign color based on category
             int color = 0;
             switch (item.categoryName.toLowerCase()) {
-                case "time_log":
-                case "routine":
+                case "work":
                     color = Color.parseColor("#3B82F6"); // lifeBlueLight
                     break;
                 case "learning":
                     color = Color.parseColor("#8B5CF6"); // lifePurpleLight
                     break;
-                case "project":
+                case "life":
+                case "social":
+                    color = Color.parseColor("#10B981");
+                    break;
+                case "entertainment":
+                    color = Color.parseColor("#F59E0B");
+                    break;
+                case "rest":
                     color = Color.parseColor("#EF4444"); // lifeRed
                     break;
                 default:
