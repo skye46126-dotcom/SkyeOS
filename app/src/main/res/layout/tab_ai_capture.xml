@@ -147,6 +147,7 @@
             android:padding="16dp">
 
             <TextView
+                android:id="@+id/tv_ai_preview_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/capture_ai_preview_title"
@@ -164,14 +165,25 @@
                 android:layout_marginBottom="8dp"
                 android:visibility="gone"/>
 
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="300dp">
+                <LinearLayout
+                    android:id="@+id/ll_ai_draft_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+            </ScrollView>
+
             <TextView
                 android:id="@+id/tv_ai_preview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/textPrimary"
-                android:textSize="13sp"
-                android:lineSpacingExtra="4dp"
-                android:fontFamily="monospace"/>
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:visibility="gone"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

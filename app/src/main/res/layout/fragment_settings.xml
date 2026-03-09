@@ -31,6 +31,24 @@
             android:text="@string/settings_subtitle"
             android:textColor="@color/textSecondary"
             android:textSize="13sp"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- General Section Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_general_title"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_general_subtitle"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
             android:layout_marginBottom="14dp"/>
 
         <com.google.android.material.textfield.TextInputLayout

@@ -131,7 +131,8 @@ public class ProjectDetailFragment extends Fragment {
         tvTime.setText(getString(R.string.common_duration_hours_minutes, hours, mins));
 
         tvRoi.setText(getString(R.string.project_roi_format, detail.operatingRoiPerc, detail.fullyLoadedRoiPerc));
-        tvHourly.setText(getString(R.string.common_hourly_format, formatYuan(Math.round(detail.hourlyRateYuan * 100.0))));
+        tvHourly.setText(
+                getString(R.string.common_hourly_format, formatYuan(Math.round(detail.hourlyRateYuan * 100.0))));
         tvTimeCost.setText(formatYuan(detail.timeCostCents));
         tvDirectExpense.setText(formatYuan(detail.directExpenseCents));
         tvStructuralAllocated.setText(formatYuan(detail.allocatedStructuralCostCents));
@@ -249,7 +250,7 @@ public class ProjectDetailFragment extends Fragment {
                 .show();
     }
 
-    private static String formatYuan(long cents) {
+    private String formatYuan(long cents) {
         if (cents == 0L) {
             return getString(R.string.common_none);
         }
@@ -260,7 +261,8 @@ public class ProjectDetailFragment extends Fragment {
     }
 
     private String buildProfitBlock(long profitCents, long costCents, long breakEvenCents, double roiPerc) {
-        String label = profitCents >= 0 ? getString(R.string.project_profit_label) : getString(R.string.project_loss_label);
+        String label = profitCents >= 0 ? getString(R.string.project_profit_label)
+                : getString(R.string.project_loss_label);
         return getString(
                 R.string.project_profit_block,
                 label,

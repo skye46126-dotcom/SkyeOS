@@ -6,7 +6,8 @@ public final class AiParseOrchestrator {
     private final ParserEngine ruleEngine;
     private ParserMode parserMode;
 
-    public AiParseOrchestrator(ParserEngine llmEngine, ParserEngine vcpEngine, ParserEngine ruleEngine, ParserMode parserMode) {
+    public AiParseOrchestrator(ParserEngine llmEngine, ParserEngine vcpEngine, ParserEngine ruleEngine,
+            ParserMode parserMode) {
         this.llmEngine = llmEngine;
         this.vcpEngine = vcpEngine;
         this.ruleEngine = ruleEngine;
@@ -21,40 +22,52 @@ public final class AiParseOrchestrator {
         return parserMode;
     }
 
-    public ParseResult parse(String rawText, String contextDate) {
+    public ParseResult parse(String rawText, String contextDate, ParserContext context) {
         try {
             switch (parserMode) {
                 case RULE:
-                    return ruleEngine.parse(rawText, contextDate);
+                    return ruleEngine.parse(rawText, contextDate, context);
                 case VCP:
-                    return vcpEngine.parse(rawText, contextDate);
+                    return vcpEngine.parse(rawText, contextDate, context);
                 case AUTO:
                 default:
-                    return parseAuto(rawText, contextDate);
+                    return parseAuto(rawText, contextDate, context);
             }
         } catch (Exception e) {
             return ParseResult.empty("orchestrator", e.getMessage());
         }
     }
 
-    private ParseResult parseAuto(String rawText, String contextDate) {
+    private ParseResult parseAuto(String rawText, String contextDate, ParserContext context) {
         ParseResult rule = null;
         try {
-            rule = ruleEngine.parse(rawText, contextDate);
+            rule = ruleEngine.parse(rawText, contextDate, context);
         } catch (Exception ignored) {
         }
+
+        // Prepare context for LLM with rule hints
+        ParserContext llmContext = context != null ? context : new ParserContext();
+        if (rule != null && rule.items != null) {
+            for (ParseDraftItem item : rule.items) {
+                if (!"unknown".equals(item.kind)) {
+                    llmContext.addRuleHint(item);
+                }
+            }
+        }
+
         try {
-            ParseResult llm = llmEngine.parse(rawText, contextDate);
+            ParseResult llm = llmEngine.parse(rawText, contextDate, llmContext);
             if (rule == null || rule.items == null || rule.items.isEmpty()) {
                 return llm;
             }
             return mergeResults(llm, rule);
         } catch (Exception llmError) {
             try {
-                ParseResult fallback = rule != null ? rule : ruleEngine.parse(rawText, contextDate);
+                ParseResult fallback = rule != null ? rule : ruleEngine.parse(rawText, contextDate, context);
                 return withWarning(fallback, "fallback to rule parser: " + llmError.getMessage());
             } catch (Exception ruleError) {
-                return ParseResult.empty("auto", "llm failed: " + llmError.getMessage() + "; rule failed: " + ruleError.getMessage());
+                return ParseResult.empty("auto",
+                        "llm failed: " + llmError.getMessage() + "; rule failed: " + ruleError.getMessage());
             }
         }
     }
@@ -87,8 +100,7 @@ public final class AiParseOrchestrator {
     private static void appendItems(
             java.util.List<ParseDraftItem> from,
             java.util.List<ParseDraftItem> into,
-            java.util.Set<String> seen
-    ) {
+            java.util.Set<String> seen) {
         if (from == null) {
             return;
         }

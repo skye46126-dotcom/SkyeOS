@@ -5,7 +5,9 @@
     <string name="nav_projects">Projects</string>
     <string name="nav_review">Review</string>
     <string name="settings_title">Cloud &amp; Settings</string>
-    <string name="settings_subtitle">Backup, sync, AI config, and tag management</string>
+    <string name="settings_subtitle">Backup, sync, AI config, language and tags</string>
+    <string name="settings_general_title">🌍 General</string>
+    <string name="settings_general_subtitle">App language and system preferences</string>
     <string name="settings_language_hint">Language</string>
     <string name="settings_save_config">Save Config</string>
     <string name="settings_open_cost_management">Open Cost Management</string>
@@ -33,7 +35,7 @@
     <string name="today_greeting_afternoon">Good afternoon 🌤</string>
     <string name="today_greeting_evening">Good evening 🌙</string>
     <string name="today_open_settings">Open settings</string>
-    <string name="today_metrics_title">Today's Key Metrics</string>
+    <string name="today_metrics_title">Today\'s Key Metrics</string>
     <string name="today_metric_work_time">⏱ Work Time</string>
     <string name="today_metric_income">💰 Income</string>
     <string name="today_metric_expense">🧾 Expense</string>
@@ -44,7 +46,7 @@
     <string name="today_time_title">Time Allocation (Today)</string>
     <string name="today_no_time_logs">No time logs today</string>
     <string name="today_no_recorded_time">No recorded time for this day</string>
-    <string name="today_notes_title">Today's Notes</string>
+    <string name="today_notes_title">Today\'s Notes</string>
     <string name="today_no_notes">No notes for this day</string>
     <string name="today_quick_capture">+ Quick Capture</string>
     <string name="today_open_day_detail">Open Day Detail</string>
@@ -95,7 +97,7 @@
     <string name="review_title_weekly">Weekly Report</string>
     <string name="review_title_monthly">Monthly Report</string>
     <string name="review_title_yearly">Yearly Report</string>
-    <string name="review_subtitle_daily">Focus on today's input and output</string>
+    <string name="review_subtitle_daily">Focus on today\'s input and output</string>
     <string name="review_subtitle_weekly">Focus on weekly trends, ROI and efficiency</string>
     <string name="review_subtitle_monthly">Focus on monthly freedom and long-term direction</string>
     <string name="review_subtitle_yearly">Focus on yearly trends and long-term drift</string>

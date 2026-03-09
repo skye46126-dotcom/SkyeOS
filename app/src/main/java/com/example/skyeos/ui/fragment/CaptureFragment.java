@@ -8,6 +8,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -19,6 +22,7 @@ import com.example.skyeos.AppGraph;
 import com.example.skyeos.R;
 import com.example.skyeos.ai.ParseDraftItem;
 import com.example.skyeos.ai.ParseResult;
+import com.example.skyeos.ai.ParserContext;
 import com.example.skyeos.ai.ParserMode;
 import com.example.skyeos.domain.model.ProjectOption;
 import com.example.skyeos.domain.model.TagItem;
@@ -100,7 +104,8 @@ public class CaptureFragment extends Fragment {
     private ChipGroup chipParserMode;
     private MaterialButton btnAiParse, btnAiCommit;
     private CardView cardAiPreview;
-    private TextView tvAiPreview, tvAiFeedback;
+    private TextView tvAiPreview, tvAiFeedback, tvAiPreviewLabel;
+    private LinearLayout llAiDraftContainer;
     private View progressAiParse;
     private ParseResult latestParseResult;
 
@@ -525,6 +530,8 @@ public class CaptureFragment extends Fragment {
         cardAiPreview = aiView.findViewById(R.id.card_ai_preview);
         tvAiPreview = aiView.findViewById(R.id.tv_ai_preview);
         tvAiFeedback = aiView.findViewById(R.id.tv_ai_feedback);
+        tvAiPreviewLabel = aiView.findViewById(R.id.tv_ai_preview_label);
+        llAiDraftContainer = aiView.findViewById(R.id.ll_ai_draft_container);
         progressAiParse = aiView.findViewById(R.id.progress_ai_parse);
 
         etAiDate.setText(LocalDate.now().format(DATE_FMT));
@@ -560,8 +567,31 @@ public class CaptureFragment extends Fragment {
         String contextDate = etAiDate.getText() == null ? LocalDate.now().toString()
                 : etAiDate.getText().toString().trim();
 
+        // Build context with available categories and projects
+        List<String> categories = new ArrayList<>();
+        categories.add("work");
+        categories.add("learning");
+        categories.add("life");
+        categories.add("entertainment");
+        categories.add("rest");
+        categories.add("social");
+        categories.add("salary");
+        categories.add("project");
+        categories.add("investment");
+        categories.add("necessary");
+        categories.add("experience");
+        categories.add("subscription");
+
+        List<String> projectNames = new ArrayList<>();
+        if (projectOptions != null) {
+            for (ProjectOption p : projectOptions)
+                projectNames.add(p.name);
+        }
+
+        ParserContext context = new ParserContext(categories, projectNames, null);
+
         new Thread(() -> {
-            ParseResult result = graph.aiParseOrchestrator.parse(raw, safeDate(contextDate));
+            ParseResult result = graph.aiParseOrchestrator.parse(raw, safeDate(contextDate), context);
             if (getActivity() == null)
                 return;
             getActivity().runOnUiThread(() -> {
@@ -573,20 +603,89 @@ public class CaptureFragment extends Fragment {
                 boolean hasItems = result != null && result.items != null && !result.items.isEmpty();
                 btnAiCommit.setEnabled(hasItems);
                 cardAiPreview.setVisibility(View.VISIBLE);
-                tvAiPreview.setText(formatPreview(result));
+                renderDraftItems(result);
 
                 if (hasItems) {
-                    int savedClicks = result.items.size() * 5; // Approx clicks saved per item
-                    int estTokens = raw.length() * 2 + 50; // Rough token estimation
-                    tvAiFeedback.setText("💡 AI saved about " + savedClicks + " clicks, estimated usage " + estTokens + " tokens");
+                    int savedClicks = result.items.size() * 5;
+                    tvAiFeedback.setText("💡 AI saved about " + savedClicks + " clicks");
                     tvAiFeedback.setVisibility(View.VISIBLE);
+                    tvAiPreviewLabel.setText("Confirm Draft (" + result.items.size() + " items)");
                 } else {
                     tvAiFeedback.setVisibility(View.GONE);
+                    tvAiPreviewLabel.setText("No items found");
                 }
 
                 snack("Parse completed, " + (hasItems ? result.items.size() : 0) + " items");
             });
         }).start();
+    }
+
+    private void renderDraftItems(ParseResult result) {
+        if (llAiDraftContainer == null)
+            return;
+        llAiDraftContainer.removeAllViews();
+        if (result == null || result.items == null || result.items.isEmpty()) {
+            tvAiPreview.setVisibility(View.VISIBLE);
+            tvAiPreview.setText("No items parsed. Try adjusting your input.");
+            return;
+        }
+        tvAiPreview.setVisibility(View.GONE);
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
+
+        for (int i = 0; i < result.items.size(); i++) {
+            ParseDraftItem item = result.items.get(i);
+            View v = inflater.inflate(R.layout.item_ai_draft, llAiDraftContainer, false);
+
+            ImageView ivIcon = v.findViewById(R.id.iv_item_icon);
+            TextView tvTitle = v.findViewById(R.id.tv_item_title);
+            TextView tvSubtitle = v.findViewById(R.id.tv_item_subtitle);
+            ImageButton btnDelete = v.findViewById(R.id.btn_item_delete);
+
+            String kind = item.kind != null ? item.kind : "unknown";
+            int iconRes = R.drawable.ic_cat_project;
+            String title = kind.toUpperCase(Locale.US);
+            StringBuilder subtitle = new StringBuilder();
+
+            Map<String, String> p = item.payload;
+            switch (kind) {
+                case "income":
+                    iconRes = R.drawable.ic_cat_income;
+                    title = "Income: " + valueOr(p, "amount", "0") + " from " + valueOr(p, "source", "?");
+                    subtitle.append("Type: ").append(valueOr(p, "type", "other"));
+                    break;
+                case "expense":
+                    iconRes = R.drawable.ic_cat_expense;
+                    title = "Expense: " + valueOr(p, "amount", "0");
+                    subtitle.append("Cat: ").append(valueOr(p, "category", "necessary"))
+                            .append(" | Note: ").append(valueOr(p, "note", ""));
+                    break;
+                case "learning":
+                    iconRes = R.drawable.ic_cat_learning;
+                    title = "Learning: " + valueOr(p, "content", "?");
+                    subtitle.append("Dur: ").append(valueOr(p, "duration_minutes", "60")).append("m");
+                    break;
+                case "time_log":
+                    iconRes = R.drawable.ic_cat_time;
+                    title = "Time: " + valueOr(p, "description", "?");
+                    subtitle.append(valueOr(p, "start_hour", "?")).append("-").append(valueOr(p, "end_hour", "?"))
+                            .append(" | Cat: ").append(valueOr(p, "category", "work"));
+                    break;
+            }
+
+            ivIcon.setImageResource(iconRes);
+            tvTitle.setText(title);
+            tvSubtitle.setText(subtitle.toString());
+
+            final int index = i;
+            btnDelete.setOnClickListener(x -> {
+                result.items.remove(index);
+                renderDraftItems(result);
+                btnAiCommit.setEnabled(!result.items.isEmpty());
+                tvAiPreviewLabel.setText("Confirm Draft (" + result.items.size() + " items)");
+            });
+
+            llAiDraftContainer.addView(v);
+        }
     }
 
     private void commitAiResult() {
@@ -809,7 +908,8 @@ public class CaptureFragment extends Fragment {
             if (!hasStart || !hasEnd) {
                 throw new IllegalArgumentException("Please provide both learning start and end time");
             }
-            long minutes = Duration.between(java.time.Instant.parse(startedAt), java.time.Instant.parse(endedAt)).toMinutes();
+            long minutes = Duration.between(java.time.Instant.parse(startedAt), java.time.Instant.parse(endedAt))
+                    .toMinutes();
             if (minutes <= 0) {
                 throw new IllegalArgumentException("Learning end time must be after start time");
             }

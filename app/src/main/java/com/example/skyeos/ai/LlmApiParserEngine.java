@@ -31,7 +31,7 @@ public final class LlmApiParserEngine implements ParserEngine {
     }
 
     @Override
-    public ParseResult parse(String rawText, String contextDate) throws Exception {
+    public ParseResult parse(String rawText, String contextDate, ParserContext context) throws Exception {
         if (rawText == null || rawText.trim().isEmpty()) {
             return ParseResult.empty("llm_api", "raw text is empty");
         }
@@ -49,10 +49,11 @@ public final class LlmApiParserEngine implements ParserEngine {
         conn.setRequestProperty("Authorization", "Bearer " + config.apiKey);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-        JSONObject body = buildChatRequest(config.resolvedModel(), config.resolvedSystemPrompt(), rawText, contextDate);
+        JSONObject body = buildChatRequest(config.resolvedModel(), config.resolvedSystemPrompt(), rawText, contextDate,
+                context);
         try (OutputStream out = conn.getOutputStream();
-             OutputStreamWriter osw = new OutputStreamWriter(out, StandardCharsets.UTF_8);
-             BufferedWriter writer = new BufferedWriter(osw)) {
+                OutputStreamWriter osw = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+                BufferedWriter writer = new BufferedWriter(osw)) {
             writer.write(body.toString());
             writer.flush();
         }
@@ -73,8 +74,8 @@ public final class LlmApiParserEngine implements ParserEngine {
             String model,
             String systemPrompt,
             String rawText,
-            String contextDate
-    ) throws JSONException {
+            String contextDate,
+            ParserContext context) throws JSONException {
         String schemaHint = "{"
                 + "\"items\":["
                 + "{\"kind\":\"time_log|income|expense|learning|unknown\","
@@ -86,15 +87,40 @@ public final class LlmApiParserEngine implements ParserEngine {
                 + "\"warnings\":[]"
                 + "}";
 
+        StringBuilder contextHint = new StringBuilder();
+        if (context != null) {
+            if (!context.categories.isEmpty()) {
+                contextHint.append("可用分类：").append(context.categories).append("\n");
+            }
+            if (!context.projectNames.isEmpty()) {
+                contextHint.append("可用项目：").append(context.projectNames).append("\n");
+            }
+            if (!context.tagNames.isEmpty()) {
+                contextHint.append("可用标签：").append(context.tagNames).append("\n");
+            }
+            if (!context.ruleHints.isEmpty()) {
+                contextHint.append("规则引擎初步提取（供参考）：\n");
+                for (ParseDraftItem hint : context.ruleHints) {
+                    contextHint.append("- ").append(hint.kind).append(": ").append(hint.payload).append("\n");
+                }
+            }
+        }
+
         String userPrompt = String.format(Locale.US,
-                "context_date=%s\nraw_text=\n%s\n\n按此 JSON 结构输出：\n%s\n\npayload 可按类型附带字段：\n" +
-                        "- time_log: category,start_hour,end_hour,duration_hours,description,ai_ratio(0-100),efficiency_score(1-10),value_score(1-10),state_score(1-10)\n" +
+                "context_date=%s\n%s\nraw_text=\n%s\n\n按此 JSON 结构输出：\n%s\n\npayload 可按类型附带字段：\n" +
+                        "- time_log: category,start_hour,end_hour,duration_hours,description,ai_ratio(0-100),efficiency_score(1-10),value_score(1-10),state_score(1-10)\n"
+                        +
                         "- income: source,type,amount,ai_ratio(0-100)\n" +
                         "- expense: category,amount,note,ai_ratio(0-100)\n" +
-                        "- learning: content,duration_minutes,application_level,ai_ratio(0-100),efficiency_score(1-10)\n" +
-                        "注意：主观评分字段（efficiency_score/value_score/state_score）默认不要猜测，只有原文明确给分才提取。\n" +
-                        "缺失字段可省略，不要编造。",
+                        "- learning: content,duration_minutes,application_level,ai_ratio(0-100),efficiency_score(1-10)\n"
+                        +
+                        "注意：\n" +
+                        "1. 主观评分字段只有原文明确才提取。\n" +
+                        "2. 优先匹配提供的可用分类/项目/标签。\n" +
+                        "3. 如果规则引擎已提取部分内容，请验证并完善它，不要漏掉信息。\n" +
+                        "4. 缺失字段可省略，不要编造。",
                 contextDate == null ? "" : contextDate.trim(),
+                contextHint.toString(),
                 rawText == null ? "" : rawText.trim(),
                 schemaHint);
 
@@ -265,7 +291,7 @@ public final class LlmApiParserEngine implements ParserEngine {
         }
         StringBuilder builder = new StringBuilder();
         try (InputStreamReader isr = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-             BufferedReader reader = new BufferedReader(isr)) {
+                BufferedReader reader = new BufferedReader(isr)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line).append('\n');

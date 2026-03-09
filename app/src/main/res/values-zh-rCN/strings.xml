@@ -5,7 +5,9 @@
     <string name="nav_projects">项目</string>
     <string name="nav_review">回顾</string>
     <string name="settings_title">云同步与设置</string>
-    <string name="settings_subtitle">备份、同步、AI 配置与标签管理</string>
+    <string name="settings_subtitle">备份、同步、AI 配置、语言与标签管理</string>
+    <string name="settings_general_title">🌍 通用设置</string>
+    <string name="settings_general_subtitle">应用语言与系统偏好</string>
     <string name="settings_language_hint">语言</string>
     <string name="settings_save_config">保存设置</string>
     <string name="settings_open_cost_management">打开成本管理</string>

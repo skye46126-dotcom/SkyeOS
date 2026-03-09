@@ -18,7 +18,7 @@ public final class RuleParserEngine implements ParserEngine {
     private static final Pattern AI_RATIO = Pattern.compile("AI(?:辅助|参与|占比|率)?\\s*([1-9]\\d?|100)\\s*%?");
 
     @Override
-    public ParseResult parse(String rawText, String contextDate) {
+    public ParseResult parse(String rawText, String contextDate, ParserContext context) {
         if (rawText == null || rawText.trim().isEmpty()) {
             return ParseResult.empty("rule", "empty input");
         }
