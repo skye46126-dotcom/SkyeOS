@@ -19,14 +19,27 @@ public final class LifeOsUseCases {
     public final UpsertMonthlyCostBaselineUseCase upsertMonthlyCostBaseline;
     public final ListRecurringCostRulesUseCase listRecurringCostRules;
     public final CreateRecurringCostRuleUseCase createRecurringCostRule;
+    public final UpdateRecurringCostRuleUseCase updateRecurringCostRule;
+    public final DeleteRecurringCostRuleUseCase deleteRecurringCostRule;
     public final ListCapexCostsUseCase listCapexCosts;
     public final CreateCapexCostUseCase createCapexCost;
+    public final UpdateCapexCostUseCase updateCapexCost;
+    public final DeleteCapexCostUseCase deleteCapexCost;
     public final GetOverviewUseCase getOverview;
     public final GetRecentRecordsUseCase getRecentRecords;
     public final GetRecordsForDateUseCase getRecordsForDate;
     public final GetProjectOptionsUseCase getProjectOptions;
     public final GetTagsUseCase getTags;
     public final CreateTagUseCase createTag;
+    public final UpdateTimeLogUseCase updateTimeLog;
+    public final UpdateIncomeUseCase updateIncome;
+    public final UpdateExpenseUseCase updateExpense;
+    public final UpdateLearningUseCase updateLearning;
+    public final UpdateProjectRecordUseCase updateProjectRecord;
+    public final UpdateTagUseCase updateTag;
+    public final DeleteRecordUseCase deleteRecord;
+    public final DeleteProjectUseCase deleteProject;
+    public final DeleteTagUseCase deleteTag;
     public final ProjectUseCases projectUseCases;
     public final ReviewUseCases reviewUseCases;
     public final CreateBackupUseCase createBackup;
@@ -53,14 +66,27 @@ public final class LifeOsUseCases {
             UpsertMonthlyCostBaselineUseCase upsertMonthlyCostBaseline,
             ListRecurringCostRulesUseCase listRecurringCostRules,
             CreateRecurringCostRuleUseCase createRecurringCostRule,
+            UpdateRecurringCostRuleUseCase updateRecurringCostRule,
+            DeleteRecurringCostRuleUseCase deleteRecurringCostRule,
             ListCapexCostsUseCase listCapexCosts,
             CreateCapexCostUseCase createCapexCost,
+            UpdateCapexCostUseCase updateCapexCost,
+            DeleteCapexCostUseCase deleteCapexCost,
             GetOverviewUseCase getOverview,
             GetRecentRecordsUseCase getRecentRecords,
             GetRecordsForDateUseCase getRecordsForDate,
             GetProjectOptionsUseCase getProjectOptions,
             GetTagsUseCase getTags,
             CreateTagUseCase createTag,
+            UpdateTimeLogUseCase updateTimeLog,
+            UpdateIncomeUseCase updateIncome,
+            UpdateExpenseUseCase updateExpense,
+            UpdateLearningUseCase updateLearning,
+            UpdateProjectRecordUseCase updateProjectRecord,
+            UpdateTagUseCase updateTag,
+            DeleteRecordUseCase deleteRecord,
+            DeleteProjectUseCase deleteProject,
+            DeleteTagUseCase deleteTag,
             ProjectUseCases projectUseCases,
             ReviewUseCases reviewUseCases,
             CreateBackupUseCase createBackup,
@@ -85,14 +111,27 @@ public final class LifeOsUseCases {
         this.upsertMonthlyCostBaseline = upsertMonthlyCostBaseline;
         this.listRecurringCostRules = listRecurringCostRules;
         this.createRecurringCostRule = createRecurringCostRule;
+        this.updateRecurringCostRule = updateRecurringCostRule;
+        this.deleteRecurringCostRule = deleteRecurringCostRule;
         this.listCapexCosts = listCapexCosts;
         this.createCapexCost = createCapexCost;
+        this.updateCapexCost = updateCapexCost;
+        this.deleteCapexCost = deleteCapexCost;
         this.getOverview = getOverview;
         this.getRecentRecords = getRecentRecords;
         this.getRecordsForDate = getRecordsForDate;
         this.getProjectOptions = getProjectOptions;
         this.getTags = getTags;
         this.createTag = createTag;
+        this.updateTimeLog = updateTimeLog;
+        this.updateIncome = updateIncome;
+        this.updateExpense = updateExpense;
+        this.updateLearning = updateLearning;
+        this.updateProjectRecord = updateProjectRecord;
+        this.updateTag = updateTag;
+        this.deleteRecord = deleteRecord;
+        this.deleteProject = deleteProject;
+        this.deleteTag = deleteTag;
         this.projectUseCases = projectUseCases;
         this.reviewUseCases = reviewUseCases;
         this.createBackup = createBackup;

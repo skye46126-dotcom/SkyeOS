@@ -19,7 +19,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cloud &amp; Settings"
+            android:text="@string/settings_title"
             android:textColor="@color/textPrimary"
             android:textSize="30sp"
             android:textStyle="bold"
@@ -28,10 +28,23 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Backup, sync, AI config, and tag management"
+            android:text="@string/settings_subtitle"
             android:textColor="@color/textSecondary"
             android:textSize="13sp"
             android:layout_marginBottom="14dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.LifeOS.TextInputLayout.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/settings_language_hint"
+            android:layout_marginBottom="14dp">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/et_app_language"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Cloud Sync Section Title -->
         <TextView
@@ -97,7 +110,7 @@
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="Save Config"
+            android:text="@string/settings_save_config"
             android:layout_marginBottom="12dp"/>
 
         <TextView
@@ -114,7 +127,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginBottom="20dp"
-            android:text="Open Cost Management"/>
+            android:text="@string/settings_open_cost_management"/>
 
         <!-- AI config section -->
         <TextView
@@ -320,7 +333,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tag Management"
+            android:text="@string/settings_tag_management"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -379,7 +392,7 @@
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Create Tag"
+            android:text="@string/settings_create_tag"
             android:layout_marginBottom="10dp"/>
 
         <androidx.cardview.widget.CardView
@@ -389,14 +402,12 @@
             app:cardCornerRadius="16dp"
             app:cardElevation="1dp">
 
-            <TextView
-                android:id="@+id/tv_tag_list"
+            <LinearLayout
+                android:id="@+id/layout_tag_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:textColor="@color/textPrimary"
-                android:textSize="13sp"
-                android:text="Loading tags..."/>
+                android:orientation="vertical"
+                android:padding="12dp"/>
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>

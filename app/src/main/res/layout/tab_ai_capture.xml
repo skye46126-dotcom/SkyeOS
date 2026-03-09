@@ -12,7 +12,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Natural language input -> structured preview -> one-tap commit"
+        android:text="@string/capture_ai_subtitle"
         android:textColor="@color/textSecondary"
         android:textSize="12sp"
         android:layout_marginBottom="8dp"/>
@@ -27,7 +27,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Date:"
+            android:text="@string/common_date_label"
             android:textColor="@color/textSecondary"
             android:textSize="14sp"/>
 
@@ -61,7 +61,7 @@
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Auto"
+                android:text="@string/capture_ai_mode_auto"
                 android:checked="true"/>
 
             <com.google.android.material.chip.Chip
@@ -69,7 +69,7 @@
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rule"/>
+                android:text="@string/capture_ai_mode_rule"/>
 
         </com.google.android.material.chip.ChipGroup>
     </LinearLayout>
@@ -80,7 +80,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:hint="Type or paste natural language notes..."
+        android:hint="@string/capture_ai_input_hint"
         android:layout_marginBottom="10dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_ai_raw"
@@ -109,7 +109,7 @@
             android:maxLines="1"
             app:icon="@drawable/ic_robot"
             app:iconGravity="textStart"
-            android:text="Parse"/>
+            android:text="@string/capture_ai_parse"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_ai_commit"
@@ -120,7 +120,7 @@
             android:enabled="false"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Commit"/>
+            android:text="@string/capture_ai_commit"/>
     </LinearLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -149,7 +149,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Parse Preview"
+                android:text="@string/capture_ai_preview_title"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:layout_marginBottom="8dp"/>

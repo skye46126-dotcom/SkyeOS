@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Choose record type"
+        android:text="@string/capture_choose_record_type"
         android:textColor="@color/textSecondary"
         android:textSize="12sp"
         android:textStyle="bold"
@@ -36,7 +36,7 @@
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⏱ Time"
+                android:text="@string/capture_type_time"
                 android:checked="true"/>
 
             <com.google.android.material.chip.Chip
@@ -44,28 +44,28 @@
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💰 Income"/>
+                android:text="@string/capture_type_income"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_expense"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🛒 Expense"/>
+                android:text="@string/capture_type_expense"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_learning"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📚 Learning"/>
+                android:text="@string/capture_type_learning"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_project"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📁 Project"/>
+                android:text="@string/capture_type_project"/>
 
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>

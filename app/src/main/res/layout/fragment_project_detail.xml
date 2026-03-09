@@ -23,23 +23,25 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_revert"
             app:tint="@color/textPrimary"
-            android:contentDescription="Back" />
+            android:contentDescription="@string/common_back" />
 
         <TextView
             android:id="@+id/tv_detail_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Project Detail"
+            android:text="@string/project_detail_title"
             android:textColor="@color/textPrimary"
             android:textSize="22sp"
             android:textStyle="bold"
             android:gravity="center" />
 
-        <!-- Placeholder for symmetry -->
-        <View
-            android:layout_width="48dp"
-            android:layout_height="48dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_edit_project"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="72dp"
+            android:layout_height="40dp"
+            android:text="@string/common_edit" />
     </LinearLayout>
 
     <ScrollView
@@ -80,14 +82,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Priority Score"
+                            android:text="@string/project_priority_score"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_score"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="⭐ 0"
+                            android:text="@string/project_score_placeholder"
                             android:textColor="@color/textPrimary"
                             android:textSize="18sp"
                             android:textStyle="bold"
@@ -104,14 +106,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Status"
+                            android:text="@string/project_status"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Active"
+                            android:text="@string/project_status_active"
                             android:textColor="@color/textPrimary"
                             android:textSize="18sp"
                             android:textStyle="bold"
@@ -128,14 +130,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Total Time"
+                            android:text="@string/project_total_time"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0h 00m"
+                            android:text="@string/project_time_placeholder"
                             android:textColor="@color/textPrimary"
                             android:textSize="18sp"
                             android:textStyle="bold"
@@ -152,14 +154,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Project ROI"
+                            android:text="@string/project_roi"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_roi"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0.0X"
+                            android:text="@string/project_roi_placeholder"
                             android:textColor="@color/lifeBlue"
                             android:textSize="18sp"
                             android:textStyle="bold"
@@ -176,14 +178,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Hourly Rate"
+                            android:text="@string/project_hourly_rate"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_hourly"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="¥0.00 / hour"
+                            android:text="@string/project_hourly_placeholder"
                             android:textColor="@color/lifeBlueDark"
                             android:textSize="18sp"
                             android:textStyle="bold"
@@ -199,14 +201,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Time Cost"
+                            android:text="@string/project_time_cost"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_time_cost"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="¥0"
+                            android:text="@string/project_profit_placeholder"
                             android:textColor="@color/textPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -222,14 +224,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Direct Expense"
+                            android:text="@string/project_direct_expense"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_direct_expense"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="¥0"
+                            android:text="@string/project_profit_placeholder"
                             android:textColor="@color/textPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -245,14 +247,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Allocated Structural"
+                            android:text="@string/project_allocated_structural"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_structural_allocated"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="¥0"
+                            android:text="@string/common_none"
                             android:textColor="@color/textPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -269,14 +271,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Operating Profit"
+                            android:text="@string/project_operating_profit"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_operating"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Profit ¥0 | Cost ¥0"
+                            android:text="@string/common_none"
                             android:textColor="@color/lifeBlue"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -293,14 +295,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Fully Loaded Profit"
+                            android:text="@string/project_fully_loaded_profit"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_fully_loaded"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Profit ¥0 | Cost ¥0"
+                            android:text="@string/common_none"
                             android:textColor="@color/lifeBlueDark"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -317,14 +319,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Cost Method"
+                            android:text="@string/project_cost_method"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                         <TextView
                             android:id="@+id/tv_detail_cost_method"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Window and cost method"
+                            android:text="@string/common_none"
                             android:textColor="@color/textSecondary"
                             android:textSize="13sp"
                             android:layout_marginTop="4dp" />
@@ -350,7 +352,7 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Project note"
+                        android:hint="@string/project_note_hint"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_project_note"
@@ -364,7 +366,7 @@
                         android:id="@+id/btn_save_note"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Save Note"
+                        android:text="@string/project_save_note"
                         android:layout_gravity="end"
                         android:layout_marginTop="12dp"
                         style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -375,7 +377,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Recent Records"
+                android:text="@string/project_recent_records"
                 android:textColor="@color/textPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -401,7 +403,7 @@
                     android:id="@+id/btn_mark_done"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Mark as Done"
+                    android:text="@string/project_mark_done"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:textColor="@color/lifeBlue"
                     app:strokeColor="@color/lifeBlue"
@@ -411,7 +413,7 @@
                     android:id="@+id/btn_delete_project"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Delete Project"
+                    android:text="@string/project_delete"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:textColor="@color/lifeRed" />
             </LinearLayout>

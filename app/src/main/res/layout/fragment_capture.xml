@@ -14,7 +14,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Capture"
+        android:text="@string/capture_title"
         android:textColor="@color/textPrimary"
         android:textSize="30sp"
         android:textStyle="bold"
@@ -23,7 +23,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Manual input + AI parsing, unified into one data layer"
+        android:text="@string/capture_subtitle"
         android:textColor="@color/textSecondary"
         android:textSize="13sp"
         android:layout_marginBottom="14dp"/>
@@ -47,11 +47,11 @@
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✍️ Manual"/>
+                android:text="@string/capture_tab_manual"/>
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🤖 AI Parse"/>
+                android:text="@string/capture_tab_ai"/>
         </com.google.android.material.tabs.TabLayout>
     </com.google.android.material.card.MaterialCardView>
 

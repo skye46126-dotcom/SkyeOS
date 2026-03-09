@@ -2,6 +2,7 @@ package com.example.skyeos.domain.usecase;
 
 import com.example.skyeos.domain.model.ProjectDetail;
 import com.example.skyeos.domain.model.ProjectOverview;
+import com.example.skyeos.domain.model.input.CreateProjectInput;
 import com.example.skyeos.domain.repository.LifeOsReadRepository;
 import com.example.skyeos.domain.repository.LifeOsWriteRepository;
 
@@ -27,5 +28,13 @@ public class ProjectUseCases {
     public void updateProject(String projectId, String status, int score, String note, String endedOn) {
         // e.g. status "done" -> set endedOn
         writeRepo.updateProject(projectId, status, score, note, endedOn);
+    }
+
+    public void updateProjectRecord(String projectId, CreateProjectInput input) {
+        writeRepo.updateProjectRecord(projectId, input);
+    }
+
+    public void deleteProject(String projectId) {
+        writeRepo.deleteProject(projectId);
     }
 }

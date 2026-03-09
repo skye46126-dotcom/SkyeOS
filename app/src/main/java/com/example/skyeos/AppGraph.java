@@ -30,6 +30,11 @@ import com.example.skyeos.domain.usecase.CreateTagUseCase;
 import com.example.skyeos.domain.usecase.CreateTimeLogUseCase;
 import com.example.skyeos.domain.usecase.CreateCapexCostUseCase;
 import com.example.skyeos.domain.usecase.CreateRecurringCostRuleUseCase;
+import com.example.skyeos.domain.usecase.DeleteCapexCostUseCase;
+import com.example.skyeos.domain.usecase.DeleteProjectUseCase;
+import com.example.skyeos.domain.usecase.DeleteRecurringCostRuleUseCase;
+import com.example.skyeos.domain.usecase.DeleteRecordUseCase;
+import com.example.skyeos.domain.usecase.DeleteTagUseCase;
 import com.example.skyeos.domain.usecase.GetLatestBackupUseCase;
 import com.example.skyeos.domain.usecase.GetMonthlyCostBaselineUseCase;
 import com.example.skyeos.domain.usecase.GetMetricSnapshotUseCase;
@@ -54,6 +59,14 @@ import com.example.skyeos.domain.usecase.SetIdealHourlyRateUseCase;
 import com.example.skyeos.domain.usecase.SetCurrentMonthBasicLivingCostUseCase;
 import com.example.skyeos.domain.usecase.SetCurrentMonthFixedSubscriptionCostUseCase;
 import com.example.skyeos.domain.usecase.UpsertMonthlyCostBaselineUseCase;
+import com.example.skyeos.domain.usecase.UpdateCapexCostUseCase;
+import com.example.skyeos.domain.usecase.UpdateExpenseUseCase;
+import com.example.skyeos.domain.usecase.UpdateIncomeUseCase;
+import com.example.skyeos.domain.usecase.UpdateLearningUseCase;
+import com.example.skyeos.domain.usecase.UpdateProjectRecordUseCase;
+import com.example.skyeos.domain.usecase.UpdateRecurringCostRuleUseCase;
+import com.example.skyeos.domain.usecase.UpdateTagUseCase;
+import com.example.skyeos.domain.usecase.UpdateTimeLogUseCase;
 
 public final class AppGraph {
     private static volatile AppGraph instance;
@@ -104,14 +117,27 @@ public final class AppGraph {
                 new UpsertMonthlyCostBaselineUseCase(metricsRepository),
                 new ListRecurringCostRulesUseCase(metricsRepository),
                 new CreateRecurringCostRuleUseCase(metricsRepository),
+                new UpdateRecurringCostRuleUseCase(metricsRepository),
+                new DeleteRecurringCostRuleUseCase(metricsRepository),
                 new ListCapexCostsUseCase(metricsRepository),
                 new CreateCapexCostUseCase(metricsRepository),
+                new UpdateCapexCostUseCase(metricsRepository),
+                new DeleteCapexCostUseCase(metricsRepository),
                 new GetOverviewUseCase(readRepository),
                 new GetRecentRecordsUseCase(readRepository),
                 new GetRecordsForDateUseCase(readRepository),
                 new GetProjectOptionsUseCase(readRepository),
                 new GetTagsUseCase(readRepository),
                 new CreateTagUseCase(writeRepository),
+                new UpdateTimeLogUseCase(writeRepository),
+                new UpdateIncomeUseCase(writeRepository),
+                new UpdateExpenseUseCase(writeRepository),
+                new UpdateLearningUseCase(writeRepository),
+                new UpdateProjectRecordUseCase(writeRepository),
+                new UpdateTagUseCase(writeRepository),
+                new DeleteRecordUseCase(writeRepository),
+                new DeleteProjectUseCase(writeRepository),
+                new DeleteTagUseCase(writeRepository),
                 new ProjectUseCases(readRepository, writeRepository),
                 new ReviewUseCases(reviewRepository),
                 new CreateBackupUseCase(backupRepository),

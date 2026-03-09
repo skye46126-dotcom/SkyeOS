@@ -6,6 +6,7 @@ public class SkyeOsApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        AppLocaleManager.applyStoredLocale(this);
         AppGraph.getInstance(this).database.warmUp();
     }
 }

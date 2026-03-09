@@ -29,14 +29,14 @@
                 android:textColor="@color/textPrimary"
                 android:textSize="30sp"
                 android:textStyle="bold"
-                android:text="Good evening" />
+                android:text="@string/today_greeting_evening" />
 
             <ImageButton
                 android:id="@+id/btn_open_settings"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@android:color/transparent"
-                android:contentDescription="Open settings"
+                android:contentDescription="@string/today_open_settings"
                 android:padding="8dp"
                 android:src="@drawable/ic_nav_settings"
                 android:tint="@color/textPrimary" />
@@ -68,7 +68,7 @@
                     android:id="@+id/tv_today_metrics_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Today's Key Metrics"
+                    android:text="@string/today_metrics_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"/>
@@ -87,7 +87,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="⏱ Work Time"
+                            android:text="@string/today_metric_work_time"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp"/>
                         <TextView
@@ -115,7 +115,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="💰 Income"
+                            android:text="@string/today_metric_income"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp"/>
                         <TextView
@@ -150,7 +150,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🧾 Expense"
+                            android:text="@string/today_metric_expense"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp"/>
                         <TextView
@@ -178,7 +178,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🔓 Freedom"
+                            android:text="@string/today_metric_freedom"
                             android:textColor="@color/textSecondary"
                             android:textSize="12sp"/>
                         <TextView
@@ -216,7 +216,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Hourly Rate &amp; Time Debt"
+                    android:text="@string/today_hourly_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"/>
@@ -228,7 +228,7 @@
                     android:layout_marginTop="8dp"
                     android:textColor="@color/textSecondary"
                     android:textSize="13sp"
-                    android:text="No hourly-rate/time-debt data yet"/>
+                    android:text="@string/today_no_hourly_data"/>
 
                 <TextView
                     android:id="@+id/tv_rate_compare_summary"
@@ -237,7 +237,7 @@
                     android:layout_marginTop="8dp"
                     android:textColor="@color/textSecondary"
                     android:textSize="13sp"
-                    android:text="Ideal -- | Prev year -- | Current --"/>
+                    android:text="@string/today_rate_compare_placeholder"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -257,7 +257,7 @@
                     android:id="@+id/tv_today_time_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Time Allocation (Today)"
+                    android:text="@string/today_time_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"/>
@@ -270,7 +270,7 @@
                     android:textColor="@color/textSecondary"
                     android:textSize="13sp"
                     android:lineSpacingExtra="3dp"
-                    android:text="No time logs today"/>
+                    android:text="@string/today_no_time_logs"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -290,7 +290,7 @@
                     android:id="@+id/tv_today_notes_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Today's Notes"
+                    android:text="@string/today_notes_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"/>
@@ -305,7 +305,7 @@
                     android:lineSpacingExtra="3dp"
                     android:maxLines="4"
                     android:ellipsize="end"
-                    android:text="No notes for today"/>
+                    android:text="@string/today_no_notes"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -315,7 +315,7 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginBottom="10dp"
-            android:text="+ Quick Capture"
+            android:text="@string/today_quick_capture"
             android:textAllCaps="false"
             android:textSize="16sp"/>
 
@@ -325,7 +325,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginBottom="10dp"
-            android:text="Open Day Detail" />
+            android:text="@string/today_open_day_detail" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_cost_management"
@@ -350,7 +350,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Cost Management"
+                        android:text="@string/cost_title"
                         android:textColor="@color/textPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold"/>
@@ -359,7 +359,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Compare hourly rates and manage monthly or long-term costs"
+                        android:text="@string/today_cost_card_subtitle"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
                 </LinearLayout>
@@ -395,7 +395,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Review"
+                        android:text="@string/nav_review"
                         android:textColor="@color/textPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold"/>
@@ -404,7 +404,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="View weekly/monthly trends, ROI, and efficiency changes"
+                        android:text="@string/today_review_card_subtitle"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
                 </LinearLayout>

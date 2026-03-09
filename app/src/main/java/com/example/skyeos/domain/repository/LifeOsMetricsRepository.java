@@ -38,8 +38,18 @@ public interface LifeOsMetricsRepository {
     void createRecurringCostRule(String name, String category, long monthlyAmountCents, boolean isNecessary,
             String startMonth, String endMonth, String note);
 
+    void updateRecurringCostRule(String id, String name, String category, long monthlyAmountCents, boolean isNecessary,
+            String startMonth, String endMonth, String note);
+
+    void deleteRecurringCostRule(String id);
+
     List<CapexCostSummary> listCapexCosts();
 
     void createCapexCost(String name, String purchaseDate, long purchaseAmountCents, int usefulMonths,
             int residualRateBps, String note);
+
+    void updateCapexCost(String id, String name, String purchaseDate, long purchaseAmountCents, int usefulMonths,
+            int residualRateBps, String note);
+
+    void deleteCapexCost(String id);
 }

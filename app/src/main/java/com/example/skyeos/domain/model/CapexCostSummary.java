@@ -5,6 +5,8 @@ public final class CapexCostSummary {
     public final String name;
     public final String purchaseDate;
     public final long purchaseAmountCents;
+    public final int usefulMonths;
+    public final int residualRateBps;
     public final long monthlyAmortizedCents;
     public final String amortizationStartMonth;
     public final String amortizationEndMonth;
@@ -16,6 +18,8 @@ public final class CapexCostSummary {
             String name,
             String purchaseDate,
             long purchaseAmountCents,
+            int usefulMonths,
+            int residualRateBps,
             long monthlyAmortizedCents,
             String amortizationStartMonth,
             String amortizationEndMonth,
@@ -26,6 +30,8 @@ public final class CapexCostSummary {
         this.name = name;
         this.purchaseDate = purchaseDate;
         this.purchaseAmountCents = purchaseAmountCents;
+        this.usefulMonths = usefulMonths;
+        this.residualRateBps = residualRateBps;
         this.monthlyAmortizedCents = monthlyAmortizedCents;
         this.amortizationStartMonth = amortizationStartMonth;
         this.amortizationEndMonth = amortizationEndMonth;

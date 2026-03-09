@@ -26,6 +26,17 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("MM-dd", Locale.US);
 
     private final List<RecentRecordItem> records = new ArrayList<>();
+    private OnRecordActionListener actionListener;
+
+    interface OnRecordActionListener {
+        void onRecordEdit(RecentRecordItem record);
+
+        void onRecordDelete(RecentRecordItem record);
+    }
+
+    public void setOnRecordActionListener(OnRecordActionListener actionListener) {
+        this.actionListener = actionListener;
+    }
 
     public void submitList(List<RecentRecordItem> newRecords) {
         records.clear();
@@ -45,7 +56,7 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
 
     @Override
     public void onBindViewHolder(@NonNull RecordViewHolder holder, int position) {
-        holder.bind(records.get(position));
+        holder.bind(records.get(position), actionListener);
     }
 
     @Override
@@ -67,12 +78,13 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
             ivIcon = itemView.findViewById(R.id.iv_record_icon);
         }
 
-        public void bind(RecentRecordItem record) {
+        public void bind(RecentRecordItem record, OnRecordActionListener actionListener) {
             ivIcon.setImageResource(CategoryIconHelper.getIconRes(record.type));
             if ("meta".equals(record.type)) {
                 tvTitle.setText(record.title);
                 tvSubtitle.setText(record.detail == null ? "" : record.detail);
                 tvNote.setVisibility(View.GONE);
+                itemView.setOnLongClickListener(null);
                 return;
             }
             tvTitle.setText(record.title);
@@ -88,6 +100,28 @@ public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdap
             } else {
                 tvNote.setText(parsed.note);
                 tvNote.setVisibility(View.VISIBLE);
+            }
+            if (actionListener == null || record.recordId == null || record.recordId.trim().isEmpty()) {
+                itemView.setOnLongClickListener(null);
+            } else {
+                itemView.setOnLongClickListener(v -> {
+                    androidx.appcompat.widget.PopupMenu menu = new androidx.appcompat.widget.PopupMenu(v.getContext(), v);
+                    menu.getMenu().add(0, 1, 0, "Edit");
+                    menu.getMenu().add(0, 2, 1, "Delete");
+                    menu.setOnMenuItemClickListener(item -> {
+                        if (item.getItemId() == 1) {
+                            actionListener.onRecordEdit(record);
+                            return true;
+                        }
+                        if (item.getItemId() == 2) {
+                            actionListener.onRecordDelete(record);
+                            return true;
+                        }
+                        return false;
+                    });
+                    menu.show();
+                    return true;
+                });
             }
         }
 

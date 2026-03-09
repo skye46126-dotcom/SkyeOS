@@ -20,19 +20,19 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Day" />
+            android:text="@string/review_tab_day" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Week" />
+            android:text="@string/review_tab_week" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Month" />
+            android:text="@string/review_tab_month" />
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Year" />
+            android:text="@string/review_tab_year" />
     </com.google.android.material.tabs.TabLayout>
 
     <LinearLayout
@@ -53,7 +53,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:text="Prev" />
+            android:text="@string/review_prev" />
 
         <TextView
             android:id="@+id/tv_review_anchor"
@@ -78,7 +78,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:text="Next" />
+            android:text="@string/review_next" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_review_today"
@@ -89,7 +89,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:text="Today" />
+            android:text="@string/nav_today" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -134,7 +134,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:maxLines="1"
-                android:text="Open Day Detail" />
+                android:text="@string/today_open_day_detail" />
 
             <!-- AI Summary Card -->
             <com.google.android.material.card.MaterialCardView
@@ -152,7 +152,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="💡 Snapshot"
+                        android:text="@string/review_snapshot_title"
                         android:textStyle="bold"
                         android:textColor="@color/lifeBlueDark"
                         android:layout_marginBottom="8dp"/>
@@ -242,7 +242,7 @@
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Income Details"
+                            android:text="@string/review_trend_income_details"
                             android:checked="true" />
 
                         <com.google.android.material.chip.Chip
@@ -250,14 +250,14 @@
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Expense Details" />
+                            android:text="@string/review_trend_expense_details" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_trend_work"
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Work Time Details" />
+                            android:text="@string/review_trend_work_details" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView
@@ -281,7 +281,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Time Allocation"
+                android:text="@string/review_time_allocation"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -307,7 +307,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🏆 ROI Leaderboard"
+                android:text="@string/review_roi_leaderboard"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -331,7 +331,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🚨 Time Sinkholes (High Time, Low ROI)"
+                android:text="@string/review_sinkholes"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -355,7 +355,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Key Events"
+                android:text="@string/review_key_events"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -370,7 +370,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="💰 Income History"
+                android:text="@string/review_income_history"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -438,7 +438,7 @@
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="All"
+                            android:text="@string/common_all"
                             android:checked="true" />
 
                         <com.google.android.material.chip.Chip
@@ -446,28 +446,28 @@
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Income" />
+                            android:text="@string/common_income" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_expense"
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Expense" />
+                            android:text="@string/common_expense" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_time"
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Time" />
+                            android:text="@string/common_time" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_history_learning"
                             style="@style/Widget.LifeOS.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Learning" />
+                            android:text="@string/common_learning" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView
@@ -491,7 +491,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🏷️ Tag Board"
+                android:text="@string/review_tag_board"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -512,7 +512,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Top Time Tags"
+                        android:text="@string/review_top_time_tags"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
 

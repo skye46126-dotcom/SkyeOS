@@ -17,7 +17,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cost Management"
+            android:text="@string/cost_title"
             android:textColor="@color/textPrimary"
             android:textSize="30sp"
             android:textStyle="bold" />
@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="18dp"
-            android:text="This screen will become the business home for rates, baseline cost, recurring cost, and long-term burn."
+            android:text="@string/cost_subtitle"
             android:textColor="@color/textSecondary"
             android:textSize="13sp" />
 
@@ -49,7 +49,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Current Rate Snapshot"
+                    android:text="@string/cost_snapshot_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -58,7 +58,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Ideal hourly rate"
+                    android:text="@string/cost_ideal_hourly_rate"
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp" />
 
@@ -76,7 +76,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Previous-year average hourly rate"
+                    android:text="@string/cost_previous_year_rate"
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp" />
 
@@ -94,7 +94,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Current actual hourly rate"
+                    android:text="@string/cost_current_actual_rate"
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp" />
 
@@ -138,7 +138,7 @@
                     android:id="@+id/tv_toggle_baseline"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Monthly Baseline  ▾"
+                    android:text="@string/cost_monthly_baseline_expanded"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -154,7 +154,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Month (YYYY-MM)">
+                        android:hint="@string/cost_month_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_cost_month"
@@ -168,7 +168,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:hint="Ideal hourly rate (CNY/hour)">
+                        android:hint="@string/cost_ideal_rate_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_cost_ideal_rate"
@@ -182,7 +182,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:hint="Basic living cost (monthly, CNY)">
+                        android:hint="@string/cost_basic_living_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_cost_monthly_basic"
@@ -196,7 +196,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:hint="Fixed subscription cost (monthly, CNY)">
+                        android:hint="@string/cost_fixed_subscription_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_cost_monthly_fixed"
@@ -211,7 +211,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
                         android:layout_marginTop="14dp"
-                        android:text="Save Cost Inputs" />
+                        android:text="@string/cost_save_inputs" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -234,7 +234,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Monthly Baseline"
+                    android:text="@string/cost_monthly_baseline_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -270,7 +270,7 @@
                     android:id="@+id/tv_toggle_recurring"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Recurring Monthly Costs  ▸"
+                    android:text="@string/cost_recurring_collapsed"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -282,7 +282,13 @@
                     android:layout_marginTop="10dp"
                     android:textColor="@color/textSecondary"
                     android:textSize="13sp"
-                    android:text="No recurring cost rules yet" />
+                    android:text="@string/cost_no_recurring_rules" />
+
+                <LinearLayout
+                    android:id="@+id/container_recurring_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
 
                 <LinearLayout
                     android:id="@+id/layout_recurring_content"
@@ -296,7 +302,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Rule name">
+                    android:hint="@string/cost_rule_name_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_name"
@@ -310,7 +316,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Category (necessary/subscription/investment/experience)">
+                    android:hint="@string/cost_recurring_category_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_category"
@@ -324,7 +330,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Monthly amount (CNY)">
+                    android:hint="@string/cost_monthly_amount_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_amount"
@@ -338,14 +344,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Counts as necessary living cost" />
+                    android:text="@string/cost_counts_as_necessary" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.LifeOS.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Start month (YYYY-MM)">
+                    android:hint="@string/cost_start_month_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_start_month"
@@ -359,7 +365,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="End month (optional, YYYY-MM)">
+                    android:hint="@string/cost_end_month_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_end_month"
@@ -373,7 +379,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Note (optional)">
+                    android:hint="@string/common_note_optional">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_recurring_note"
@@ -388,7 +394,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_marginTop="14dp"
-                    android:text="Add Recurring Cost Rule" />
+                    android:text="@string/cost_add_recurring_rule" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -412,7 +418,7 @@
                     android:id="@+id/tv_toggle_capex"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Capex And Amortization  ▸"
+                    android:text="@string/cost_capex_collapsed"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -426,6 +432,12 @@
                     android:textSize="13sp"
                     android:text="--" />
 
+                <LinearLayout
+                    android:id="@+id/container_capex_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
                 <TextView
                     android:id="@+id/tv_cost_structural_placeholder"
                     android:layout_width="match_parent"
@@ -433,7 +445,7 @@
                     android:layout_marginTop="8dp"
                     android:textColor="@color/textSecondary"
                     android:textSize="13sp"
-                    android:text="Current structural burn summary" />
+                    android:text="@string/cost_structural_burn_summary" />
 
                 <LinearLayout
                     android:id="@+id/layout_capex_content"
@@ -447,7 +459,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Asset name">
+                    android:hint="@string/cost_asset_name_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_name"
@@ -461,7 +473,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Purchase date (YYYY-MM-DD)">
+                    android:hint="@string/cost_purchase_date_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_purchase_date"
@@ -475,7 +487,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Purchase amount (CNY)">
+                    android:hint="@string/cost_purchase_amount_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_amount"
@@ -489,7 +501,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Useful months">
+                    android:hint="@string/cost_useful_months_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_useful_months"
@@ -503,7 +515,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Residual rate bps (0-10000, optional)">
+                    android:hint="@string/cost_residual_rate_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_residual_bps"
@@ -517,7 +529,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Note (optional)">
+                    android:hint="@string/common_note_optional">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_capex_note"
@@ -532,7 +544,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_marginTop="14dp"
-                    android:text="Add Capex Item" />
+                    android:text="@string/cost_add_capex_item" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>

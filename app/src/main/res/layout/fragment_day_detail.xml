@@ -20,7 +20,7 @@
             android:textColor="@color/textPrimary"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:text="Day Detail" />
+            android:text="@string/day_detail_title" />
 
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.LifeOS.GlassCard"
@@ -65,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Records"
+            android:text="@string/day_detail_records"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -84,35 +84,35 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="All" />
+                android:text="@string/common_all" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_day_detail_time"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Time" />
+                android:text="@string/common_time" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_day_detail_income"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Income" />
+                android:text="@string/common_income" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_day_detail_expense"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Expense" />
+                android:text="@string/common_expense" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_day_detail_learning"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Learning" />
+                android:text="@string/common_learning" />
         </com.google.android.material.chip.ChipGroup>
 
         <TextView

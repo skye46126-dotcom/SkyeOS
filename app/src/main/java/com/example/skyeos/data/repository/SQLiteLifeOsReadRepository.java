@@ -92,17 +92,17 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         int safeLimit = Math.max(1, Math.min(limit, 200));
         String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
-        String sql = "SELECT type, occurred_at, title, detail FROM (" +
-                "SELECT 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 "
+        String sql = "SELECT record_id, type, occurred_at, title, detail FROM (" +
+                "SELECT id AS record_id, 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 "
+                "SELECT id AS record_id, 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 "
+                "SELECT id AS record_id, 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0"
+                "SELECT id AS record_id, 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0"
                 +
                 ") ORDER BY occurred_at DESC LIMIT " + safeLimit;
         List<RecentRecordItem> result = new ArrayList<>();
@@ -112,7 +112,8 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                         cursor.getString(0),
                         cursor.getString(1),
                         cursor.getString(2),
-                        cursor.getString(3)));
+                        cursor.getString(3),
+                        cursor.getString(4)));
             }
         }
         return result;
@@ -124,14 +125,14 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         int safeLimit = Math.max(1, Math.min(limit, 300));
         String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
-        String sql = "SELECT type, occurred_at, title, detail FROM (" +
-                "SELECT 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND date(started_at) = ? " +
+        String sql = "SELECT record_id, type, occurred_at, title, detail FROM (" +
+                "SELECT id AS record_id, 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND date(started_at) = ? " +
                 "UNION ALL " +
-                "SELECT 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                "SELECT id AS record_id, 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
                 "UNION ALL " +
-                "SELECT 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                "SELECT id AS record_id, 'expense' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, category AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM expense WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
                 "UNION ALL " +
-                "SELECT 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
+                "SELECT id AS record_id, 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
                 ") ORDER BY occurred_at DESC LIMIT " + safeLimit;
         List<RecentRecordItem> result = new ArrayList<>();
         String[] args = new String[] { userId, date, userId, date, userId, date, userId, date };
@@ -141,7 +142,8 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                         cursor.getString(0),
                         cursor.getString(1),
                         cursor.getString(2),
-                        cursor.getString(3)));
+                        cursor.getString(3),
+                        cursor.getString(4)));
             }
         }
         return result;
@@ -303,14 +305,14 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         double roi = fullyLoadedRoi;
 
         // 3. Get recent records associated with this project
-        String recentsSql = "SELECT type, occurred_at, title, detail FROM (" +
-                "SELECT 'time' as type, t.started_at as occurred_at, t.category as title, t.note as detail FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 "
+        String recentsSql = "SELECT record_id, type, occurred_at, title, detail FROM (" +
+                "SELECT t.id AS record_id, 'time' as type, t.started_at as occurred_at, t.category as title, t.note as detail FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'income' as type, i.occurred_on || 'T00:00:00Z', i.source_name, i.amount_cents || ' cents' FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 "
+                "SELECT i.id AS record_id, 'income' as type, i.occurred_on || 'T00:00:00Z', i.source_name, i.amount_cents || ' cents' FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 "
                 +
                 "UNION ALL " +
-                "SELECT 'expense' as type, e.occurred_on || 'T00:00:00Z', e.category, e.amount_cents || ' cents' || CASE WHEN e.note IS NULL OR e.note = '' THEN '' ELSE ' | ' || e.note END FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0 "
+                "SELECT e.id AS record_id, 'expense' as type, e.occurred_on || 'T00:00:00Z', e.category, e.amount_cents || ' cents' || CASE WHEN e.note IS NULL OR e.note = '' THEN '' ELSE ' | ' || e.note END FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0 "
                 +
                 ") ORDER BY occurred_at DESC LIMIT 50";
 
@@ -321,7 +323,8 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                         cursor.getString(0),
                         cursor.getString(1),
                         cursor.getString(2),
-                        cursor.getString(3)));
+                        cursor.getString(3),
+                        cursor.getString(4)));
             }
         }
 

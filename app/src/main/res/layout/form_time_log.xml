@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Time log (cross-day supported, project binding optional)"
+            android:text="@string/form_time_intro"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:layout_marginBottom="8dp"/>
@@ -25,7 +25,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Start time (yyyy-MM-dd HH:mm)"
+            android:hint="@string/form_time_start_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_start"
@@ -40,7 +40,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="End time (yyyy-MM-dd HH:mm)"
+            android:hint="@string/form_time_end_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_end"
@@ -55,7 +55,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Category"
+            android:hint="@string/common_category"
             android:layout_marginBottom="10dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_time_category"
@@ -68,7 +68,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI assist ratio (0-100, optional)"
+            android:hint="@string/common_ai_ratio_optional"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_ai_ratio"
@@ -88,7 +88,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Efficiency (1-10)">
+                android:hint="@string/form_time_efficiency_hint">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_time_efficiency_score"
                     android:layout_width="match_parent"
@@ -105,7 +105,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Value (1-10)">
+                android:hint="@string/form_time_value_hint">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_time_value_score"
                     android:layout_width="match_parent"
@@ -122,7 +122,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="State (1-10)">
+                android:hint="@string/form_time_state_hint">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_time_state_score"
                     android:layout_width="match_parent"
@@ -134,7 +134,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Project allocation (optional)"
+            android:text="@string/form_related_project_optional"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:layout_marginBottom="6dp"/>
@@ -144,7 +144,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Bind project (quick-select below)"
+            android:hint="@string/form_bind_project_quick"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_project"
@@ -162,7 +162,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tags (multi-select)"
+            android:text="@string/form_tags_multi"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -179,7 +179,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Note"
+            android:hint="@string/common_note"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_time_note"
@@ -192,7 +192,7 @@
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="Save Time Log"/>
+            android:text="@string/form_save_time"/>
 
     </LinearLayout>
 </ScrollView>

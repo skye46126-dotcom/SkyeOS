@@ -117,11 +117,15 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         validateAllocations(input.projectAllocations, "timeLog.projectAllocations");
 
         long durationMinutes = computeDurationMinutes(input.startedAt, input.endedAt);
+        boolean hasAllocationsInput = input.projectAllocations != null;
+        boolean hasTagsInput = input.tagIds != null;
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
         List<String> tagIds = safeList(input.tagIds);
         boolean isPublicPool = allocations.isEmpty();
         String userId = userContext.requireCurrentUserId();
-        validateProjectAccess(database.readableDb(), allocations, userId, "timeLog.projectAllocations");
+        if (hasAllocationsInput) {
+            validateProjectAccess(database.readableDb(), allocations, userId, "timeLog.projectAllocations");
+        }
 
         String id = randomId();
         String now = nowIso();
@@ -423,6 +427,48 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     }
 
     @Override
+    public void updateProjectRecord(String projectId, CreateProjectInput input) {
+        if (TextUtils.isEmpty(projectId) || input == null) {
+            return;
+        }
+        requireNotBlank(input.name, "project.name");
+        requireNotBlank(input.startedOn, "project.startedOn");
+        String status = normalizeOrDefault(input.status, "active");
+        requireContains(PROJECT_STATUS, status, "project.status");
+        if (input.aiEnableRatio != null && (input.aiEnableRatio < 0 || input.aiEnableRatio > 100)) {
+            throw new IllegalArgumentException("project.aiEnableRatio must be 0-100");
+        }
+        if (input.score != null && (input.score < 1 || input.score > 10)) {
+            throw new IllegalArgumentException("project.score must be 1-10");
+        }
+        String now = nowIso();
+        String userId = userContext.requireCurrentUserId();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("name", input.name.trim());
+            values.put("status", status);
+            values.put("started_on", input.startedOn.trim());
+            if (input.aiEnableRatio != null) {
+                values.put("ai_enable_ratio", input.aiEnableRatio);
+            }
+            if (input.score != null) {
+                values.put("score", input.score);
+            }
+            values.put("note", nullSafe(input.note));
+            values.put("updated_at", now);
+            db.update("project", values,
+                    "id = ? AND is_deleted = 0 AND (owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = project.id AND pm.user_id = ?))",
+                    new String[] { projectId, userId, userId });
+            replaceTagLinks(db, "project_tag", "project_id", projectId, safeList(input.tagIds), now);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
     public void updateProject(String projectId, String status, int score, String note, String endedOn) {
         if (TextUtils.isEmpty(projectId))
             return;
@@ -450,8 +496,382 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
                 new String[] { projectId, userId, userId });
     }
 
+    @Override
+    public void updateTimeLog(String timeLogId, CreateTimeLogInput input) {
+        if (TextUtils.isEmpty(timeLogId) || input == null) {
+            return;
+        }
+        requireNotBlank(input.startedAt, "timeLog.startedAt");
+        requireNotBlank(input.endedAt, "timeLog.endedAt");
+        String category = normalizeOrDefault(input.category, "work");
+        requireContains(TIME_CATEGORY, category, "timeLog.category");
+        validateScore(input.efficiencyScore, "timeLog.efficiencyScore");
+        validateScore(input.valueScore, "timeLog.valueScore");
+        validateScore(input.stateScore, "timeLog.stateScore");
+        validatePercentage(input.aiAssistRatio, "timeLog.aiAssistRatio");
+        validateAllocations(input.projectAllocations, "timeLog.projectAllocations");
+        long durationMinutes = computeDurationMinutes(input.startedAt, input.endedAt);
+        boolean hasAllocationsInput = input.projectAllocations != null;
+        boolean hasTagsInput = input.tagIds != null;
+        List<ProjectAllocation> allocations = safeList(input.projectAllocations);
+        List<String> tagIds = safeList(input.tagIds);
+        boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        if (hasAllocationsInput) {
+            validateProjectAccess(database.readableDb(), allocations, userId, "timeLog.projectAllocations");
+        }
+        String now = nowIso();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("started_at", input.startedAt.trim());
+            values.put("ended_at", input.endedAt.trim());
+            values.put("duration_minutes", durationMinutes);
+            values.put("category", category);
+            if (input.efficiencyScore != null) {
+                values.put("efficiency_score", input.efficiencyScore);
+            } else {
+                values.putNull("efficiency_score");
+            }
+            if (input.valueScore != null) {
+                values.put("value_score", input.valueScore);
+            } else {
+                values.putNull("value_score");
+            }
+            if (input.stateScore != null) {
+                values.put("state_score", input.stateScore);
+            } else {
+                values.putNull("state_score");
+            }
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            } else {
+                values.putNull("ai_assist_ratio");
+            }
+            values.put("note", nullSafe(input.note));
+            if (hasAllocationsInput) {
+                values.put("is_public_pool", toInt(isPublicPool));
+            }
+            values.put("updated_at", now);
+            db.update("time_log", values, "id = ? AND owner_user_id = ? AND is_deleted = 0",
+                    new String[] { timeLogId, userId });
+            if (hasAllocationsInput) {
+                replaceProjectLinks(db, "time_log_project", "time_log_id", timeLogId, allocations, now);
+            }
+            if (hasTagsInput) {
+                replaceTagLinks(db, "time_log_tag", "time_log_id", timeLogId, tagIds, now);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
+    public void updateIncome(String incomeId, CreateIncomeInput input) {
+        if (TextUtils.isEmpty(incomeId) || input == null) {
+            return;
+        }
+        requireNotBlank(input.occurredOn, "income.occurredOn");
+        requireNotBlank(input.sourceName, "income.sourceName");
+        String type = normalizeOrDefault(input.type, "other");
+        requireContains(INCOME_TYPE, type, "income.type");
+        if (input.amountCents < 0) {
+            throw new IllegalArgumentException("income.amountCents must be >= 0");
+        }
+        validatePercentage(input.aiAssistRatio, "income.aiAssistRatio");
+        validateAllocations(input.projectAllocations, "income.projectAllocations");
+        boolean hasAllocationsInput = input.projectAllocations != null;
+        boolean hasTagsInput = input.tagIds != null;
+        List<ProjectAllocation> allocations = safeList(input.projectAllocations);
+        List<String> tagIds = safeList(input.tagIds);
+        boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        if (hasAllocationsInput) {
+            validateProjectAccess(database.readableDb(), allocations, userId, "income.projectAllocations");
+        }
+        String now = nowIso();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("occurred_on", input.occurredOn.trim());
+            values.put("source_name", input.sourceName.trim());
+            values.put("type", type);
+            values.put("amount_cents", input.amountCents);
+            values.put("is_passive", toInt(input.isPassive));
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            } else {
+                values.putNull("ai_assist_ratio");
+            }
+            values.put("note", nullSafe(input.note));
+            if (hasAllocationsInput) {
+                values.put("is_public_pool", toInt(isPublicPool));
+            }
+            values.put("updated_at", now);
+            db.update("income", values, "id = ? AND owner_user_id = ? AND is_deleted = 0",
+                    new String[] { incomeId, userId });
+            if (hasAllocationsInput) {
+                replaceProjectLinks(db, "income_project", "income_id", incomeId, allocations, now);
+            }
+            if (hasTagsInput) {
+                replaceTagLinks(db, "income_tag", "income_id", incomeId, tagIds, now);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
+    public void updateExpense(String expenseId, CreateExpenseInput input) {
+        if (TextUtils.isEmpty(expenseId) || input == null) {
+            return;
+        }
+        requireNotBlank(input.occurredOn, "expense.occurredOn");
+        String category = normalizeOrDefault(input.category, "necessary");
+        requireContains(EXPENSE_CATEGORY, category, "expense.category");
+        if (input.amountCents <= 0) {
+            throw new IllegalArgumentException("expense.amountCents must be > 0");
+        }
+        validatePercentage(input.aiAssistRatio, "expense.aiAssistRatio");
+        boolean hasAllocationsInput = input.projectAllocations != null;
+        boolean hasTagsInput = input.tagIds != null;
+        List<ProjectAllocation> allocations = safeList(input.projectAllocations);
+        List<String> tagIds = safeList(input.tagIds);
+        String userId = userContext.requireCurrentUserId();
+        if (hasAllocationsInput) {
+            validateProjectAccess(database.readableDb(), allocations, userId, "expense.projectAllocations");
+        }
+        String now = nowIso();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("occurred_on", input.occurredOn.trim());
+            values.put("category", category);
+            values.put("amount_cents", input.amountCents);
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            } else {
+                values.putNull("ai_assist_ratio");
+            }
+            values.put("note", nullSafe(input.note));
+            values.put("updated_at", now);
+            db.update("expense", values, "id = ? AND owner_user_id = ? AND is_deleted = 0",
+                    new String[] { expenseId, userId });
+            if (hasAllocationsInput) {
+                replaceProjectLinks(db, "expense_project", "expense_id", expenseId, allocations, now);
+            }
+            if (hasTagsInput) {
+                replaceTagLinks(db, "expense_tag", "expense_id", expenseId, tagIds, now);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
+    public void updateLearning(String learningId, CreateLearningInput input) {
+        if (TextUtils.isEmpty(learningId) || input == null) {
+            return;
+        }
+        requireNotBlank(input.occurredOn, "learning.occurredOn");
+        requireNotBlank(input.content, "learning.content");
+        String level = normalizeOrDefault(input.applicationLevel, "input");
+        requireContains(LEARNING_LEVEL, level, "learning.applicationLevel");
+        String startedAt = trimmedOrNull(input.startedAt);
+        String endedAt = trimmedOrNull(input.endedAt);
+        int durationMinutes = input.durationMinutes;
+        String occurredOn = input.occurredOn.trim();
+        if (!TextUtils.isEmpty(startedAt) || !TextUtils.isEmpty(endedAt)) {
+            if (TextUtils.isEmpty(startedAt) || TextUtils.isEmpty(endedAt)) {
+                throw new IllegalArgumentException("learning.startedAt and learning.endedAt must both be provided");
+            }
+            Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
+            Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
+            if (!endInstant.isAfter(startInstant)) {
+                throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
+            }
+            durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
+            occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
+        }
+        if (durationMinutes <= 0) {
+            throw new IllegalArgumentException("learning.durationMinutes must be > 0");
+        }
+        validateScore(input.efficiencyScore, "learning.efficiencyScore");
+        validatePercentage(input.aiAssistRatio, "learning.aiAssistRatio");
+        validateAllocations(input.projectAllocations, "learning.projectAllocations");
+        boolean hasAllocationsInput = input.projectAllocations != null;
+        boolean hasTagsInput = input.tagIds != null;
+        List<ProjectAllocation> allocations = safeList(input.projectAllocations);
+        List<String> tagIds = safeList(input.tagIds);
+        boolean isPublicPool = allocations.isEmpty();
+        String userId = userContext.requireCurrentUserId();
+        if (hasAllocationsInput) {
+            validateProjectAccess(database.readableDb(), allocations, userId, "learning.projectAllocations");
+        }
+        String now = nowIso();
+        SQLiteDatabase db = database.writableDb();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put("occurred_on", occurredOn);
+            if (!TextUtils.isEmpty(startedAt)) {
+                values.put("started_at", startedAt);
+            } else {
+                values.putNull("started_at");
+            }
+            if (!TextUtils.isEmpty(endedAt)) {
+                values.put("ended_at", endedAt);
+            } else {
+                values.putNull("ended_at");
+            }
+            values.put("content", input.content.trim());
+            values.put("duration_minutes", durationMinutes);
+            if (input.efficiencyScore != null) {
+                values.put("efficiency_score", input.efficiencyScore);
+            } else {
+                values.putNull("efficiency_score");
+            }
+            values.put("application_level", level);
+            if (input.aiAssistRatio != null) {
+                values.put("ai_assist_ratio", input.aiAssistRatio);
+            } else {
+                values.putNull("ai_assist_ratio");
+            }
+            values.put("note", nullSafe(input.note));
+            if (hasAllocationsInput) {
+                values.put("is_public_pool", toInt(isPublicPool));
+            }
+            values.put("updated_at", now);
+            db.update("learning_record", values, "id = ? AND owner_user_id = ? AND is_deleted = 0",
+                    new String[] { learningId, userId });
+            if (hasAllocationsInput) {
+                replaceProjectLinks(db, "learning_project", "learning_id", learningId, allocations, now);
+            }
+            if (hasTagsInput) {
+                replaceTagLinks(db, "learning_tag", "learning_id", learningId, tagIds, now);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
+    public void updateTag(String tagId, String name, String emoji, String tagGroup, String scope, boolean active) {
+        if (TextUtils.isEmpty(tagId)) {
+            return;
+        }
+        requireNotBlank(name, "tag.name");
+        String normalizedScope = normalizeOrDefault(scope, "global");
+        requireContains(TAG_SCOPE, normalizedScope, "tag.scope");
+        String userId = userContext.requireCurrentUserId();
+        ContentValues values = new ContentValues();
+        values.put("name", name.trim());
+        values.put("emoji", nullSafe(emoji));
+        values.put("tag_group", TextUtils.isEmpty(tagGroup) ? "custom" : tagGroup.trim().toLowerCase());
+        values.put("scope", normalizedScope);
+        values.put("is_active", toInt(active));
+        values.put("updated_at", nowIso());
+        database.writableDb().update(
+                "tag",
+                values,
+                "id = ? AND (owner_user_id = ? OR is_system = 0)",
+                new String[] { tagId, userId });
+    }
+
+    @Override
+    public void deleteRecord(String type, String recordId) {
+        if (TextUtils.isEmpty(type) || TextUtils.isEmpty(recordId)) {
+            return;
+        }
+        String table;
+        switch (type.trim().toLowerCase()) {
+            case "time":
+                table = "time_log";
+                break;
+            case "income":
+                table = "income";
+                break;
+            case "expense":
+                table = "expense";
+                break;
+            case "learning":
+                table = "learning_record";
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported record type: " + type);
+        }
+        ContentValues values = new ContentValues();
+        values.put("is_deleted", 1);
+        values.put("updated_at", nowIso());
+        database.writableDb().update(table, values, "id = ? AND owner_user_id = ? AND is_deleted = 0",
+                new String[] { recordId, userContext.requireCurrentUserId() });
+    }
+
+    @Override
+    public void deleteProject(String projectId) {
+        if (TextUtils.isEmpty(projectId)) {
+            return;
+        }
+        ContentValues values = new ContentValues();
+        values.put("is_deleted", 1);
+        values.put("updated_at", nowIso());
+        String userId = userContext.requireCurrentUserId();
+        database.writableDb().update(
+                "project",
+                values,
+                "id = ? AND is_deleted = 0 AND (owner_user_id = ? OR EXISTS (SELECT 1 FROM project_member pm WHERE pm.project_id = project.id AND pm.user_id = ?))",
+                new String[] { projectId, userId, userId });
+    }
+
+    @Override
+    public void deleteTag(String tagId) {
+        if (TextUtils.isEmpty(tagId)) {
+            return;
+        }
+        ContentValues values = new ContentValues();
+        values.put("is_active", 0);
+        values.put("updated_at", nowIso());
+        database.writableDb().update("tag", values, "id = ? AND owner_user_id = ?",
+                new String[] { tagId, userContext.requireCurrentUserId() });
+    }
+
     private void insert(String table, ContentValues values) {
         database.writableDb().insertOrThrow(table, null, values);
+    }
+
+    private void replaceProjectLinks(SQLiteDatabase db, String table, String foreignKey, String entityId,
+            List<ProjectAllocation> allocations, String now) {
+        db.delete(table, foreignKey + " = ?", new String[] { entityId });
+        for (ProjectAllocation allocation : allocations) {
+            ContentValues item = new ContentValues();
+            item.put(foreignKey, entityId);
+            item.put("project_id", allocation.projectId.trim());
+            item.put("weight_ratio", allocation.weightRatio);
+            item.put("created_at", now);
+            db.insertOrThrow(table, null, item);
+        }
+    }
+
+    private void replaceTagLinks(SQLiteDatabase db, String table, String foreignKey, String entityId,
+            List<String> tagIds, String now) {
+        db.delete(table, foreignKey + " = ?", new String[] { entityId });
+        for (String tagId : tagIds) {
+            if (TextUtils.isEmpty(tagId)) {
+                continue;
+            }
+            ContentValues item = new ContentValues();
+            item.put(foreignKey, entityId);
+            item.put("tag_id", tagId.trim());
+            item.put("created_at", now);
+            db.insertOrThrow(table, null, item);
+        }
     }
 
     private static long computeDurationMinutes(String startedAt, String endedAt) {

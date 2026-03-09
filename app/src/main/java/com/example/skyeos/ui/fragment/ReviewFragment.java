@@ -231,9 +231,9 @@ public class ReviewFragment extends Fragment {
         tvAiSummary.setText(report.aiSummary);
         tvCostDebtSummary.setText(formatCostDebtSummary(report));
         tvTrendSummary.setText(formatTrendSummary(report));
-        tvAiAssistMetric.setText("AI assist " + formatPercentageOrDash(report.aiAssistRate));
-        tvWorkEffMetric.setText("Work efficiency " + formatScoreOrDash(report.workEfficiencyAvg));
-        tvLearningEffMetric.setText("Learning efficiency " + formatScoreOrDash(report.learningEfficiencyAvg));
+        tvAiAssistMetric.setText(getString(R.string.review_ai_assist_metric, formatPercentageOrDash(report.aiAssistRate)));
+        tvWorkEffMetric.setText(getString(R.string.review_work_eff_metric, formatScoreOrDash(report.workEfficiencyAvg)));
+        tvLearningEffMetric.setText(getString(R.string.review_learning_eff_metric, formatScoreOrDash(report.learningEfficiencyAvg)));
 
         timeAdapter.submitList(report.timeAllocations);
         topProjectAdapter.submitList(report.topProjects);
@@ -258,13 +258,13 @@ public class ReviewFragment extends Fragment {
         applyTrendDetailSelection();
     }
 
-    private static String buildIncomeSummary(
+    private String buildIncomeSummary(
             List<com.example.skyeos.domain.model.RecentRecordItem> incomeItems,
             long totalCents
     ) {
         double yuan = totalCents / 100.0;
         int count = incomeItems == null ? 0 : incomeItems.size();
-        return String.format(Locale.US, "%d income records | Total ¥%.2f", count, yuan);
+        return getString(R.string.review_income_summary_format, count, yuan);
     }
 
     private void applyHistoryFilter() {
@@ -275,7 +275,7 @@ public class ReviewFragment extends Fragment {
         List<com.example.skyeos.domain.model.RecentRecordItem> filtered = filterByType(latestHistoryRecords, selectedType);
         historyLedgerAdapter.submitList(filtered);
         if (tvHistoryLedgerSummary != null) {
-            tvHistoryLedgerSummary.setText(String.format(Locale.US, "%s %d records", selectedType, filtered.size()));
+            tvHistoryLedgerSummary.setText(getString(R.string.review_history_summary_format, capitalizeType(selectedType), filtered.size()));
         }
     }
 
@@ -332,7 +332,7 @@ public class ReviewFragment extends Fragment {
             return;
         }
         if (tvTagDetailTitle != null) {
-            tvTagDetailTitle.setText("Tag details: no data");
+            tvTagDetailTitle.setText(R.string.review_tag_details_empty);
         }
         if (tagDetailAdapter != null) {
             tagDetailAdapter.submitList(new ArrayList<>());
@@ -345,7 +345,7 @@ public class ReviewFragment extends Fragment {
         }
         if (tvTagDetailTitle != null) {
             String emoji = metric.emoji == null || metric.emoji.isEmpty() ? "" : metric.emoji + " ";
-            tvTagDetailTitle.setText("Tag details: " + emoji + metric.tagName + " (" + scope + ")");
+            tvTagDetailTitle.setText(getString(R.string.review_tag_details_format, emoji + metric.tagName, scope));
         }
         executor.execute(() -> {
             List<com.example.skyeos.domain.model.RecentRecordItem> rows;
@@ -387,7 +387,7 @@ public class ReviewFragment extends Fragment {
         ReviewReport current = latestReport;
         if (current == null) {
             if (tvTrendDetailTitle != null) {
-                tvTrendDetailTitle.setText("Trend details: no data");
+                tvTrendDetailTitle.setText(R.string.review_trend_details_empty);
             }
             if (trendDetailAdapter != null) {
                 trendDetailAdapter.submitList(new ArrayList<>());
@@ -479,53 +479,53 @@ public class ReviewFragment extends Fragment {
         return merged;
     }
 
-    private static String buildTrendDetailTitle(String kind, ReviewReport current, ReviewReport previous) {
+    private String buildTrendDetailTitle(String kind, ReviewReport current, ReviewReport previous) {
         long prevIncome = previous == null ? 0L : previous.totalIncomeCents;
         long prevExpense = previous == null ? 0L : previous.totalExpenseCents;
         long prevWork = previous == null ? 0L : previous.totalWorkMinutes;
         if ("expense".equals(kind)) {
-            return String.format(Locale.US, "Expense: current %s vs previous %s",
+            return getString(R.string.review_trend_expense_compare,
                     formatYuan(current.totalExpenseCents), formatYuan(prevExpense));
         }
         if ("work".equals(kind)) {
-            return String.format(Locale.US, "Work time: current %d min vs previous %d min",
+            return getString(R.string.review_trend_work_compare,
                     current.totalWorkMinutes, prevWork);
         }
-        return String.format(Locale.US, "Income: current %s vs previous %s",
+        return getString(R.string.review_trend_income_compare,
                 formatYuan(current.totalIncomeCents), formatYuan(prevIncome));
     }
 
-    private static String formatCostDebtSummary(ReviewReport report) {
+    private String formatCostDebtSummary(ReviewReport report) {
         String actual = report.actualHourlyRateCents == null ? "--" : formatYuan(report.actualHourlyRateCents) + "/h";
         String ideal = formatYuan(report.idealHourlyRateCents) + "/h";
         String debt;
         if (report.timeDebtCents == null) {
             debt = "--";
         } else if (report.timeDebtCents > 0) {
-            debt = "Debt " + formatYuan(report.timeDebtCents) + "/h";
+            debt = getString(R.string.today_debt_format, formatYuan(report.timeDebtCents));
         } else if (report.timeDebtCents < 0) {
-            debt = "Surplus " + formatYuan(Math.abs(report.timeDebtCents)) + "/h";
+            debt = getString(R.string.today_surplus_format, formatYuan(Math.abs(report.timeDebtCents)));
         } else {
-            debt = "Balanced";
+            debt = getString(R.string.today_balanced);
         }
         String cover = report.passiveCoverRatio == null ? "--"
                 : String.format(Locale.US, "%.0f%%", report.passiveCoverRatio * 100.0);
-        return String.format(Locale.US, "Actual %s | Ideal %s | Time %s | Passive coverage %s", actual, ideal, debt, cover);
+        return getString(R.string.review_cost_debt_summary_format, actual, ideal, debt, cover);
     }
 
-    private static String formatTrendSummary(ReviewReport report) {
+    private String formatTrendSummary(ReviewReport report) {
         String income = formatChange("Income", report.incomeChangeRatio, report.totalIncomeCents, report.prevIncomeCents);
         String expense = formatChange("Expense", report.expenseChangeRatio, report.totalExpenseCents, report.prevExpenseCents);
         String work = formatChange("Work time", report.workChangeRatio, report.totalWorkMinutes, report.prevWorkMinutes);
-        return "Change vs previous: " + income + " | " + expense + " | " + work;
+        return getString(R.string.review_trend_summary_format, income, expense, work);
     }
 
-    private static String formatChange(String label, Double ratio, long current, long previous) {
+    private String formatChange(String label, Double ratio, long current, long previous) {
         if (ratio == null) {
             if (previous <= 0 && current <= 0) {
-                return label + " no data";
+                return label + " " + getString(R.string.review_no_data_suffix);
             }
-            return label + " no baseline";
+            return label + " " + getString(R.string.review_no_baseline_suffix);
         }
         String arrow = ratio > 0 ? "+" : "";
         return String.format(Locale.US, "%s %s%.1f%%", label, arrow, ratio * 100.0);
@@ -552,36 +552,36 @@ public class ReviewFragment extends Fragment {
         return String.format(Locale.US, "%.2f/10", score);
     }
 
-    private static String buildUiPeriodTitle(int tabPosition, String fallback) {
+    private String buildUiPeriodTitle(int tabPosition, String fallback) {
         if (tabPosition == 0) {
-            return "Daily Report";
+            return getString(R.string.review_title_daily);
         }
         if (tabPosition == 1) {
-            return "Weekly Report";
+            return getString(R.string.review_title_weekly);
         }
         if (tabPosition == 2) {
-            return "Monthly Report";
+            return getString(R.string.review_title_monthly);
         }
         if (tabPosition == 3) {
-            return "Yearly Report";
+            return getString(R.string.review_title_yearly);
         }
-        return (fallback == null || fallback.trim().isEmpty()) ? "Review" : fallback;
+        return (fallback == null || fallback.trim().isEmpty()) ? getString(R.string.nav_review) : fallback;
     }
 
-    private static String buildUiPeriodSubtitle(int tabPosition) {
+    private String buildUiPeriodSubtitle(int tabPosition) {
         if (tabPosition == 0) {
-            return "Focus on today's input and output";
+            return getString(R.string.review_subtitle_daily);
         }
         if (tabPosition == 1) {
-            return "Focus on weekly trends, ROI and efficiency";
+            return getString(R.string.review_subtitle_weekly);
         }
         if (tabPosition == 2) {
-            return "Focus on monthly freedom and long-term direction";
+            return getString(R.string.review_subtitle_monthly);
         }
         if (tabPosition == 3) {
-            return "Focus on yearly trends and long-term drift";
+            return getString(R.string.review_subtitle_yearly);
         }
-        return "Focus on key changes";
+        return getString(R.string.review_subtitle_default);
     }
 
     private void loadReportForCurrentTab() {
@@ -620,6 +620,28 @@ public class ReviewFragment extends Fragment {
             windowLabel = "Y";
         }
         tvReviewAnchor.setText(String.format(Locale.US, "%s · %s", windowLabel, currentDate));
+    }
+
+    private String capitalizeType(String type) {
+        if (type == null || type.isEmpty()) {
+            return getString(R.string.common_all);
+        }
+        if ("all".equals(type)) {
+            return getString(R.string.common_all);
+        }
+        if ("income".equals(type)) {
+            return getString(R.string.common_income);
+        }
+        if ("expense".equals(type)) {
+            return getString(R.string.common_expense);
+        }
+        if ("time".equals(type)) {
+            return getString(R.string.common_time);
+        }
+        if ("learning".equals(type)) {
+            return getString(R.string.common_learning);
+        }
+        return type;
     }
 
     private void openAnchorDatePicker() {

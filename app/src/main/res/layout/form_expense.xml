@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Expense record (add tags for better review analytics)"
+            android:text="@string/form_expense_intro"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:layout_marginBottom="8dp"/>
@@ -25,7 +25,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Amount (CNY)"
+            android:hint="@string/common_amount_cny"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_expense_amount"
@@ -39,7 +39,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Category"
+            android:hint="@string/common_category"
             android:layout_marginBottom="10dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_expense_cat"
@@ -53,7 +53,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Note"
+            android:hint="@string/common_note"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_expense_note"
@@ -65,7 +65,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI assist ratio (0-100, optional)"
+            android:hint="@string/common_ai_ratio_optional"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_expense_ai_ratio"
@@ -77,7 +77,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Related project (optional)"
+            android:text="@string/form_related_project_optional"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:layout_marginBottom="6dp"/>
@@ -86,7 +86,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Bind project (optional)"
+            android:hint="@string/form_bind_project_optional"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_expense_project"
@@ -104,7 +104,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tags (multi-select)"
+            android:text="@string/form_tags_multi"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -121,7 +121,7 @@
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="Save Expense Record"/>
+            android:text="@string/form_save_expense"/>
 
     </LinearLayout>
 </ScrollView>

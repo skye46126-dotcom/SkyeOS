@@ -335,12 +335,57 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
     }
 
     @Override
+    public void updateRecurringCostRule(String id, String name, String category, long monthlyAmountCents, boolean isNecessary,
+            String startMonth, String endMonth, String note) {
+        if (TextUtils.isEmpty(id)) {
+            throw new IllegalArgumentException("Recurring cost id is required");
+        }
+        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
+            throw new IllegalArgumentException("Recurring cost name is required");
+        }
+        String normalizedCategory = normalizeExpenseCategory(category);
+        String normalizedStartMonth = normalizeMonth(startMonth);
+        String normalizedEndMonth = TextUtils.isEmpty(endMonth) ? null : normalizeMonth(endMonth);
+        if (normalizedEndMonth != null && normalizedEndMonth.compareTo(normalizedStartMonth) < 0) {
+            throw new IllegalArgumentException("endMonth must be >= startMonth");
+        }
+        ContentValues values = new ContentValues();
+        values.put("name", name.trim());
+        values.put("category", normalizedCategory);
+        values.put("monthly_amount_cents", Math.max(0L, monthlyAmountCents));
+        values.put("is_necessary", isNecessary ? 1 : 0);
+        values.put("start_month", normalizedStartMonth);
+        values.put("end_month", normalizedEndMonth);
+        values.put("note", TextUtils.isEmpty(note) ? null : note.trim());
+        values.put("updated_at", Instant.now().toString());
+        int updated = database.writableDb().update(
+                "expense_recurring_rule",
+                values,
+                "id = ? AND owner_user_id = ?",
+                new String[]{id, userContext.requireCurrentUserId()});
+        if (updated <= 0) {
+            throw new IllegalArgumentException("Recurring cost rule not found");
+        }
+    }
+
+    @Override
+    public void deleteRecurringCostRule(String id) {
+        if (TextUtils.isEmpty(id)) {
+            return;
+        }
+        database.writableDb().delete(
+                "expense_recurring_rule",
+                "id = ? AND owner_user_id = ?",
+                new String[]{id, userContext.requireCurrentUserId()});
+    }
+
+    @Override
     public List<CapexCostSummary> listCapexCosts() {
         String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         List<CapexCostSummary> items = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(
-                "SELECT id, name, purchase_date, purchase_amount_cents, monthly_amortized_cents, amortization_start_month, amortization_end_month, is_active, COALESCE(note,'') " +
+                "SELECT id, name, purchase_date, purchase_amount_cents, useful_months, residual_rate_bps, monthly_amortized_cents, amortization_start_month, amortization_end_month, is_active, COALESCE(note,'') " +
                         "FROM expense_capex WHERE owner_user_id = ? ORDER BY is_active DESC, purchase_date DESC, updated_at DESC",
                 new String[]{userId})) {
             while (cursor.moveToNext()) {
@@ -349,11 +394,13 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
                         cursor.getString(1),
                         cursor.getString(2),
                         cursor.getLong(3),
-                        cursor.getLong(4),
-                        cursor.getString(5),
-                        cursor.getString(6),
-                        cursor.getInt(7) == 1,
-                        cursor.getString(8)));
+                        cursor.getInt(4),
+                        cursor.getInt(5),
+                        cursor.getLong(6),
+                        cursor.getString(7),
+                        cursor.getString(8),
+                        cursor.getInt(9) == 1,
+                        cursor.getString(10)));
             }
         }
         return items;
@@ -394,6 +441,58 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         values.put("created_at", now);
         values.put("updated_at", now);
         database.writableDb().insertOrThrow("expense_capex", null, values);
+    }
+
+    @Override
+    public void updateCapexCost(String id, String name, String purchaseDate, long purchaseAmountCents, int usefulMonths,
+            int residualRateBps, String note) {
+        if (TextUtils.isEmpty(id)) {
+            throw new IllegalArgumentException("Capex id is required");
+        }
+        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
+            throw new IllegalArgumentException("Capex name is required");
+        }
+        LocalDate normalizedPurchaseDate = LocalDate.parse(purchaseDate == null ? LocalDate.now().toString() : purchaseDate.trim());
+        if (usefulMonths <= 0) {
+            throw new IllegalArgumentException("usefulMonths must be > 0");
+        }
+        int safeResidualRateBps = Math.max(0, Math.min(10000, residualRateBps));
+        long safePurchaseAmount = Math.max(0L, purchaseAmountCents);
+        long residualCents = Math.round(safePurchaseAmount * (safeResidualRateBps / 10000.0));
+        long amortizableCents = Math.max(0L, safePurchaseAmount - residualCents);
+        long monthlyAmortizedCents = Math.round(amortizableCents / (double) usefulMonths);
+        YearMonth startMonth = YearMonth.from(normalizedPurchaseDate);
+        YearMonth endMonth = startMonth.plusMonths(Math.max(0, usefulMonths - 1L));
+        ContentValues values = new ContentValues();
+        values.put("name", name.trim());
+        values.put("purchase_date", normalizedPurchaseDate.toString());
+        values.put("purchase_amount_cents", safePurchaseAmount);
+        values.put("residual_rate_bps", safeResidualRateBps);
+        values.put("useful_months", usefulMonths);
+        values.put("monthly_amortized_cents", monthlyAmortizedCents);
+        values.put("amortization_start_month", startMonth.toString());
+        values.put("amortization_end_month", endMonth.toString());
+        values.put("note", TextUtils.isEmpty(note) ? null : note.trim());
+        values.put("updated_at", Instant.now().toString());
+        int updated = database.writableDb().update(
+                "expense_capex",
+                values,
+                "id = ? AND owner_user_id = ?",
+                new String[]{id, userContext.requireCurrentUserId()});
+        if (updated <= 0) {
+            throw new IllegalArgumentException("Capex item not found");
+        }
+    }
+
+    @Override
+    public void deleteCapexCost(String id) {
+        if (TextUtils.isEmpty(id)) {
+            return;
+        }
+        database.writableDb().delete(
+                "expense_capex",
+                "id = ? AND owner_user_id = ?",
+                new String[]{id, userContext.requireCurrentUserId()});
     }
 
     private String queryTimezone() {

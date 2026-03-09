@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Create a project to track ROI / cost / break-even"
+            android:text="@string/form_project_intro"
             android:textColor="@color/textSecondary"
             android:textSize="12sp"
             android:layout_marginBottom="8dp"/>
@@ -25,7 +25,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Project name"
+            android:hint="@string/form_project_name_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_project_name"
@@ -38,7 +38,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Start date (YYYY-MM-DD)"
+            android:hint="@string/form_project_start_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_project_start"
@@ -51,7 +51,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tags (multi-select)"
+            android:text="@string/form_tags_multi"
             android:textSize="13sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
@@ -68,7 +68,7 @@
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="Create &amp; Track"/>
+            android:text="@string/form_create_project"/>
 
     </LinearLayout>
 </ScrollView>

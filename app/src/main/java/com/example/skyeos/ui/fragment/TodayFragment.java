@@ -119,11 +119,11 @@ public class TodayFragment extends Fragment {
         int hour = LocalTime.now().getHour();
         String greeting;
         if (hour < 12) {
-            greeting = "Good morning ☀️";
+            greeting = getString(R.string.today_greeting_morning);
         } else if (hour < 18) {
-            greeting = "Good afternoon 🌤";
+            greeting = getString(R.string.today_greeting_afternoon);
         } else {
-            greeting = "Good evening 🌙";
+            greeting = getString(R.string.today_greeting_evening);
         }
         tvGreeting.setText(greeting);
 
@@ -131,13 +131,13 @@ public class TodayFragment extends Fragment {
         tvDate.setText(String.format(Locale.US, "%04d-%02d-%02d", today.getYear(), today.getMonthValue(),
                 today.getDayOfMonth()));
         if (tvMetricsTitle != null) {
-            tvMetricsTitle.setText("Today's Key Metrics");
+            tvMetricsTitle.setText(R.string.today_metrics_title);
         }
         if (tvTimeTitle != null) {
-            tvTimeTitle.setText("Time Allocation (Today)");
+            tvTimeTitle.setText(R.string.today_time_title);
         }
         if (tvNotesTitle != null) {
-            tvNotesTitle.setText("Today's Notes");
+            tvNotesTitle.setText(R.string.today_notes_title);
         }
     }
 
@@ -152,7 +152,7 @@ public class TodayFragment extends Fragment {
             if (workMinutes > 0) {
                 tvMetricTime.setText(String.format(Locale.US, "%dh %02dm", workMinutes / 60, workMinutes % 60));
             } else {
-                tvMetricTime.setText("--");
+            tvMetricTime.setText("--");
             }
 
             // Income (cents → yuan)
@@ -183,7 +183,7 @@ public class TodayFragment extends Fragment {
         long learningMinutes = overview.totalLearningMinutes;
         long visibleTotalMinutes = overview.totalTimeMinutes + learningMinutes;
         if (visibleTotalMinutes <= 0) {
-            tvTimeDistribution.setText("No recorded time for this day");
+            tvTimeDistribution.setText(R.string.today_no_recorded_time);
             return;
         }
 
@@ -192,16 +192,16 @@ public class TodayFragment extends Fragment {
         double projectRatio = (1 - overview.publicTimeRatio) * 100;
         long totalH = visibleTotalMinutes / 60;
         long totalM = visibleTotalMinutes % 60;
-        sb.append(String.format(Locale.US, "Total %dh %02dm\n", totalH, totalM));
+        sb.append(getString(R.string.today_total_time_format, totalH, totalM)).append('\n');
 
         if (projectRatio > 0) {
-            sb.append(String.format(Locale.US, "📌 Project  %.0f%%\n", projectRatio));
+            sb.append(getString(R.string.today_project_ratio_format, projectRatio)).append('\n');
         }
         if (publicRatio > 0) {
-            sb.append(String.format(Locale.US, "🔵 Public pool  %.0f%%\n", publicRatio));
+            sb.append(getString(R.string.today_public_pool_ratio_format, publicRatio)).append('\n');
         }
         if (learningMinutes > 0) {
-            sb.append(String.format(Locale.US, "📚 Learning  %dh %02dm", learningMinutes / 60, learningMinutes % 60));
+            sb.append(getString(R.string.today_learning_time_format, learningMinutes / 60, learningMinutes % 60));
         }
 
         tvTimeDistribution.setText(sb.toString().trim());
@@ -213,7 +213,7 @@ public class TodayFragment extends Fragment {
         }
         List<RecentRecordItem> records = graph.useCases.getRecordsForDate.execute(today, 80);
         if (records == null || records.isEmpty()) {
-            tvTodayNotes.setText("No notes for this day");
+            tvTodayNotes.setText(R.string.today_no_notes);
             return;
         }
         List<String> notes = new ArrayList<>();
@@ -236,7 +236,7 @@ public class TodayFragment extends Fragment {
             }
         }
         if (notes.isEmpty()) {
-            tvTodayNotes.setText("No notes for this day");
+            tvTodayNotes.setText(R.string.today_no_notes);
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -278,18 +278,18 @@ public class TodayFragment extends Fragment {
     private void buildHourlyDebtSummary(MetricSnapshotSummary snapshot) {
         long ideal = graph.useCases.getIdealHourlyRate.execute();
         if (snapshot == null || snapshot.hourlyRateCents == null || snapshot.timeDebtCents == null) {
-            tvHourlyDebtSummary.setText("No hourly rate / time debt data yet");
+            tvHourlyDebtSummary.setText(R.string.today_no_hourly_data);
             return;
         }
         String debtText;
         if (snapshot.timeDebtCents > 0) {
-            debtText = "Debt " + formatYuan(snapshot.timeDebtCents) + "/h";
+            debtText = getString(R.string.today_debt_format, formatYuan(snapshot.timeDebtCents));
         } else if (snapshot.timeDebtCents < 0) {
-            debtText = "Surplus " + formatYuan(Math.abs(snapshot.timeDebtCents)) + "/h";
+            debtText = getString(R.string.today_surplus_format, formatYuan(Math.abs(snapshot.timeDebtCents)));
         } else {
-            debtText = "Balanced";
+            debtText = getString(R.string.today_balanced);
         }
-        tvHourlyDebtSummary.setText(String.format(Locale.US, "Actual %s/h | Ideal %s/h | %s",
+        tvHourlyDebtSummary.setText(getString(R.string.today_hourly_summary_format,
                 formatYuan(snapshot.hourlyRateCents), formatYuan(ideal), debtText));
     }
 
@@ -299,9 +299,8 @@ public class TodayFragment extends Fragment {
         }
         RateComparisonSummary rates = graph.useCases.getRateComparison.execute(today, "month");
         String monthLabel = today.length() >= 7 ? today.substring(0, 7) : today;
-        tvRateCompareSummary.setText(String.format(
-                Locale.US,
-                "%s view | Ideal %s/h | Prev year %s | Current %s",
+        tvRateCompareSummary.setText(getString(
+                R.string.today_rate_compare_format,
                 monthLabel,
                 formatYuan(rates.idealHourlyRateCents),
                 formatNullableHourly(rates.previousYearAverageHourlyRateCents),
