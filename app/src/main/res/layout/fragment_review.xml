@@ -45,15 +45,13 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_review_prev"
-            style="@style/Widget.LifeOS.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/review_prev" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_prev"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/review_prev" />
 
         <TextView
             android:id="@+id/tv_review_anchor"
@@ -70,26 +68,22 @@
             android:textStyle="bold"
             tools:text="2026-03-09" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_review_next"
-            style="@style/Widget.LifeOS.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/review_next" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_next"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/review_next" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_review_today"
-            style="@style/Widget.LifeOS.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/nav_today" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_today"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:text="@string/nav_today" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -128,13 +122,21 @@
                 android:id="@+id/btn_review_open_day_detail"
                 style="@style/Widget.LifeOS.Button.Outlined"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:ellipsize="end"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
                 android:maxLines="1"
                 android:text="@string/today_open_day_detail" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_open_ai_chat"
+                style="@style/Widget.LifeOS.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/review_open_ai_chat" />
 
             <!-- AI Summary Card -->
             <com.google.android.material.card.MaterialCardView
@@ -408,7 +410,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📒 History Ledger"
+                android:text="@string/review_history_ledger"
                 android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -527,7 +529,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Top Expense Tags"
+                        android:text="@string/review_top_expense_tags"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp"/>
 

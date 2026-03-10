@@ -32,12 +32,19 @@
             app:selectionRequired="true">
 
             <com.google.android.material.chip.Chip
+                android:id="@+id/chip_type_work"
+                style="@style/Widget.LifeOS.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/capture_type_work"
+                android:checked="true"/>
+
+            <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_time"
                 style="@style/Widget.LifeOS.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/capture_type_time"
-                android:checked="true"/>
+                android:text="@string/capture_type_time"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_type_income"

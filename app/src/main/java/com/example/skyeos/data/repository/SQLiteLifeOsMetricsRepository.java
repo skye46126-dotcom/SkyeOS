@@ -309,7 +309,7 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
             throw new IllegalArgumentException("Recurring cost name is required");
         }
-        String normalizedCategory = normalizeExpenseCategory(category);
+        String normalizedCategory = normalizeRecurringCategory(category);
         String normalizedStartMonth = normalizeMonth(startMonth);
         String normalizedEndMonth = TextUtils.isEmpty(endMonth) ? null : normalizeMonth(endMonth);
         if (normalizedEndMonth != null && normalizedEndMonth.compareTo(normalizedStartMonth) < 0) {
@@ -343,7 +343,7 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(name.trim())) {
             throw new IllegalArgumentException("Recurring cost name is required");
         }
-        String normalizedCategory = normalizeExpenseCategory(category);
+        String normalizedCategory = normalizeRecurringCategory(category);
         String normalizedStartMonth = normalizeMonth(startMonth);
         String normalizedEndMonth = TextUtils.isEmpty(endMonth) ? null : normalizeMonth(endMonth);
         if (normalizedEndMonth != null && normalizedEndMonth.compareTo(normalizedStartMonth) < 0) {
@@ -545,7 +545,7 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
             if (!overlapEnd.isBefore(overlapStart)) {
                 long overlapDays = java.time.temporal.ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
                 int monthDays = cursor.lengthOfMonth();
-                long baselineMonthly = baselineMonthlyCost(userId, cursor.toString(), necessaryOnly);
+                long baselineMonthly = baselineMonthlyCost(userId, cursor.toString());
                 long recurringMonthly = recurringMonthlyCost(userId, cursor.toString(), necessaryOnly);
                 long capexMonthly = capexMonthlyCost(userId, cursor.toString(), necessaryOnly);
                 long monthTotal = baselineMonthly + recurringMonthly + capexMonthly;
@@ -556,14 +556,9 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         return total;
     }
 
-    private long baselineMonthlyCost(String userId, String month, boolean necessaryOnly) {
-        if (necessaryOnly) {
-            return scalarLong(
-                    "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
-                    userId, month);
-        }
+    private long baselineMonthlyCost(String userId, String month) {
         return scalarLong(
-                "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                "SELECT COALESCE(basic_living_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
                 userId, month);
     }
 
@@ -642,12 +637,12 @@ public final class SQLiteLifeOsMetricsRepository implements LifeOsMetricsReposit
         db.insertWithOnConflict("expense_baseline_month", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
-    private static String normalizeExpenseCategory(String raw) {
-        String value = TextUtils.isEmpty(raw) ? "necessary" : raw.trim().toLowerCase(Locale.US);
-        if (!Set.of("necessary", "experience", "subscription", "investment").contains(value)) {
-            throw new IllegalArgumentException("Invalid expense category: " + value);
+    private static String normalizeRecurringCategory(String raw) {
+        if (TextUtils.isEmpty(raw)) {
+            return "subscription";
         }
-        return value;
+        String value = raw.trim().toLowerCase(Locale.US);
+        return value.isEmpty() ? "subscription" : value;
     }
 
     private static String toUtcStart(String date, String timezone) {

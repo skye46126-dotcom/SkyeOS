@@ -25,6 +25,7 @@ import com.example.skyeos.domain.model.input.CreateExpenseInput;
 import com.example.skyeos.domain.model.input.CreateIncomeInput;
 import com.example.skyeos.domain.model.input.CreateLearningInput;
 import com.example.skyeos.domain.model.input.CreateTimeLogInput;
+import com.example.skyeos.ui.util.UiFormatters;
 import com.google.android.material.chip.ChipGroup;
 
 import java.util.ArrayList;
@@ -103,12 +104,14 @@ public class DayDetailFragment extends Fragment {
         tvTitle.setText(getString(R.string.day_detail_title_with_date, anchorDate));
         tvSummary.setText(getString(
                 R.string.day_detail_summary_format,
+                formatMinutes(overview.totalTimeMinutes),
                 formatMinutes(overview.totalWorkMinutes),
+                formatMinutes(overview.totalLearningMinutes),
                 formatYuan(overview.totalIncomeCents),
                 formatYuan(overview.totalExpenseCents),
-                formatMinutes(overview.totalLearningMinutes),
-                formatYuan(overview.actualExpenseCents),
-                formatYuan(overview.structuralExpenseCents)));
+                formatYuan(overview.structuralExpenseCents),
+                formatYuan(overview.structuralExpenseCents),
+                formatYuan(overview.actualExpenseCents)));
         tvRates.setText(buildRates(snapshot));
         applyFilter();
     }
@@ -233,20 +236,11 @@ public class DayDetailFragment extends Fragment {
     }
 
     private String formatMinutes(long minutes) {
-        if (minutes <= 0) {
-            return getString(R.string.common_none);
-        }
-        return getString(R.string.common_duration_hours_minutes, minutes / 60, minutes % 60);
+        return UiFormatters.duration(requireContext(), minutes);
     }
 
     private String formatYuan(long cents) {
-        if (cents == 0) {
-            return getString(R.string.common_none);
-        }
-        if (cents % 100 == 0) {
-            return getString(R.string.common_currency_yuan_int, cents / 100);
-        }
-        return getString(R.string.common_currency_yuan, cents / 100.0);
+        return UiFormatters.yuan(requireContext(), cents);
     }
 
     private void confirmDelete(RecentRecordItem record) {
@@ -297,6 +291,10 @@ public class DayDetailFragment extends Fragment {
         EditText etStart = editField(getString(R.string.day_detail_edit_start_utc), state.startedAt, InputType.TYPE_CLASS_TEXT, layout);
         EditText etEnd = editField(getString(R.string.day_detail_edit_end_utc), state.endedAt, InputType.TYPE_CLASS_TEXT, layout);
         EditText etCategory = editField(getString(R.string.common_category), state.category, InputType.TYPE_CLASS_TEXT, layout);
+        EditText etEfficiency = editField(getString(R.string.capture_time_efficiency_score), state.efficiencyScore == null ? "" : String.valueOf(state.efficiencyScore), InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etValue = editField(getString(R.string.capture_time_value_score), state.valueScore == null ? "" : String.valueOf(state.valueScore), InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etState = editField(getString(R.string.capture_time_state_score), state.stateScore == null ? "" : String.valueOf(state.stateScore), InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etAi = editField(getString(R.string.capture_time_ai_ratio), state.aiAssistRatio == null ? "" : String.valueOf(state.aiAssistRatio), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etNote = editField(getString(R.string.common_note), state.note, InputType.TYPE_CLASS_TEXT, layout);
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.day_detail_edit_time)
@@ -308,7 +306,10 @@ public class DayDetailFragment extends Fragment {
                                 etStart.getText().toString().trim(),
                                 etEnd.getText().toString().trim(),
                                 etCategory.getText().toString().trim().toLowerCase(Locale.US),
-                                null, null, null, null,
+                                parseOptionalScore(etEfficiency.getText().toString().trim()),
+                                parseOptionalScore(etValue.getText().toString().trim()),
+                                parseOptionalScore(etState.getText().toString().trim()),
+                                parseOptionalPercentage(etAi.getText().toString().trim()),
                                 etNote.getText().toString().trim(),
                                 null, null));
                         load();
@@ -389,6 +390,8 @@ public class DayDetailFragment extends Fragment {
         EditText etEnd = editField(getString(R.string.day_detail_edit_end_utc), state.endedAt, InputType.TYPE_CLASS_TEXT, layout);
         EditText etContent = editField(getString(R.string.common_content), state.content, InputType.TYPE_CLASS_TEXT, layout);
         EditText etDuration = editField(getString(R.string.day_detail_edit_duration_minutes), String.valueOf(state.durationMinutes), InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etEfficiency = editField(getString(R.string.capture_learning_efficiency_score), state.efficiencyScore == null ? "" : String.valueOf(state.efficiencyScore), InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etAi = editField(getString(R.string.capture_learning_ai_ratio), state.aiAssistRatio == null ? "" : String.valueOf(state.aiAssistRatio), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etLevel = editField(getString(R.string.day_detail_edit_learning_level), state.applicationLevel, InputType.TYPE_CLASS_TEXT, layout);
         EditText etNote = editField(getString(R.string.common_note), state.note, InputType.TYPE_CLASS_TEXT, layout);
         new AlertDialog.Builder(requireContext())
@@ -403,9 +406,9 @@ public class DayDetailFragment extends Fragment {
                                 blankToNull(etEnd.getText().toString().trim()),
                                 etContent.getText().toString().trim(),
                                 parseInt(etDuration.getText().toString().trim()),
-                                state.efficiencyScore,
+                                parseOptionalScore(etEfficiency.getText().toString().trim()),
                                 etLevel.getText().toString().trim().toLowerCase(Locale.US),
-                                state.aiAssistRatio,
+                                parseOptionalPercentage(etAi.getText().toString().trim()),
                                 etNote.getText().toString().trim(),
                                 null, null));
                         load();
@@ -459,6 +462,28 @@ public class DayDetailFragment extends Fragment {
         return Integer.parseInt(value.trim());
     }
 
+    private static Integer parseOptionalScore(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        int score = Integer.parseInt(value.trim());
+        if (score < 1 || score > 10) {
+            throw new IllegalArgumentException("Score must be 1-10");
+        }
+        return score;
+    }
+
+    private static Integer parseOptionalPercentage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        int pct = Integer.parseInt(value.trim());
+        if (pct < 0 || pct > 100) {
+            throw new IllegalArgumentException("AI assist ratio must be 0-100");
+        }
+        return pct;
+    }
+
     private static String blankToNull(String value) {
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }
@@ -494,13 +519,25 @@ public class DayDetailFragment extends Fragment {
 
     private TimeEditState loadTimeState(String recordId) {
         try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
-                "SELECT started_at, ended_at, category, COALESCE(note, '') FROM time_log WHERE id = ? LIMIT 1",
+                "SELECT started_at, ended_at, category, efficiency_score, value_score, state_score, ai_assist_ratio, COALESCE(note, '') FROM time_log WHERE id = ? LIMIT 1",
                 new String[] { recordId })) {
             if (cursor.moveToFirst()) {
-                return new TimeEditState(cursor.getString(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
+                Integer efficiency = cursor.isNull(3) ? null : cursor.getInt(3);
+                Integer valueScore = cursor.isNull(4) ? null : cursor.getInt(4);
+                Integer stateScore = cursor.isNull(5) ? null : cursor.getInt(5);
+                Integer aiRatio = cursor.isNull(6) ? null : cursor.getInt(6);
+                return new TimeEditState(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        efficiency,
+                        valueScore,
+                        stateScore,
+                        aiRatio,
+                        cursor.getString(7));
             }
         }
-        return new TimeEditState(anchorDate + "T00:00:00Z", anchorDate + "T01:00:00Z", "work", "");
+        return new TimeEditState(anchorDate + "T00:00:00Z", anchorDate + "T01:00:00Z", "work", null, null, null, null, "");
     }
 
     private IncomeEditState loadIncomeState(String recordId) {
@@ -549,12 +586,21 @@ public class DayDetailFragment extends Fragment {
         final String startedAt;
         final String endedAt;
         final String category;
+        final Integer efficiencyScore;
+        final Integer valueScore;
+        final Integer stateScore;
+        final Integer aiAssistRatio;
         final String note;
 
-        TimeEditState(String startedAt, String endedAt, String category, String note) {
+        TimeEditState(String startedAt, String endedAt, String category, Integer efficiencyScore, Integer valueScore,
+                Integer stateScore, Integer aiAssistRatio, String note) {
             this.startedAt = startedAt;
             this.endedAt = endedAt;
             this.category = category;
+            this.efficiencyScore = efficiencyScore;
+            this.valueScore = valueScore;
+            this.stateScore = stateScore;
+            this.aiAssistRatio = aiAssistRatio;
             this.note = note;
         }
     }

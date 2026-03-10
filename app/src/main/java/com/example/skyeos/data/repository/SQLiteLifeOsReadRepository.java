@@ -14,7 +14,12 @@ import com.example.skyeos.domain.model.TagItem;
 import com.example.skyeos.domain.model.WindowOverview;
 import com.example.skyeos.domain.repository.LifeOsReadRepository;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +40,9 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         String date = normalizeDate(anchorDate);
         String window = normalizeWindow(windowType);
         DateRange range = DateRange.from(date, window);
+        String timezone = queryTimezone();
+        String rangeStartUtc = toUtcStart(range.startDate, timezone);
+        String rangeEndUtcExclusive = toUtcEndExclusive(range.endDate, timezone);
         String userId = userContext.requireCurrentUserId();
 
         long totalIncome = scalarLong(
@@ -46,14 +54,14 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         long structuralExpense = structuralExpenseForWindow(userId, range.startDate, range.endDate, false);
         long totalExpense = actualExpense + structuralExpense;
         long totalWorkMinutes = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
-                userId, range.startDate, range.endDate);
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId, rangeStartUtc, rangeEndUtcExclusive);
         long totalTimeMinutes = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND date(started_at) >= ? AND date(started_at) <= ?",
-                userId, range.startDate, range.endDate);
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category != 'learning' AND started_at >= ? AND started_at < ?",
+                userId, rangeStartUtc, rangeEndUtcExclusive);
         long publicTimeMinutes = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND is_public_pool = 1 AND date(started_at) >= ? AND date(started_at) <= ?",
-                userId, range.startDate, range.endDate);
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND is_public_pool = 1 AND category != 'learning' AND started_at >= ? AND started_at < ?",
+                userId, rangeStartUtc, rangeEndUtcExclusive);
         long publicIncome = scalarLong(
                 "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND is_public_pool = 1 AND occurred_on >= ? AND occurred_on <= ?",
                 userId, range.startDate, range.endDate);
@@ -122,11 +130,14 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
     @Override
     public List<RecentRecordItem> getRecordsForDate(String anchorDate, int limit) {
         String date = normalizeDate(anchorDate);
+        String timezone = queryTimezone();
+        String dateStartUtc = toUtcStart(date, timezone);
+        String dateEndUtcExclusive = toUtcEndExclusive(date, timezone);
         int safeLimit = Math.max(1, Math.min(limit, 300));
         String userId = userContext.requireCurrentUserId();
         SQLiteDatabase db = database.readableDb();
         String sql = "SELECT record_id, type, occurred_at, title, detail FROM (" +
-                "SELECT id AS record_id, 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND date(started_at) = ? " +
+                "SELECT id AS record_id, 'time' AS type, started_at AS occurred_at, category AS title, COALESCE(note, '') AS detail FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND started_at >= ? AND started_at < ? " +
                 "UNION ALL " +
                 "SELECT id AS record_id, 'income' AS type, occurred_on || 'T00:00:00Z' AS occurred_at, source_name AS title, amount_cents || ' cents' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
                 "UNION ALL " +
@@ -135,7 +146,7 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                 "SELECT id AS record_id, 'learning' AS type, COALESCE(started_at, occurred_on || 'T00:00:00Z') AS occurred_at, content AS title, duration_minutes || ' min' || CASE WHEN note IS NULL OR note = '' THEN '' ELSE ' | ' || note END AS detail FROM learning_record WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on = ? " +
                 ") ORDER BY occurred_at DESC LIMIT " + safeLimit;
         List<RecentRecordItem> result = new ArrayList<>();
-        String[] args = new String[] { userId, date, userId, date, userId, date, userId, date };
+        String[] args = new String[] { userId, dateStartUtc, dateEndUtcExclusive, userId, date, userId, date, userId, date };
         try (Cursor cursor = db.rawQuery(sql, args)) {
             while (cursor.moveToNext()) {
                 result.add(new RecentRecordItem(
@@ -251,10 +262,13 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         if (LocalDate.parse(analysisEndDate).isBefore(LocalDate.parse(analysisStartDate))) {
             analysisEndDate = analysisStartDate;
         }
+        String timezone = queryTimezone();
+        String analysisStartUtc = toUtcStart(analysisStartDate, timezone);
+        String analysisEndUtcExclusive = toUtcEndExclusive(analysisEndDate, timezone);
         long structuralCostWindow = structuralExpenseForWindow(userId, analysisStartDate, analysisEndDate, false);
         long globalWorkMinutesInWindow = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
-                userId, analysisStartDate, analysisEndDate);
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId, analysisStartUtc, analysisEndUtcExclusive);
         long globalWorkMinutes = scalarLong(
                 "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work'",
                 userId);
@@ -268,12 +282,14 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         int lastYear = LocalDate.now().minusYears(1).getYear();
         String lastYearStart = String.format(Locale.US, "%04d-01-01", lastYear);
         String lastYearEnd = String.format(Locale.US, "%04d-12-31", lastYear);
+        String lastYearStartUtc = toUtcStart(lastYearStart, timezone);
+        String lastYearEndUtcExclusive = toUtcEndExclusive(lastYearEnd, timezone);
         long lastYearIncomeCents = scalarLong(
                 "SELECT COALESCE(SUM(amount_cents), 0) FROM income WHERE owner_user_id = ? AND is_deleted = 0 AND occurred_on >= ? AND occurred_on <= ?",
                 userId, lastYearStart, lastYearEnd);
         long lastYearWorkMinutes = scalarLong(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND date(started_at) >= ? AND date(started_at) <= ?",
-                userId, lastYearStart, lastYearEnd);
+                "SELECT COALESCE(SUM(duration_minutes), 0) FROM time_log WHERE owner_user_id = ? AND is_deleted = 0 AND category = 'work' AND started_at >= ? AND started_at < ?",
+                userId, lastYearStartUtc, lastYearEndUtcExclusive);
         long lastYearHourlyRateCents = lastYearWorkMinutes > 0 ? (lastYearIncomeCents * 60 / lastYearWorkMinutes) : 0L;
 
         long benchmarkHourlyRateCents = lastYearHourlyRateCents > 0
@@ -344,7 +360,7 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         String userId = userContext.requireCurrentUserId();
         List<TagItem> result = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT id, name, COALESCE(emoji,''), tag_group, COALESCE(scope,'global'), is_system, is_active FROM tag WHERE 1=1");
+                "SELECT id, name, COALESCE(emoji,''), tag_group, COALESCE(scope,'global'), parent_tag_id, COALESCE(level, 1), is_system, is_active FROM tag WHERE 1=1");
         List<String> args = new ArrayList<>();
         sql.append(" AND (owner_user_id = ? OR is_system = 1)");
         args.add(userId);
@@ -355,7 +371,7 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
         if (activeOnly) {
             sql.append(" AND is_active = 1");
         }
-        sql.append(" ORDER BY sort_order ASC, is_system DESC, updated_at DESC, name COLLATE NOCASE ASC");
+        sql.append(" ORDER BY COALESCE(level,1) ASC, COALESCE(parent_tag_id,''), sort_order ASC, is_system DESC, updated_at DESC, name COLLATE NOCASE ASC");
         try (Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]))) {
             while (cursor.moveToNext()) {
                 result.add(new TagItem(
@@ -364,8 +380,10 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
                         cursor.getString(2),
                         cursor.getString(3),
                         cursor.getString(4),
-                        cursor.getInt(5) == 1,
-                        cursor.getInt(6) == 1));
+                        cursor.isNull(5) ? null : cursor.getString(5),
+                        cursor.getInt(6),
+                        cursor.getInt(7) == 1,
+                        cursor.getInt(8) == 1));
             }
         }
         return result;
@@ -406,27 +424,77 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
     }
 
     private String firstProjectActivityDate(String projectId) {
-        return scalarString(
-                "SELECT MIN(activity_date) FROM (" +
-                        "SELECT date(t.started_at) AS activity_date FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 " +
-                        "UNION ALL " +
-                        "SELECT i.occurred_on AS activity_date FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 " +
-                        "UNION ALL " +
-                        "SELECT e.occurred_on AS activity_date FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0" +
-                        ")",
-                projectId, projectId, projectId);
+        String timezone = queryTimezone();
+        LocalDate earliest = null;
+        earliest = earlierDate(earliest, parseProjectTimeLogDate(scalarString(
+                "SELECT MIN(t.started_at) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0",
+                projectId), timezone));
+        earliest = earlierDate(earliest, parseProjectDayDate(scalarString(
+                "SELECT MIN(i.occurred_on) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0",
+                projectId)));
+        earliest = earlierDate(earliest, parseProjectDayDate(scalarString(
+                "SELECT MIN(e.occurred_on) FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0",
+                projectId)));
+        return earliest == null ? null : earliest.toString();
     }
 
     private String lastProjectActivityDate(String projectId) {
-        return scalarString(
-                "SELECT MAX(activity_date) FROM (" +
-                        "SELECT date(t.started_at) AS activity_date FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0 " +
-                        "UNION ALL " +
-                        "SELECT i.occurred_on AS activity_date FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0 " +
-                        "UNION ALL " +
-                        "SELECT e.occurred_on AS activity_date FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0" +
-                        ")",
-                projectId, projectId, projectId);
+        String timezone = queryTimezone();
+        LocalDate latest = null;
+        latest = laterDate(latest, parseProjectTimeLogDate(scalarString(
+                "SELECT MAX(t.started_at) FROM time_log t JOIN time_log_project tp ON t.id = tp.time_log_id WHERE tp.project_id = ? AND t.is_deleted = 0",
+                projectId), timezone));
+        latest = laterDate(latest, parseProjectDayDate(scalarString(
+                "SELECT MAX(i.occurred_on) FROM income i JOIN income_project ip ON i.id = ip.income_id WHERE ip.project_id = ? AND i.is_deleted = 0",
+                projectId)));
+        latest = laterDate(latest, parseProjectDayDate(scalarString(
+                "SELECT MAX(e.occurred_on) FROM expense e JOIN expense_project ep ON e.id = ep.expense_id WHERE ep.project_id = ? AND e.is_deleted = 0",
+                projectId)));
+        return latest == null ? null : latest.toString();
+    }
+
+    private static LocalDate parseProjectDayDate(String date) {
+        if (TextUtils.isEmpty(date)) {
+            return null;
+        }
+        return LocalDate.parse(date.trim());
+    }
+
+    private static LocalDate parseProjectTimeLogDate(String startedAt, String timezone) {
+        if (TextUtils.isEmpty(startedAt)) {
+            return null;
+        }
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(TextUtils.isEmpty(timezone) ? "Asia/Shanghai" : timezone);
+        } catch (RuntimeException ignore) {
+            zoneId = ZoneId.of("Asia/Shanghai");
+        }
+        try {
+            return Instant.parse(startedAt.trim()).atZone(zoneId).toLocalDate();
+        } catch (RuntimeException ignore) {
+            return OffsetDateTime.parse(startedAt.trim()).atZoneSameInstant(zoneId).toLocalDate();
+        }
+    }
+
+    private static LocalDate earlierDate(LocalDate current, LocalDate candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        if (current == null || candidate.isBefore(current)) {
+            return candidate;
+        }
+        return current;
+    }
+
+    private static LocalDate laterDate(LocalDate current, LocalDate candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        if (current == null || candidate.isAfter(current)) {
+            return candidate;
+        }
+        return current;
     }
 
     private static String normalizeProjectBoundary(String preferred, String fallback, String hardFallback) {
@@ -469,7 +537,7 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
 
     private long baselineMonthlyCost(SQLiteDatabase db, String userId, String month) {
         return scalarLong(
-                "SELECT COALESCE(basic_living_cents, 0) + COALESCE(fixed_subscription_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
+                "SELECT COALESCE(basic_living_cents, 0) FROM expense_baseline_month WHERE owner_user_id = ? AND month = ? LIMIT 1",
                 userId, month);
     }
 
@@ -495,6 +563,42 @@ public final class SQLiteLifeOsReadRepository implements LifeOsReadRepository {
             return LocalDate.now().toString();
         }
         return LocalDate.parse(value.trim()).toString();
+    }
+
+    private String queryTimezone() {
+        SQLiteDatabase db = database.readableDb();
+        try (Cursor cursor = db.rawQuery("SELECT timezone FROM users WHERE id = ? LIMIT 1",
+                new String[] { userContext.requireCurrentUserId() })) {
+            if (cursor.moveToFirst()) {
+                String value = cursor.getString(0);
+                if (!TextUtils.isEmpty(value)) {
+                    return value;
+                }
+            }
+        }
+        return "Asia/Shanghai";
+    }
+
+    private static String toUtcStart(String date, String timezone) {
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(TextUtils.isEmpty(timezone) ? "Asia/Shanghai" : timezone);
+        } catch (RuntimeException ignore) {
+            zoneId = ZoneId.of("Asia/Shanghai");
+        }
+        LocalDate localDate = LocalDate.parse(date);
+        return ZonedDateTime.of(localDate, LocalTime.MIN, zoneId).toInstant().toString();
+    }
+
+    private static String toUtcEndExclusive(String date, String timezone) {
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(TextUtils.isEmpty(timezone) ? "Asia/Shanghai" : timezone);
+        } catch (RuntimeException ignore) {
+            zoneId = ZoneId.of("Asia/Shanghai");
+        }
+        LocalDate localDate = LocalDate.parse(date).plusDays(1);
+        return ZonedDateTime.of(localDate, LocalTime.MIN, zoneId).toInstant().toString();
     }
 
     private static String normalizeWindow(String value) {

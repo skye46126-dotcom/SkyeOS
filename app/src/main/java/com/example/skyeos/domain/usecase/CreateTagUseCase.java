@@ -9,7 +9,7 @@ public final class CreateTagUseCase {
         this.repository = repository;
     }
 
-    public String execute(String name, String emoji, String tagGroup, String scope) {
-        return repository.createTag(name, emoji, tagGroup, scope);
+    public String execute(String name, String emoji, String tagGroup, String scope, String parentTagId, int level) {
+        return repository.createTag(name, emoji, tagGroup, scope, parentTagId, level);
     }
 }

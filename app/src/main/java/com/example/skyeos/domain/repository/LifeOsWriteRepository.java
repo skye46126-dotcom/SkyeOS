@@ -17,7 +17,7 @@ public interface LifeOsWriteRepository {
 
     String createLearning(CreateLearningInput input);
 
-    String createTag(String name, String emoji, String tagGroup, String scope);
+    String createTag(String name, String emoji, String tagGroup, String scope, String parentTagId, int level);
 
     void updateProjectRecord(String projectId, CreateProjectInput input);
 
@@ -31,7 +31,7 @@ public interface LifeOsWriteRepository {
 
     void updateLearning(String learningId, CreateLearningInput input);
 
-    void updateTag(String tagId, String name, String emoji, String tagGroup, String scope, boolean active);
+    void updateTag(String tagId, String name, String emoji, String tagGroup, String scope, String parentTagId, int level, boolean active);
 
     void deleteRecord(String type, String recordId);
 

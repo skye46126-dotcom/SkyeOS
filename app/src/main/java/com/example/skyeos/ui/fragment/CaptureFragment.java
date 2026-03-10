@@ -3,6 +3,8 @@ package com.example.skyeos.ui.fragment;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +13,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.MultiAutoCompleteTextView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -24,6 +27,7 @@ import com.example.skyeos.ai.ParseDraftItem;
 import com.example.skyeos.ai.ParseResult;
 import com.example.skyeos.ai.ParserContext;
 import com.example.skyeos.ai.ParserMode;
+import com.example.skyeos.domain.model.ProjectAllocation;
 import com.example.skyeos.domain.model.ProjectOption;
 import com.example.skyeos.domain.model.TagItem;
 import com.example.skyeos.domain.model.input.CreateExpenseInput;
@@ -51,6 +55,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class CaptureFragment extends Fragment {
+    private static final String ARG_INITIAL_TYPE = "initial_type";
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -65,39 +70,39 @@ public class CaptureFragment extends Fragment {
 
     // ─── Active manual sub-form ───
     private View currentManualForm;
-    private String activeType = "time"; // time | income | expense | learning | project
+    private String activeType = "work"; // work | time | income | expense | learning | project
 
-    // ─── Time form fields ───
-    private TextInputEditText etTimeStart, etTimeEnd, etTimeProject, etTimeNote, etTimeAiRatio;
-    private TextInputEditText etTimeEfficiencyScore, etTimeValueScore, etTimeStateScore;
-    private AutoCompleteTextView acvTimeCategory;
-    private ChipGroup chipProjectsTime, chipTagsTime;
-    private final List<String> selectedTimeTagIds = new ArrayList<>();
+    // ─── Work form fields ───
+    private TextInputEditText etWorkStart, etWorkEnd, etWorkNote, etWorkAiRatio;
+    private TextInputEditText etWorkEfficiencyScore, etWorkValueScore, etWorkStateScore;
+    private AutoCompleteTextView acvWorkProject;
+    private MultiAutoCompleteTextView acvWorkTags;
+
+    // ─── Non-work time form fields ───
+    private TextInputEditText etTimeStart, etTimeEnd, etTimeNote;
+    private AutoCompleteTextView acvTimeCategory, acvTimeProject;
+    private MultiAutoCompleteTextView acvTimeTags;
 
     // ─── Income form fields ───
-    private TextInputEditText etIncomeAmount, etIncomeSource, etIncomeProject, etIncomeAiRatio;
-    private AutoCompleteTextView acvIncomeType;
-    private ChipGroup chipProjectsIncome, chipTagsIncome;
-    private final List<String> selectedIncomeTagIds = new ArrayList<>();
+    private TextInputEditText etIncomeAmount, etIncomeSource;
+    private AutoCompleteTextView acvIncomeType, acvIncomeProject;
+    private MultiAutoCompleteTextView acvIncomeTags;
 
     // ─── Expense form fields ───
-    private TextInputEditText etExpenseAmount, etExpenseNote, etExpenseAiRatio, etExpenseProject;
-    private AutoCompleteTextView acvExpenseCat;
-    private ChipGroup chipProjectsExpense, chipTagsExpense;
-    private final List<String> selectedExpenseTagIds = new ArrayList<>();
+    private TextInputEditText etExpenseAmount, etExpenseNote;
+    private AutoCompleteTextView acvExpenseCat, acvExpenseProject;
+    private MultiAutoCompleteTextView acvExpenseTags;
 
     // ─── Learning form fields ───
     private TextInputEditText etLearningDate, etLearningStart, etLearningEnd, etLearningContent, etLearningDuration,
-            etLearningProject, etLearningAiRatio, etLearningNote;
+            etLearningAiRatio, etLearningNote;
     private TextInputEditText etLearningEfficiencyScore;
-    private AutoCompleteTextView acvLearningLevel;
-    private ChipGroup chipProjectsLearning, chipTagsLearning;
-    private final List<String> selectedLearningTagIds = new ArrayList<>();
+    private AutoCompleteTextView acvLearningLevel, acvLearningProject;
+    private MultiAutoCompleteTextView acvLearningTags;
 
     // ─── Project form fields ───
     private TextInputEditText etProjectName, etProjectStart;
-    private ChipGroup chipTagsProject;
-    private final List<String> selectedProjectTagIds = new ArrayList<>();
+    private MultiAutoCompleteTextView acvProjectTags;
 
     // ─── AI tab fields ───
     private TextInputEditText etAiDate, etAiRaw;
@@ -151,6 +156,14 @@ public class CaptureFragment extends Fragment {
         showManualTab();
     }
 
+    public static CaptureFragment newManualWithType(String type) {
+        CaptureFragment fragment = new CaptureFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_INITIAL_TYPE, type);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -172,6 +185,7 @@ public class CaptureFragment extends Fragment {
         android.widget.FrameLayout formHolder = manualContainer.findViewById(R.id.manual_form_holder);
 
         // Wire type chips
+        setupTypeChip(manualContainer, R.id.chip_type_work, "work", formHolder);
         setupTypeChip(manualContainer, R.id.chip_type_time, "time", formHolder);
         setupTypeChip(manualContainer, R.id.chip_type_income, "income", formHolder);
         setupTypeChip(manualContainer, R.id.chip_type_expense, "expense", formHolder);
@@ -179,7 +193,26 @@ public class CaptureFragment extends Fragment {
         setupTypeChip(manualContainer, R.id.chip_type_project, "project", formHolder);
 
         // Status bar shared across forms
-        showFormByType("time", formHolder);
+        showFormByType(resolveInitialType(), formHolder);
+    }
+
+    private String resolveInitialType() {
+        Bundle args = getArguments();
+        String input = args == null ? null : args.getString(ARG_INITIAL_TYPE);
+        if (input == null) {
+            return "work";
+        }
+        switch (input.trim().toLowerCase(Locale.US)) {
+            case "work":
+            case "income":
+            case "expense":
+            case "learning":
+            case "project":
+            case "time":
+                return input.trim().toLowerCase(Locale.US);
+            default:
+                return "work";
+        }
     }
 
     private void setupTypeChip(View container, int chipId, String type, android.widget.FrameLayout formHolder) {
@@ -198,6 +231,10 @@ public class CaptureFragment extends Fragment {
         LayoutInflater inflater = LayoutInflater.from(requireContext());
 
         switch (type) {
+            case "work":
+                currentManualForm = inflater.inflate(R.layout.form_work_log, holder, false);
+                bindWorkForm(currentManualForm);
+                break;
             case "time":
                 currentManualForm = inflater.inflate(R.layout.form_time_log, holder, false);
                 bindTimeForm(currentManualForm);
@@ -222,20 +259,72 @@ public class CaptureFragment extends Fragment {
         holder.addView(currentManualForm);
     }
 
-    // ── Time form ──────────────────────────────
+    // ── Work form ──────────────────────────────
+
+    private void bindWorkForm(View v) {
+        etWorkStart = v.findViewById(R.id.et_work_start);
+        etWorkEnd = v.findViewById(R.id.et_work_end);
+        etWorkNote = v.findViewById(R.id.et_work_note);
+        etWorkAiRatio = v.findViewById(R.id.et_work_ai_ratio);
+        etWorkEfficiencyScore = v.findViewById(R.id.et_work_efficiency_score);
+        etWorkValueScore = v.findViewById(R.id.et_work_value_score);
+        etWorkStateScore = v.findViewById(R.id.et_work_state_score);
+        acvWorkProject = v.findViewById(R.id.et_work_project);
+        acvWorkTags = v.findViewById(R.id.acv_work_tags);
+
+        LocalDateTime now = LocalDateTime.now();
+        etWorkStart.setText(now.minusHours(1).format(DT_FMT));
+        etWorkEnd.setText(now.format(DT_FMT));
+
+        etWorkStart.setOnClickListener(x -> pickDateTime(etWorkStart));
+        etWorkEnd.setOnClickListener(x -> pickDateTime(etWorkEnd));
+        setupProjectDropdown(acvWorkProject);
+        setupTagDropdown(acvWorkTags, "time", "work");
+
+        MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_work);
+        btnSubmit.setOnClickListener(x -> submitWorkLog());
+    }
+
+    private void submitWorkLog() {
+        try {
+            String note = text(etWorkNote);
+            Integer efficiencyScore = parseOptionalScore(text(etWorkEfficiencyScore));
+            Integer valueScore = parseOptionalScore(text(etWorkValueScore));
+            Integer stateScore = parseOptionalScore(text(etWorkStateScore));
+            Integer aiRatio = parseOptionalPercentage(text(etWorkAiRatio));
+            validateWorkLearningRequired("work", valueScore, stateScore, aiRatio);
+
+            graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
+                    toUtcInstant(text(etWorkStart)),
+                    toUtcInstant(text(etWorkEnd)),
+                    "work",
+                    efficiencyScore, valueScore, stateScore, aiRatio, note,
+                    resolveProjectAllocationsFromDropdown(text(acvWorkProject)),
+                    resolveTagIdsFromDropdown("time", text(acvWorkTags), "work")));
+            snack(getString(R.string.capture_work_saved));
+            acvWorkProject.setText("");
+            etWorkNote.setText("");
+            etWorkEfficiencyScore.setText("");
+            etWorkValueScore.setText("");
+            etWorkStateScore.setText("");
+            etWorkAiRatio.setText("");
+            if (acvWorkTags != null) {
+                acvWorkTags.setText("");
+            }
+        } catch (Exception e) {
+            snack(getString(R.string.capture_save_failed, safeErrorMessage(e)));
+        }
+    }
+
+    // ── Non-work time form ─────────────────────
 
     private void bindTimeForm(View v) {
         etTimeStart = v.findViewById(R.id.et_time_start);
         etTimeEnd = v.findViewById(R.id.et_time_end);
-        etTimeProject = v.findViewById(R.id.et_time_project);
         etTimeNote = v.findViewById(R.id.et_time_note);
-        etTimeAiRatio = v.findViewById(R.id.et_time_ai_ratio);
-        etTimeEfficiencyScore = v.findViewById(R.id.et_time_efficiency_score);
-        etTimeValueScore = v.findViewById(R.id.et_time_value_score);
-        etTimeStateScore = v.findViewById(R.id.et_time_state_score);
         acvTimeCategory = v.findViewById(R.id.acv_time_category);
-        chipProjectsTime = v.findViewById(R.id.chip_group_projects_time);
-        chipTagsTime = v.findViewById(R.id.chip_group_tags_time);
+        acvTimeProject = v.findViewById(R.id.et_time_project);
+        acvTimeTags = v.findViewById(R.id.acv_time_tags);
 
         LocalDateTime now = LocalDateTime.now();
         etTimeStart.setText(now.minusHours(1).format(DT_FMT));
@@ -244,12 +333,36 @@ public class CaptureFragment extends Fragment {
         etTimeStart.setOnClickListener(x -> pickDateTime(etTimeStart));
         etTimeEnd.setOnClickListener(x -> pickDateTime(etTimeEnd));
 
-        String[] cats = { "Work", "Learning", "Life", "Entertainment", "Rest", "Social" };
-        String[] catVals = { "work", "learning", "life", "entertainment", "rest", "social" };
+        String[] cats = {
+                getString(R.string.capture_time_category_life),
+                getString(R.string.capture_time_category_entertainment),
+                getString(R.string.capture_time_category_rest),
+                getString(R.string.capture_time_category_social)
+        };
+        String[] catVals = { "life", "entertainment", "rest", "social" };
         setupDropdown(acvTimeCategory, cats);
+        acvTimeCategory.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
-        buildProjectChips(chipProjectsTime, etTimeProject);
-        buildTagChips("time", chipTagsTime, selectedTimeTagIds);
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String normalized = mapCategoryValue(
+                        s == null ? "" : s.toString(),
+                        cats,
+                        catVals);
+                setupTagDropdown(acvTimeTags, "time", normalized);
+            }
+        });
+
+        setupProjectDropdown(acvTimeProject);
+        String initialCategory = mapCategoryValue(text(acvTimeCategory), cats, catVals);
+        setupTagDropdown(acvTimeTags, "time", initialCategory);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_time);
         btnSubmit.setOnClickListener(x -> submitTimeLog(cats, catVals));
@@ -257,37 +370,23 @@ public class CaptureFragment extends Fragment {
 
     private void submitTimeLog(String[] catLabels, String[] catVals) {
         try {
-            String startStr = text(etTimeStart);
-            String endStr = text(etTimeEnd);
             String catLabel = text(acvTimeCategory);
             String catVal = mapCategoryValue(catLabel, catLabels, catVals);
-            String note = text(etTimeNote);
-            String allocStr = text(etTimeProject);
-            Integer efficiencyScore = parseOptionalScore(text(etTimeEfficiencyScore));
-            Integer valueScore = parseOptionalScore(text(etTimeValueScore));
-            Integer stateScore = parseOptionalScore(text(etTimeStateScore));
-            Integer aiRatio = parseOptionalPercentage(text(etTimeAiRatio));
-
             graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
-                    toUtcInstant(startStr),
-                    toUtcInstant(endStr),
+                    toUtcInstant(text(etTimeStart)),
+                    toUtcInstant(text(etTimeEnd)),
                     catVal,
-                    efficiencyScore, valueScore, stateScore, aiRatio, note,
-                    FormParsers.parseAllocations(allocStr),
-                    new ArrayList<>(selectedTimeTagIds)));
-            snack("✓ Time log saved");
-            etTimeProject.setText("");
+                    null, null, null, null, text(etTimeNote),
+                    resolveProjectAllocationsFromDropdown(text(acvTimeProject)),
+                    resolveTagIdsFromDropdown("time", text(acvTimeTags), catVal)));
+            snack(getString(R.string.capture_time_saved));
+            acvTimeProject.setText("");
             etTimeNote.setText("");
-            etTimeEfficiencyScore.setText("");
-            etTimeValueScore.setText("");
-            etTimeStateScore.setText("");
-            etTimeAiRatio.setText("");
-            selectedTimeTagIds.clear();
-            if (chipTagsTime != null) {
-                chipTagsTime.clearCheck();
+            if (acvTimeTags != null) {
+                acvTimeTags.setText("");
             }
         } catch (Exception e) {
-            snack("❌ Save failed: " + e.getMessage());
+            snack(getString(R.string.capture_save_failed, safeErrorMessage(e)));
         }
     }
 
@@ -296,17 +395,21 @@ public class CaptureFragment extends Fragment {
     private void bindIncomeForm(View v) {
         etIncomeAmount = v.findViewById(R.id.et_income_amount);
         etIncomeSource = v.findViewById(R.id.et_income_source);
-        etIncomeProject = v.findViewById(R.id.et_income_project);
-        etIncomeAiRatio = v.findViewById(R.id.et_income_ai_ratio);
         acvIncomeType = v.findViewById(R.id.acv_income_type);
-        chipProjectsIncome = v.findViewById(R.id.chip_group_projects_income);
-        chipTagsIncome = v.findViewById(R.id.chip_group_tags_income);
+        acvIncomeProject = v.findViewById(R.id.et_income_project);
+        acvIncomeTags = v.findViewById(R.id.acv_income_tags);
 
-        String[] incomeLabels = { "Other", "Salary", "Project income", "Investment income", "System income" };
+        String[] incomeLabels = {
+                getString(R.string.capture_income_type_other),
+                getString(R.string.capture_income_type_salary),
+                getString(R.string.capture_income_type_project),
+                getString(R.string.capture_income_type_investment),
+                getString(R.string.capture_income_type_system)
+        };
         String[] incomeVals = { "other", "salary", "project", "investment", "system" };
         setupDropdown(acvIncomeType, incomeLabels);
-        buildProjectChips(chipProjectsIncome, etIncomeProject);
-        buildTagChips("income", chipTagsIncome, selectedIncomeTagIds);
+        setupProjectDropdown(acvIncomeProject);
+        setupTagDropdown(acvIncomeTags, "income", null);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_income);
         btnSubmit.setOnClickListener(x -> submitIncome(incomeLabels, incomeVals));
@@ -319,29 +422,25 @@ public class CaptureFragment extends Fragment {
             String typeLabel = text(acvIncomeType);
             String typeVal = mapCategoryValue(typeLabel, typeLabels, typeVals);
             String source = text(etIncomeSource);
-            String alloc = text(etIncomeProject);
-            Integer aiRatio = parseOptionalPercentage(text(etIncomeAiRatio));
 
             graph.useCases.createIncome.execute(new CreateIncomeInput(
                     LocalDate.now().format(DATE_FMT),
-                    source.isEmpty() ? "Manual input" : source,
+                    source.isEmpty() ? getString(R.string.capture_source_manual_input) : source,
                     typeVal,
                     amountCents,
                     false,
-                    aiRatio,
-                    "manual capture",
-                    FormParsers.parseAllocations(alloc),
-                    new ArrayList<>(selectedIncomeTagIds)));
-            snack("✓ Income saved");
+                    null,
+                    getString(R.string.capture_note_manual_capture),
+                    resolveProjectAllocationsFromDropdown(text(acvIncomeProject)),
+                    resolveTagIdsFromDropdown("income", text(acvIncomeTags), null)));
+            snack(getString(R.string.capture_income_saved));
             etIncomeAmount.setText("");
-            etIncomeProject.setText("");
-            etIncomeAiRatio.setText("");
-            selectedIncomeTagIds.clear();
-            if (chipTagsIncome != null) {
-                chipTagsIncome.clearCheck();
+            acvIncomeProject.setText("");
+            if (acvIncomeTags != null) {
+                acvIncomeTags.setText("");
             }
         } catch (Exception e) {
-            snack("❌ Save failed: " + e.getMessage());
+            snack(getString(R.string.capture_save_failed, safeErrorMessage(e)));
         }
     }
 
@@ -350,17 +449,20 @@ public class CaptureFragment extends Fragment {
     private void bindExpenseForm(View v) {
         etExpenseAmount = v.findViewById(R.id.et_expense_amount);
         etExpenseNote = v.findViewById(R.id.et_expense_note);
-        etExpenseAiRatio = v.findViewById(R.id.et_expense_ai_ratio);
-        etExpenseProject = v.findViewById(R.id.et_expense_project);
         acvExpenseCat = v.findViewById(R.id.acv_expense_cat);
-        chipProjectsExpense = v.findViewById(R.id.chip_group_projects_expense);
-        chipTagsExpense = v.findViewById(R.id.chip_group_tags_expense);
+        acvExpenseProject = v.findViewById(R.id.et_expense_project);
+        acvExpenseTags = v.findViewById(R.id.acv_expense_tags);
 
-        String[] expenseLabels = { "Essential", "Experience", "Subscription", "Investment" };
+        String[] expenseLabels = {
+                getString(R.string.capture_expense_category_essential),
+                getString(R.string.capture_expense_category_experience),
+                getString(R.string.capture_expense_category_subscription),
+                getString(R.string.capture_expense_category_investment)
+        };
         String[] expenseVals = { "necessary", "experience", "subscription", "investment" };
         setupDropdown(acvExpenseCat, expenseLabels);
-        buildProjectChips(chipProjectsExpense, etExpenseProject);
-        buildTagChips("expense", chipTagsExpense, selectedExpenseTagIds);
+        setupProjectDropdown(acvExpenseProject);
+        setupTagDropdown(acvExpenseTags, "expense", null);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_expense);
         btnSubmit.setOnClickListener(x -> submitExpense(expenseLabels, expenseVals));
@@ -370,33 +472,29 @@ public class CaptureFragment extends Fragment {
         try {
             long amountCents = yuanToCents(text(etExpenseAmount));
             if (amountCents <= 0) {
-                throw new IllegalArgumentException("Please enter an expense amount greater than 0");
+                throw new IllegalArgumentException(getString(R.string.capture_error_expense_amount_gt_zero));
             }
             String catLabel = text(acvExpenseCat);
             String catVal = mapCategoryValue(catLabel, catLabels, catVals);
             String note = text(etExpenseNote);
-            String alloc = text(etExpenseProject);
-            Integer aiRatio = parseOptionalPercentage(text(etExpenseAiRatio));
 
             graph.useCases.createExpense.execute(new CreateExpenseInput(
                     LocalDate.now().format(DATE_FMT),
                     catVal,
                     amountCents,
-                    aiRatio,
+                    null,
                     note,
-                    FormParsers.parseAllocations(alloc),
-                    new ArrayList<>(selectedExpenseTagIds)));
-            snack("✓ Expense saved");
+                    resolveProjectAllocationsFromDropdown(text(acvExpenseProject)),
+                    resolveTagIdsFromDropdown("expense", text(acvExpenseTags), null)));
+            snack(getString(R.string.capture_expense_saved));
             etExpenseAmount.setText("");
             etExpenseNote.setText("");
-            etExpenseAiRatio.setText("");
-            etExpenseProject.setText("");
-            selectedExpenseTagIds.clear();
-            if (chipTagsExpense != null) {
-                chipTagsExpense.clearCheck();
+            acvExpenseProject.setText("");
+            if (acvExpenseTags != null) {
+                acvExpenseTags.setText("");
             }
         } catch (Exception e) {
-            snack("❌ Save failed: " + e.getMessage());
+            snack(getString(R.string.capture_save_failed, safeErrorMessage(e)));
         }
     }
 
@@ -408,24 +506,27 @@ public class CaptureFragment extends Fragment {
         etLearningEnd = v.findViewById(R.id.et_learning_end);
         etLearningContent = v.findViewById(R.id.et_learning_content);
         etLearningDuration = v.findViewById(R.id.et_learning_duration);
-        etLearningProject = v.findViewById(R.id.et_learning_project);
         etLearningAiRatio = v.findViewById(R.id.et_learning_ai_ratio);
         etLearningNote = v.findViewById(R.id.et_learning_note);
         etLearningEfficiencyScore = v.findViewById(R.id.et_learning_efficiency_score);
         acvLearningLevel = v.findViewById(R.id.acv_learning_level);
-        chipProjectsLearning = v.findViewById(R.id.chip_group_projects_learning);
-        chipTagsLearning = v.findViewById(R.id.chip_group_tags_learning);
+        acvLearningProject = v.findViewById(R.id.et_learning_project);
+        acvLearningTags = v.findViewById(R.id.acv_learning_tags);
 
         etLearningDate.setText(LocalDate.now().format(DATE_FMT));
         etLearningDate.setOnClickListener(x -> pickDate(etLearningDate));
         etLearningStart.setOnClickListener(x -> pickDateTime(etLearningStart));
         etLearningEnd.setOnClickListener(x -> pickDateTime(etLearningEnd));
 
-        String[] levelLabels = { "Input learning", "Applied learning", "Result learning" };
+        String[] levelLabels = {
+                getString(R.string.capture_learning_level_input),
+                getString(R.string.capture_learning_level_applied),
+                getString(R.string.capture_learning_level_result)
+        };
         String[] levelVals = { "input", "applied", "result" };
         setupDropdown(acvLearningLevel, levelLabels);
-        buildProjectChips(chipProjectsLearning, etLearningProject);
-        buildTagChips("learning", chipTagsLearning, selectedLearningTagIds);
+        setupProjectDropdown(acvLearningProject);
+        setupTagDropdown(acvLearningTags, "learning", null);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_learning);
         btnSubmit.setOnClickListener(x -> submitLearning(levelLabels, levelVals));
@@ -436,13 +537,21 @@ public class CaptureFragment extends Fragment {
             String occurredOn = text(etLearningDate);
             String startedAt = learningDateTimeOrNull(etLearningStart);
             String endedAt = learningDateTimeOrNull(etLearningEnd);
+            if (startedAt == null || endedAt == null) {
+                throw new IllegalArgumentException(getString(R.string.capture_error_learning_start_end_required));
+            }
             String content = text(etLearningContent);
             int duration = resolveLearningDurationMinutes(startedAt, endedAt, text(etLearningDuration));
             String lvlLabel = text(acvLearningLevel);
             String lvlVal = mapCategoryValue(lvlLabel, levelLabels, levelVals);
-            String alloc = text(etLearningProject);
             Integer efficiencyScore = parseOptionalScore(text(etLearningEfficiencyScore));
             Integer aiRatio = parseOptionalPercentage(text(etLearningAiRatio));
+            if (efficiencyScore == null) {
+                throw new IllegalArgumentException(getString(R.string.capture_error_learning_efficiency_required));
+            }
+            if (aiRatio == null) {
+                throw new IllegalArgumentException(getString(R.string.capture_error_learning_ai_ratio_required));
+            }
             String note = text(etLearningNote);
 
             graph.useCases.createLearning.execute(new CreateLearningInput(
@@ -455,24 +564,23 @@ public class CaptureFragment extends Fragment {
                     lvlVal,
                     aiRatio,
                     note,
-                    FormParsers.parseAllocations(alloc),
-                    new ArrayList<>(selectedLearningTagIds)));
-            snack("✓ Learning record saved");
+                    resolveProjectAllocationsFromDropdown(text(acvLearningProject)),
+                    resolveTagIdsFromDropdown("learning", text(acvLearningTags), null)));
+            snack(getString(R.string.capture_learning_saved));
             etLearningDate.setText(LocalDate.now().format(DATE_FMT));
             etLearningStart.setText("");
             etLearningEnd.setText("");
             etLearningContent.setText("");
             etLearningDuration.setText("");
-            etLearningProject.setText("");
+            acvLearningProject.setText("");
             etLearningEfficiencyScore.setText("");
             etLearningAiRatio.setText("");
             etLearningNote.setText("");
-            selectedLearningTagIds.clear();
-            if (chipTagsLearning != null) {
-                chipTagsLearning.clearCheck();
+            if (acvLearningTags != null) {
+                acvLearningTags.setText("");
             }
         } catch (Exception e) {
-            snack("❌ Save failed: " + e.getMessage());
+            snack(getString(R.string.capture_save_failed, safeErrorMessage(e)));
         }
     }
 
@@ -481,10 +589,10 @@ public class CaptureFragment extends Fragment {
     private void bindProjectForm(View v) {
         etProjectName = v.findViewById(R.id.et_project_name);
         etProjectStart = v.findViewById(R.id.et_project_start);
-        chipTagsProject = v.findViewById(R.id.chip_group_tags_project);
+        acvProjectTags = v.findViewById(R.id.acv_project_tags);
         etProjectStart.setText(LocalDate.now().format(DATE_FMT));
         etProjectStart.setOnClickListener(x -> pickDate(etProjectStart));
-        buildTagChips("project", chipTagsProject, selectedProjectTagIds);
+        setupTagDropdown(acvProjectTags, "project", null);
 
         MaterialButton btnSubmit = v.findViewById(R.id.btn_submit_project);
         btnSubmit.setOnClickListener(x -> submitProject());
@@ -495,21 +603,21 @@ public class CaptureFragment extends Fragment {
             String name = text(etProjectName);
             String start = text(etProjectStart);
             if (name.isEmpty()) {
-                snack("Please enter a project name");
+                snack(getString(R.string.capture_project_name_required));
                 return;
             }
 
             graph.useCases.createProject.execute(new CreateProjectInput(
-                    name, start, "active", 0, null, "created from capture", new ArrayList<>(selectedProjectTagIds)));
-            snack("✓ Project \"" + name + "\" created");
+                    name, start, "active", 0, null, getString(R.string.capture_note_created_from_capture),
+                    resolveTagIdsFromDropdown("project", text(acvProjectTags), null)));
+            snack(getString(R.string.capture_project_created, name));
             etProjectName.setText("");
-            selectedProjectTagIds.clear();
-            if (chipTagsProject != null) {
-                chipTagsProject.clearCheck();
+            if (acvProjectTags != null) {
+                acvProjectTags.setText("");
             }
             loadProjectOptions(); // refresh project chips in other forms
         } catch (Exception e) {
-            snack("❌ Create failed: " + e.getMessage());
+            snack(getString(R.string.capture_create_failed, safeErrorMessage(e)));
         }
     }
 
@@ -550,12 +658,12 @@ public class CaptureFragment extends Fragment {
     private void parseWithAi() {
         String raw = etAiRaw.getText() == null ? "" : etAiRaw.getText().toString().trim();
         if (raw.isEmpty()) {
-            snack("Please enter content first");
+            snack(getString(R.string.capture_content_required));
             return;
         }
 
         btnAiParse.setEnabled(false);
-        btnAiParse.setText("Parsing...");
+        btnAiParse.setText(R.string.capture_ai_parsing);
         progressAiParse.setVisibility(View.VISIBLE);
         tvAiFeedback.setVisibility(View.GONE);
         cardAiPreview.setVisibility(View.GONE);
@@ -597,7 +705,7 @@ public class CaptureFragment extends Fragment {
             getActivity().runOnUiThread(() -> {
                 latestParseResult = result;
                 btnAiParse.setEnabled(true);
-                btnAiParse.setText("🤖 Parse Draft");
+                btnAiParse.setText(R.string.capture_ai_parse);
                 progressAiParse.setVisibility(View.GONE);
 
                 boolean hasItems = result != null && result.items != null && !result.items.isEmpty();
@@ -607,15 +715,15 @@ public class CaptureFragment extends Fragment {
 
                 if (hasItems) {
                     int savedClicks = result.items.size() * 5;
-                    tvAiFeedback.setText("💡 AI saved about " + savedClicks + " clicks");
+                    tvAiFeedback.setText(getString(R.string.capture_ai_saved_clicks, savedClicks));
                     tvAiFeedback.setVisibility(View.VISIBLE);
-                    tvAiPreviewLabel.setText("Confirm Draft (" + result.items.size() + " items)");
+                    tvAiPreviewLabel.setText(getString(R.string.capture_ai_confirm_draft, result.items.size()));
                 } else {
                     tvAiFeedback.setVisibility(View.GONE);
-                    tvAiPreviewLabel.setText("No items found");
+                    tvAiPreviewLabel.setText(R.string.capture_ai_no_items_found);
                 }
 
-                snack("Parse completed, " + (hasItems ? result.items.size() : 0) + " items");
+                snack(getString(R.string.capture_ai_parse_completed, hasItems ? result.items.size() : 0));
             });
         }).start();
     }
@@ -626,7 +734,7 @@ public class CaptureFragment extends Fragment {
         llAiDraftContainer.removeAllViews();
         if (result == null || result.items == null || result.items.isEmpty()) {
             tvAiPreview.setVisibility(View.VISIBLE);
-            tvAiPreview.setText("No items parsed. Try adjusting your input.");
+            tvAiPreview.setText(R.string.capture_ai_no_items_parsed);
             return;
         }
         tvAiPreview.setVisibility(View.GONE);
@@ -650,25 +758,29 @@ public class CaptureFragment extends Fragment {
             switch (kind) {
                 case "income":
                     iconRes = R.drawable.ic_cat_income;
-                    title = "Income: " + valueOr(p, "amount", "0") + " from " + valueOr(p, "source", "?");
-                    subtitle.append("Type: ").append(valueOr(p, "type", "other"));
+                    title = getString(
+                            R.string.capture_ai_preview_income_title,
+                            valueOr(p, "amount", "0"),
+                            valueOr(p, "source", "?"));
+                    subtitle.append(getString(R.string.capture_ai_preview_type, valueOr(p, "type", "other")));
                     break;
                 case "expense":
                     iconRes = R.drawable.ic_cat_expense;
-                    title = "Expense: " + valueOr(p, "amount", "0");
-                    subtitle.append("Cat: ").append(valueOr(p, "category", "necessary"))
-                            .append(" | Note: ").append(valueOr(p, "note", ""));
+                    title = getString(R.string.capture_ai_preview_expense_title, valueOr(p, "amount", "0"));
+                    subtitle.append(getString(R.string.capture_ai_preview_category, valueOr(p, "category", "necessary")))
+                            .append(" | ").append(getString(R.string.capture_ai_preview_note, valueOr(p, "note", "")));
                     break;
                 case "learning":
                     iconRes = R.drawable.ic_cat_learning;
-                    title = "Learning: " + valueOr(p, "content", "?");
-                    subtitle.append("Dur: ").append(valueOr(p, "duration_minutes", "60")).append("m");
+                    title = getString(R.string.capture_ai_preview_learning_title, valueOr(p, "content", "?"));
+                    subtitle.append(getString(R.string.capture_ai_preview_duration, valueOr(p, "duration_minutes", "60")));
                     break;
                 case "time_log":
                     iconRes = R.drawable.ic_cat_time;
-                    title = "Time: " + valueOr(p, "description", "?");
+                    title = getString(R.string.capture_ai_preview_time_title, valueOr(p, "description", "?"));
                     subtitle.append(valueOr(p, "start_hour", "?")).append("-").append(valueOr(p, "end_hour", "?"))
-                            .append(" | Cat: ").append(valueOr(p, "category", "work"));
+                            .append(" | ").append(getString(R.string.capture_ai_preview_category,
+                                    valueOr(p, "category", "work")));
                     break;
             }
 
@@ -681,7 +793,7 @@ public class CaptureFragment extends Fragment {
                 result.items.remove(index);
                 renderDraftItems(result);
                 btnAiCommit.setEnabled(!result.items.isEmpty());
-                tvAiPreviewLabel.setText("Confirm Draft (" + result.items.size() + " items)");
+                tvAiPreviewLabel.setText(getString(R.string.capture_ai_confirm_draft, result.items.size()));
             });
 
             llAiDraftContainer.addView(v);
@@ -690,7 +802,7 @@ public class CaptureFragment extends Fragment {
 
     private void commitAiResult() {
         if (latestParseResult == null || latestParseResult.items == null) {
-            snack("No content to commit");
+            snack(getString(R.string.capture_ai_no_content_to_commit));
             return;
         }
         String contextDate = etAiDate.getText() == null ? LocalDate.now().toString()
@@ -708,16 +820,16 @@ public class CaptureFragment extends Fragment {
             }
         }
         if (fails.isEmpty()) {
-            snack("✓ Commit success (" + ok + " items)");
+            snack(getString(R.string.capture_ai_commit_success, ok));
             etAiRaw.setText("");
             cardAiPreview.setVisibility(View.GONE);
             tvAiFeedback.setVisibility(View.GONE);
             btnAiCommit.setEnabled(false);
             latestParseResult = null;
         } else {
-            snack("Partial commit: success " + ok + ", failed " + fails.size());
+            snack(getString(R.string.capture_ai_commit_partial, ok, fails.size()));
             StringBuilder sb = new StringBuilder(tvAiPreview.getText().toString());
-            sb.append("\n\n--- Commit Errors ---\n");
+            sb.append("\n\n").append(getString(R.string.capture_ai_commit_errors_header)).append('\n');
             for (String f : fails)
                 sb.append("✗ ").append(f).append('\n');
             tvAiPreview.setText(sb.toString());
@@ -728,40 +840,50 @@ public class CaptureFragment extends Fragment {
         Map<String, String> p = item.payload;
         switch (item.kind) {
             case "income":
-                Integer incomeAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 graph.useCases.createIncome.execute(new CreateIncomeInput(
                         contextDate,
-                        valueOr(p, "source", "AI parse"),
+                        valueOr(p, "source", getString(R.string.capture_source_ai_parse)),
                         valueOr(p, "type", "other"),
                         toCents(valueOr(p, "amount", "0")),
-                        false, incomeAiRatio, "ai capture", null, null));
+                        false, null, getString(R.string.capture_note_ai_capture), null, null));
                 break;
             case "expense":
-                Integer expenseAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 graph.useCases.createExpense.execute(new CreateExpenseInput(
                         contextDate,
                         valueOr(p, "category", "necessary"),
                         toCents(valueOr(p, "amount", "0")),
-                        expenseAiRatio,
-                        valueOr(p, "note", "ai capture"),
+                        null,
+                        valueOr(p, "note", getString(R.string.capture_note_ai_capture)),
                         null,
                         null));
                 break;
             case "learning":
                 Integer learningAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 Integer learningEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
+                if (learningAiRatio == null) {
+                    learningAiRatio = 0;
+                }
+                if (learningEfficiencyScore == null) {
+                    learningEfficiencyScore = 5;
+                }
                 String learningStartAt = valueOr(p, "start_hour", "").isEmpty() ? null : buildAiStartAt(p, contextDate);
                 String learningEndAt = valueOr(p, "end_hour", "").isEmpty() ? null : buildAiEndAt(p, contextDate);
+                if (learningStartAt == null) {
+                    learningStartAt = buildAiStartAt(p, contextDate);
+                }
+                if (learningEndAt == null) {
+                    learningEndAt = buildAiEndAt(p, contextDate);
+                }
                 graph.useCases.createLearning.execute(new CreateLearningInput(
                         contextDate,
                         learningStartAt,
                         learningEndAt,
-                        valueOr(p, "content", "Learning"),
+                        valueOr(p, "content", getString(R.string.common_learning)),
                         FormParsers.parseInt(valueOr(p, "duration_minutes", "60"), 60),
                         learningEfficiencyScore,
                         valueOr(p, "application_level", "input"),
                         learningAiRatio,
-                        valueOr(p, "note", "ai capture"), null, null));
+                        valueOr(p, "note", getString(R.string.capture_note_ai_capture)), null, null));
                 break;
             case "time_log":
                 String startAt = buildAiStartAt(p, contextDate);
@@ -770,12 +892,24 @@ public class CaptureFragment extends Fragment {
                 Integer timeEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
                 Integer timeValueScore = parseOptionalScore(valueOr(p, "value_score", ""));
                 Integer timeStateScore = parseOptionalScore(valueOr(p, "state_score", ""));
+                String parsedCategory = valueOr(p, "category", "work");
+                if (("work".equalsIgnoreCase(parsedCategory) || "learning".equalsIgnoreCase(parsedCategory))) {
+                    if (timeAiRatio == null) {
+                        timeAiRatio = 0;
+                    }
+                    if (timeValueScore == null) {
+                        timeValueScore = 5;
+                    }
+                    if (timeStateScore == null) {
+                        timeStateScore = 5;
+                    }
+                }
                 graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
                         startAt, endAt,
-                        valueOr(p, "category", "work"),
+                        parsedCategory,
                         timeEfficiencyScore, timeValueScore, timeStateScore,
                         timeAiRatio,
-                        valueOr(p, "description", "AI parse"),
+                        valueOr(p, "description", getString(R.string.capture_source_ai_parse)),
                         null, null));
                 break;
         }
@@ -791,58 +925,236 @@ public class CaptureFragment extends Fragment {
             projectOptions = new ArrayList<>();
     }
 
-    private void buildProjectChips(ChipGroup chipGroup, TextInputEditText allocField) {
-        chipGroup.removeAllViews();
-        if (projectOptions.isEmpty())
+    private void setupProjectDropdown(AutoCompleteTextView dropdown) {
+        if (dropdown == null) {
             return;
-        for (ProjectOption p : projectOptions) {
-            Chip chip = new Chip(requireContext());
-            chip.setText(p.name);
-            chip.setCheckable(true);
-            chip.setOnCheckedChangeListener((c, checked) -> {
-                if (checked)
-                    appendAlloc(allocField, p.id);
-            });
-            chipGroup.addView(chip);
         }
+        loadProjectOptions();
+        List<String> projectNames = new ArrayList<>();
+        for (ProjectOption option : projectOptions) {
+            if (option == null || option.name == null || option.name.trim().isEmpty()) {
+                continue;
+            }
+            projectNames.add(option.name.trim());
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_dropdown_item_1line, projectNames);
+        dropdown.setAdapter(adapter);
+        dropdown.setThreshold(1);
+        dropdown.setOnClickListener(v -> dropdown.showDropDown());
     }
 
-    private void buildTagChips(String scope, ChipGroup chipGroup, List<String> selectedTagIds) {
-        if (chipGroup == null || selectedTagIds == null) {
+    private void setupTagDropdown(MultiAutoCompleteTextView dropdown, String scope, @Nullable String timeCategory) {
+        if (dropdown == null) {
             return;
         }
-        selectedTagIds.clear();
-        chipGroup.removeAllViews();
         List<TagItem> tags = graph.useCases.getTags.execute(scope, true);
+        if ("time".equals(scope) && timeCategory != null) {
+            List<TagItem> visibleTags = filterTimeTagsByCategory(tags, timeCategory);
+            if (!visibleTags.isEmpty()) {
+                tags = visibleTags;
+            }
+        }
+        List<String> labels = new ArrayList<>();
+        if (tags != null) {
+            for (TagItem tag : tags) {
+                if (tag == null) {
+                    continue;
+                }
+                labels.add(formatTagLabel(tag));
+            }
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_dropdown_item_1line, labels);
+        dropdown.setAdapter(adapter);
+        dropdown.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+        dropdown.setThreshold(1);
+        dropdown.setOnClickListener(v -> dropdown.showDropDown());
+    }
+
+    private List<ProjectAllocation> resolveProjectAllocationsFromDropdown(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        String value = raw.trim();
+        if (value.contains(":")) {
+            return FormParsers.parseAllocations(value);
+        }
+        List<String> tokens = splitComma(value);
+        if (tokens.isEmpty()) {
+            return null;
+        }
+        List<ProjectAllocation> allocations = new ArrayList<>();
+        for (String token : tokens) {
+            String projectId = resolveProjectId(token);
+            if (projectId == null || projectId.isEmpty()) {
+                continue;
+            }
+            allocations.add(new ProjectAllocation(projectId, 1.0));
+        }
+        return allocations.isEmpty() ? null : allocations;
+    }
+
+    private String resolveProjectId(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        String token = input.trim();
+        for (ProjectOption option : projectOptions) {
+            if (option == null) {
+                continue;
+            }
+            if (token.equals(option.id)) {
+                return option.id;
+            }
+            if (option.name != null && option.name.trim().equalsIgnoreCase(token)) {
+                return option.id;
+            }
+        }
+        return token;
+    }
+
+    private List<String> resolveTagIdsFromDropdown(String scope, String raw, @Nullable String timeCategory) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        List<TagItem> tags = graph.useCases.getTags.execute(scope, true);
+        if ("time".equals(scope) && timeCategory != null) {
+            List<TagItem> visibleTags = filterTimeTagsByCategory(tags, timeCategory);
+            if (!visibleTags.isEmpty()) {
+                tags = visibleTags;
+            }
+        }
         if (tags == null || tags.isEmpty()) {
-            return;
+            return null;
+        }
+        java.util.LinkedHashMap<String, String> lookup = new java.util.LinkedHashMap<>();
+        for (TagItem tag : tags) {
+            if (tag == null || tag.id == null) {
+                continue;
+            }
+            lookup.put(normalizeLookupKey(tag.id), tag.id);
+            if (tag.name != null) {
+                lookup.put(normalizeLookupKey(tag.name), tag.id);
+            }
+            lookup.put(normalizeLookupKey(formatTagLabel(tag)), tag.id);
+        }
+        List<String> out = new ArrayList<>();
+        for (String token : splitComma(raw)) {
+            String id = lookup.get(normalizeLookupKey(token));
+            if (id != null && !out.contains(id)) {
+                out.add(id);
+            }
+        }
+        return out.isEmpty() ? null : out;
+    }
+
+    private static String normalizeLookupKey(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String text = raw.trim().toLowerCase(Locale.US);
+        if (text.startsWith("↳")) {
+            text = text.substring(1).trim();
+        }
+        return text;
+    }
+
+    private static List<String> splitComma(String raw) {
+        List<String> out = new ArrayList<>();
+        if (raw == null || raw.trim().isEmpty()) {
+            return out;
+        }
+        String[] chunks = raw.split(",");
+        for (String chunk : chunks) {
+            if (chunk == null) {
+                continue;
+            }
+            String token = chunk.trim();
+            if (!token.isEmpty()) {
+                out.add(token);
+            }
+        }
+        return out;
+    }
+
+    private static String formatTagLabel(TagItem tag) {
+        if (tag == null) {
+            return "";
+        }
+        String emoji = tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " ";
+        String prefix = tag.level >= 2 ? "↳ " : "";
+        String name = tag.name == null ? "" : tag.name;
+        return prefix + emoji + name;
+    }
+
+    private static List<TagItem> filterTimeTagsByCategory(List<TagItem> tags, String timeCategory) {
+        List<TagItem> visible = new ArrayList<>();
+        if (tags == null || tags.isEmpty()) {
+            return visible;
+        }
+        String normalizedCategory = timeCategory == null ? "" : timeCategory.trim().toLowerCase(Locale.US);
+        if (normalizedCategory.isEmpty()) {
+            visible.addAll(tags);
+            return visible;
+        }
+        List<String> aliases = categoryAliases(normalizedCategory);
+        List<String> rootIds = new ArrayList<>();
+        for (TagItem tag : tags) {
+            if (tag == null || tag.level > 1) {
+                continue;
+            }
+            String name = tag.name == null ? "" : tag.name.trim().toLowerCase(Locale.US);
+            String group = tag.tagGroup == null ? "" : tag.tagGroup.trim().toLowerCase(Locale.US);
+            if (aliases.contains(name) || aliases.contains(group)) {
+                rootIds.add(tag.id);
+            }
+        }
+        if (rootIds.isEmpty()) {
+            visible.addAll(tags);
+            return visible;
         }
         for (TagItem tag : tags) {
             if (tag == null) {
                 continue;
             }
-            final String tagId = tag.id;
-            String label = (tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " ") + tag.name;
-            Chip chip = new Chip(requireContext());
-            chip.setText(label);
-            chip.setCheckable(true);
-            chip.setOnCheckedChangeListener((c, checked) -> {
-                if (checked) {
-                    if (!selectedTagIds.contains(tagId)) {
-                        selectedTagIds.add(tagId);
-                    }
-                } else {
-                    selectedTagIds.remove(tagId);
-                }
-            });
-            chipGroup.addView(chip);
+            if (tag.level <= 1 && rootIds.contains(tag.id)) {
+                visible.add(tag);
+                continue;
+            }
+            if (tag.level >= 2 && tag.parentTagId != null && rootIds.contains(tag.parentTagId)) {
+                visible.add(tag);
+            }
         }
+        return visible;
     }
 
-    private void appendAlloc(TextInputEditText field, String projectId) {
-        String current = text(field);
-        String append = projectId + ":1.0";
-        field.setText(current.isEmpty() ? append : current + "," + append);
+    private static List<String> categoryAliases(String category) {
+        List<String> aliases = new ArrayList<>();
+        aliases.add(category);
+        switch (category) {
+            case "work":
+                aliases.add("工作");
+                break;
+            case "learning":
+                aliases.add("学习");
+                break;
+            case "life":
+                aliases.add("生活");
+                break;
+            case "entertainment":
+                aliases.add("娱乐");
+                break;
+            case "rest":
+                aliases.add("休息");
+                break;
+            case "social":
+                aliases.add("社交");
+                break;
+            default:
+                break;
+        }
+        return aliases;
     }
 
     private void setupDropdown(AutoCompleteTextView acv, String[] items) {
@@ -868,6 +1180,21 @@ public class CaptureFragment extends Fragment {
             }
         }
         return vals[0];
+    }
+
+    private void validateWorkLearningRequired(String category, Integer valueScore, Integer stateScore, Integer aiRatio) {
+        if (!"work".equalsIgnoreCase(category)) {
+            return;
+        }
+        if (valueScore == null) {
+            throw new IllegalArgumentException(getString(R.string.capture_error_time_value_required));
+        }
+        if (stateScore == null) {
+            throw new IllegalArgumentException(getString(R.string.capture_error_time_state_required));
+        }
+        if (aiRatio == null) {
+            throw new IllegalArgumentException(getString(R.string.capture_error_time_ai_ratio_required));
+        }
     }
 
     private void pickDate(TextInputEditText target) {
@@ -906,18 +1233,18 @@ public class CaptureFragment extends Fragment {
         boolean hasEnd = endedAt != null && !endedAt.isEmpty();
         if (hasStart || hasEnd) {
             if (!hasStart || !hasEnd) {
-                throw new IllegalArgumentException("Please provide both learning start and end time");
+                throw new IllegalArgumentException(getString(R.string.capture_error_learning_start_end_required));
             }
             long minutes = Duration.between(java.time.Instant.parse(startedAt), java.time.Instant.parse(endedAt))
                     .toMinutes();
             if (minutes <= 0) {
-                throw new IllegalArgumentException("Learning end time must be after start time");
+                throw new IllegalArgumentException(getString(R.string.capture_error_learning_end_after_start));
             }
             return (int) minutes;
         }
         int duration = FormParsers.parseInt(manualDurationText, 0);
         if (duration <= 0) {
-            throw new IllegalArgumentException("Please enter duration or provide both start and end time");
+            throw new IllegalArgumentException(getString(R.string.capture_error_learning_duration_or_range));
         }
         return duration;
     }
@@ -952,31 +1279,6 @@ public class CaptureFragment extends Fragment {
         if (ruleChip != null && ruleChip.isChecked())
             return ParserMode.RULE;
         return ParserMode.AUTO;
-    }
-
-    private static String formatPreview(ParseResult r) {
-        if (r == null || r.items == null || r.items.isEmpty())
-            return "No result";
-        StringBuilder sb = new StringBuilder();
-        sb.append("Parser: ").append(r.parserUsed).append('\n');
-        if (r.warnings != null)
-            for (String w : r.warnings)
-                sb.append("⚠ ").append(w).append('\n');
-        sb.append('\n');
-        for (ParseDraftItem item : r.items) {
-            sb.append("[").append(item.kind).append("]")
-                    .append(" confidence=").append(String.format(Locale.US, "%.0f%%", item.confidence * 100))
-                    .append(" source=").append(item.source).append('\n');
-            if (item.payload != null) {
-                for (Map.Entry<String, String> e : item.payload.entrySet()) {
-                    sb.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
-                }
-            }
-            if (item.warning != null && !item.warning.isEmpty())
-                sb.append("  ⚠ ").append(item.warning).append('\n');
-            sb.append('\n');
-        }
-        return sb.toString().trim();
     }
 
     private static String text(TextInputEditText et) {
@@ -1024,24 +1326,24 @@ public class CaptureFragment extends Fragment {
         }
     }
 
-    private static Integer parseOptionalPercentage(String raw) {
+    private Integer parseOptionalPercentage(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
             return null;
         }
         int value = FormParsers.parseInt(raw.trim(), -1);
         if (value < 0 || value > 100) {
-            throw new IllegalArgumentException("AI assist ratio must be in 0-100");
+            throw new IllegalArgumentException(getString(R.string.capture_error_ai_ratio_range));
         }
         return value;
     }
 
-    private static Integer parseOptionalScore(String raw) {
+    private Integer parseOptionalScore(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
             return null;
         }
         int value = FormParsers.parseInt(raw.trim(), -1);
         if (value < 1 || value > 10) {
-            throw new IllegalArgumentException("Score must be in 1-10");
+            throw new IllegalArgumentException(getString(R.string.capture_error_score_range));
         }
         return value;
     }
@@ -1049,6 +1351,13 @@ public class CaptureFragment extends Fragment {
     private void snack(String msg) {
         if (root != null)
             Snackbar.make(root, msg, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private String safeErrorMessage(Exception e) {
+        if (e == null || e.getMessage() == null || e.getMessage().trim().isEmpty()) {
+            return getString(R.string.common_unknown_error);
+        }
+        return e.getMessage();
     }
 
     // Tiny holder to keep reference to the FrameLayout

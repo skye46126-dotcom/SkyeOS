@@ -61,19 +61,6 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.LifeOS.TextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/common_ai_ratio_optional"
-            android:layout_marginBottom="10dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_expense_ai_ratio"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,23 +70,17 @@
             android:layout_marginBottom="6dp"/>
 
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.LifeOS.TextInputLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/form_bind_project_optional"
             android:layout_marginBottom="10dp">
-            <com.google.android.material.textfield.TextInputEditText
+            <AutoCompleteTextView
                 android:id="@+id/et_expense_project"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:inputType="none"/>
         </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_projects_expense"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            app:singleSelection="false"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -109,18 +90,24 @@
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_tags_expense"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:singleSelection="false"/>
+            android:hint="@string/form_tags_multi_hint">
+
+            <MultiAutoCompleteTextView
+                android:id="@+id/acv_expense_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_submit_expense"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:text="@string/form_save_expense"/>
 
     </LinearLayout>

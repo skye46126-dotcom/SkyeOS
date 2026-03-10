@@ -191,25 +191,11 @@
                             android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.LifeOS.TextInputLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:hint="@string/cost_fixed_subscription_hint">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_cost_monthly_fixed"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="numberDecimal" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_save_cost_inputs"
                         style="@style/Widget.LifeOS.Button.Primary"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
+                        android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
                         android:text="@string/cost_save_inputs" />
                 </LinearLayout>
@@ -392,7 +378,7 @@
                     android:id="@+id/btn_add_recurring"
                     style="@style/Widget.LifeOS.Button.Primary"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
                     android:text="@string/cost_add_recurring_rule" />
                 </LinearLayout>
@@ -542,7 +528,7 @@
                     android:id="@+id/btn_add_capex"
                     style="@style/Widget.LifeOS.Button.Primary"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
                     android:text="@string/cost_add_capex_item" />
                 </LinearLayout>

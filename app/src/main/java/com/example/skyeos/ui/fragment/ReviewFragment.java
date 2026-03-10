@@ -2,6 +2,7 @@ package com.example.skyeos.ui.fragment;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,7 @@ import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ReviewReport;
 import com.example.skyeos.domain.usecase.LifeOsUseCases;
+import com.example.skyeos.ui.util.UiFormatters;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -31,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReviewFragment extends Fragment {
+    private static final String TAG = "ReviewFragment";
 
     private LifeOsUseCases useCases;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -76,10 +79,13 @@ public class ReviewFragment extends Fragment {
     private TagMetricAdapter expenseTagAdapter;
     private RecentRecordsAdapter tagDetailAdapter;
     private List<com.example.skyeos.domain.model.RecentRecordItem> latestHistoryRecords = new ArrayList<>();
-    private int currentTabPosition = 1;
+    private int currentTabPosition = 0;
     private ReviewReport latestReport;
 
     private LocalDate currentDate = LocalDate.now();
+    private boolean customRangeEnabled = false;
+    private LocalDate customStartDate = LocalDate.now().minusDays(6);
+    private LocalDate customEndDate = LocalDate.now();
 
     @Nullable
     @Override
@@ -104,6 +110,7 @@ public class ReviewFragment extends Fragment {
         MaterialButton btnReviewNext = view.findViewById(R.id.btn_review_next);
         MaterialButton btnReviewToday = view.findViewById(R.id.btn_review_today);
         MaterialButton btnReviewOpenDayDetail = view.findViewById(R.id.btn_review_open_day_detail);
+        MaterialButton btnReviewOpenAiChat = view.findViewById(R.id.btn_review_open_ai_chat);
         tabReviewPeriod.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
@@ -127,11 +134,27 @@ public class ReviewFragment extends Fragment {
         btnReviewNext.setOnClickListener(v -> shiftAnchor(1));
         btnReviewToday.setOnClickListener(v -> {
             currentDate = LocalDate.now();
+            customRangeEnabled = false;
             updateAnchorUi();
             loadReportForCurrentTab();
         });
         btnReviewOpenDayDetail.setOnClickListener(v -> openAnchorDayDetail());
-        tvReviewAnchor.setOnClickListener(v -> openAnchorDatePicker());
+        btnReviewOpenAiChat.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).openAiChat();
+            }
+        });
+        tvReviewAnchor.setOnClickListener(v -> {
+            if (customRangeEnabled) {
+                openCustomRangePicker();
+            } else {
+                openAnchorDatePicker();
+            }
+        });
+        tvReviewAnchor.setOnLongClickListener(v -> {
+            openCustomRangePicker();
+            return true;
+        });
 
         // Setup RecyclerViews
         rvTimeAllocation = view.findViewById(R.id.rv_time_allocation);
@@ -187,11 +210,14 @@ public class ReviewFragment extends Fragment {
         rvTagDetailRecords.setAdapter(tagDetailAdapter);
         tvTagDetailTitle = view.findViewById(R.id.tv_tag_detail_title);
 
-        // Initial load (Weekly by default makes sense, but we can stick to Daily which
-        // is index 0)
-        // Let's default to index 1 (Weekly) if you want a larger perspective.
-        tabReviewPeriod.selectTab(tabReviewPeriod.getTabAt(1));
+        // Default to daily so users immediately see today's window.
+        TabLayout.Tab dayTab = tabReviewPeriod.getTabAt(0);
+        if (dayTab != null) {
+            tabReviewPeriod.selectTab(dayTab);
+            currentTabPosition = 0;
+        }
         updateAnchorUi();
+        loadReportForCurrentTab();
 
         return view;
     }
@@ -199,8 +225,11 @@ public class ReviewFragment extends Fragment {
     private void loadReportForTab(int tabPosition) {
         executor.execute(() -> {
             ReviewReport report = null;
+            String errorMessage = null;
             try {
-                if (tabPosition == 0) {
+                if (customRangeEnabled) {
+                    report = useCases.reviewUseCases.getRangeReview(customStartDate, customEndDate);
+                } else if (tabPosition == 0) {
                     report = useCases.reviewUseCases.getDailyReview(currentDate);
                 } else if (tabPosition == 1) {
                     report = useCases.reviewUseCases.getWeeklyReview(currentDate);
@@ -210,14 +239,18 @@ public class ReviewFragment extends Fragment {
                     report = useCases.reviewUseCases.getYearlyReview(currentDate);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "loadReportForTab failed", e);
+                errorMessage = e.getMessage();
             }
 
             final ReviewReport finalReport = report;
+            final String finalErrorMessage = errorMessage;
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
                     if (finalReport != null) {
                         displayReport(finalReport);
+                    } else {
+                        renderReportUnavailable(finalErrorMessage);
                     }
                 });
             }
@@ -256,6 +289,36 @@ public class ReviewFragment extends Fragment {
         expenseTagAdapter.submitList(report.expenseTagMetrics);
         autoLoadInitialTagDetail(report);
         applyTrendDetailSelection();
+    }
+
+    private void renderReportUnavailable(String errorMessage) {
+        latestReport = null;
+        tvReviewTitle.setText(buildUiPeriodTitle(currentTabPosition, null));
+        tvReviewSubtitle.setText(buildUiPeriodSubtitle(currentTabPosition));
+        String fallback = getString(R.string.review_load_failed);
+        if (errorMessage != null && !errorMessage.trim().isEmpty()) {
+            fallback = getString(R.string.review_load_failed_reason, errorMessage);
+        }
+        tvAiSummary.setText(fallback);
+        tvCostDebtSummary.setText(R.string.review_empty_state_hint);
+        tvTrendSummary.setText(R.string.review_empty_state_hint);
+        tvAiAssistMetric.setText(getString(R.string.review_ai_assist_metric, "--"));
+        tvWorkEffMetric.setText(getString(R.string.review_work_eff_metric, "--"));
+        tvLearningEffMetric.setText(getString(R.string.review_learning_eff_metric, "--"));
+        timeAdapter.submitList(new ArrayList<>());
+        topProjectAdapter.submitList(new ArrayList<>());
+        sinkholeAdapter.submitList(new ArrayList<>());
+        keyEventsAdapter.submitList(new ArrayList<>());
+        incomeHistoryAdapter.submitList(new ArrayList<>());
+        tvIncomeHistorySummary.setText(buildIncomeSummary(new ArrayList<>(), 0L));
+        latestHistoryRecords = new ArrayList<>();
+        applyHistoryFilter();
+        timeTagAdapter.submitList(new ArrayList<>());
+        expenseTagAdapter.submitList(new ArrayList<>());
+        tvTagDetailTitle.setText(R.string.review_tag_details_empty);
+        tagDetailAdapter.submitList(new ArrayList<>());
+        tvTrendDetailTitle.setText(R.string.review_trend_details_empty);
+        trendDetailAdapter.submitList(new ArrayList<>());
     }
 
     private String buildIncomeSummary(
@@ -349,7 +412,9 @@ public class ReviewFragment extends Fragment {
         }
         executor.execute(() -> {
             List<com.example.skyeos.domain.model.RecentRecordItem> rows;
-            if (currentTabPosition == 0) {
+            if (customRangeEnabled) {
+                rows = useCases.reviewUseCases.getRangeTagDetail(customStartDate, customEndDate, scope, metric.tagName, 20);
+            } else if (currentTabPosition == 0) {
                 rows = useCases.reviewUseCases.getDailyTagDetail(currentDate, scope, metric.tagName, 20);
             } else if (currentTabPosition == 1) {
                 rows = useCases.reviewUseCases.getWeeklyTagDetail(currentDate, scope, metric.tagName, 20);
@@ -413,6 +478,10 @@ public class ReviewFragment extends Fragment {
 
     private ReviewReport loadPreviousReport() {
         try {
+            if (customRangeEnabled) {
+                long days = java.time.temporal.ChronoUnit.DAYS.between(customStartDate, customEndDate) + 1;
+                return useCases.reviewUseCases.getRangeReview(customStartDate.minusDays(days), customEndDate.minusDays(days));
+            }
             if (currentTabPosition == 0) {
                 return useCases.reviewUseCases.getDailyReview(currentDate.minusDays(1));
             }
@@ -485,26 +554,26 @@ public class ReviewFragment extends Fragment {
         long prevWork = previous == null ? 0L : previous.totalWorkMinutes;
         if ("expense".equals(kind)) {
             return getString(R.string.review_trend_expense_compare,
-                    formatYuan(current.totalExpenseCents), formatYuan(prevExpense));
+                    UiFormatters.yuan(requireContext(), current.totalExpenseCents), UiFormatters.yuan(requireContext(), prevExpense));
         }
         if ("work".equals(kind)) {
             return getString(R.string.review_trend_work_compare,
                     current.totalWorkMinutes, prevWork);
         }
         return getString(R.string.review_trend_income_compare,
-                formatYuan(current.totalIncomeCents), formatYuan(prevIncome));
+                UiFormatters.yuan(requireContext(), current.totalIncomeCents), UiFormatters.yuan(requireContext(), prevIncome));
     }
 
     private String formatCostDebtSummary(ReviewReport report) {
-        String actual = report.actualHourlyRateCents == null ? "--" : formatYuan(report.actualHourlyRateCents) + "/h";
-        String ideal = formatYuan(report.idealHourlyRateCents) + "/h";
+        String actual = UiFormatters.nullableHourly(requireContext(), report.actualHourlyRateCents);
+        String ideal = UiFormatters.hourly(requireContext(), report.idealHourlyRateCents);
         String debt;
         if (report.timeDebtCents == null) {
             debt = "--";
         } else if (report.timeDebtCents > 0) {
-            debt = getString(R.string.today_debt_format, formatYuan(report.timeDebtCents));
+            debt = getString(R.string.today_debt_format, UiFormatters.yuan(requireContext(), report.timeDebtCents));
         } else if (report.timeDebtCents < 0) {
-            debt = getString(R.string.today_surplus_format, formatYuan(Math.abs(report.timeDebtCents)));
+            debt = getString(R.string.today_surplus_format, UiFormatters.yuan(requireContext(), Math.abs(report.timeDebtCents)));
         } else {
             debt = getString(R.string.today_balanced);
         }
@@ -531,13 +600,6 @@ public class ReviewFragment extends Fragment {
         return String.format(Locale.US, "%s %s%.1f%%", label, arrow, ratio * 100.0);
     }
 
-    private static String formatYuan(long cents) {
-        if (cents % 100 == 0) {
-            return String.format(Locale.US, "¥%d", cents / 100);
-        }
-        return String.format(Locale.US, "¥%.2f", cents / 100.0);
-    }
-
     private static String formatPercentageOrDash(Double ratio) {
         if (ratio == null) {
             return "--";
@@ -553,6 +615,9 @@ public class ReviewFragment extends Fragment {
     }
 
     private String buildUiPeriodTitle(int tabPosition, String fallback) {
+        if (customRangeEnabled) {
+            return getString(R.string.review_title_custom_range);
+        }
         if (tabPosition == 0) {
             return getString(R.string.review_title_daily);
         }
@@ -569,6 +634,9 @@ public class ReviewFragment extends Fragment {
     }
 
     private String buildUiPeriodSubtitle(int tabPosition) {
+        if (customRangeEnabled) {
+            return getString(R.string.review_subtitle_custom_range);
+        }
         if (tabPosition == 0) {
             return getString(R.string.review_subtitle_daily);
         }
@@ -592,7 +660,11 @@ public class ReviewFragment extends Fragment {
         if (direction == 0) {
             return;
         }
-        if (currentTabPosition == 0) {
+        if (customRangeEnabled) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(customStartDate, customEndDate) + 1;
+            customStartDate = customStartDate.plusDays(days * direction);
+            customEndDate = customEndDate.plusDays(days * direction);
+        } else if (currentTabPosition == 0) {
             currentDate = currentDate.plusDays(direction);
         } else if (currentTabPosition == 1) {
             currentDate = currentDate.plusWeeks(direction);
@@ -607,6 +679,10 @@ public class ReviewFragment extends Fragment {
 
     private void updateAnchorUi() {
         if (tvReviewAnchor == null) {
+            return;
+        }
+        if (customRangeEnabled) {
+            tvReviewAnchor.setText(String.format(Locale.US, "R · %s ~ %s", customStartDate, customEndDate));
             return;
         }
         String windowLabel;
@@ -645,6 +721,7 @@ public class ReviewFragment extends Fragment {
     }
 
     private void openAnchorDatePicker() {
+        customRangeEnabled = false;
         DatePickerDialog dialog = new DatePickerDialog(
                 requireContext(),
                 (view, year, month, dayOfMonth) -> {
@@ -659,8 +736,43 @@ public class ReviewFragment extends Fragment {
     }
 
     private void openAnchorDayDetail() {
+        if (customRangeEnabled) {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).openDayDetail(customStartDate.toString());
+            }
+            return;
+        }
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).openDayDetail(currentDate.toString());
         }
+    }
+
+    private void openCustomRangePicker() {
+        openDatePicker(customStartDate, start -> {
+            openDatePicker(customEndDate, end -> {
+                LocalDate rangeStart = start;
+                LocalDate rangeEnd = end;
+                if (rangeEnd.isBefore(rangeStart)) {
+                    LocalDate tmp = rangeStart;
+                    rangeStart = rangeEnd;
+                    rangeEnd = tmp;
+                }
+                customStartDate = rangeStart;
+                customEndDate = rangeEnd;
+                customRangeEnabled = true;
+                updateAnchorUi();
+                loadReportForCurrentTab();
+            });
+        });
+    }
+
+    private void openDatePicker(LocalDate initialDate, java.util.function.Consumer<LocalDate> onPicked) {
+        DatePickerDialog dialog = new DatePickerDialog(
+                requireContext(),
+                (view, year, month, dayOfMonth) -> onPicked.accept(LocalDate.of(year, month + 1, dayOfMonth)),
+                initialDate.getYear(),
+                initialDate.getMonthValue() - 1,
+                initialDate.getDayOfMonth());
+        dialog.show();
     }
 }

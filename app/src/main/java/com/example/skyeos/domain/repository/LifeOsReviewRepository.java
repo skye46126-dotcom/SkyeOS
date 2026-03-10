@@ -38,5 +38,7 @@ public interface LifeOsReviewRepository {
      */
     ReviewReport getYearlyReview(String yearStart, String yearEnd);
 
+    ReviewReport getRangeReview(String startDate, String endDate);
+
     List<RecentRecordItem> getTagDetailRecords(String scope, String tagName, String startDate, String endDate, int limit);
 }

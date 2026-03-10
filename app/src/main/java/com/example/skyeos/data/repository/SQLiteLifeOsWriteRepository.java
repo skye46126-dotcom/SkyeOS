@@ -27,8 +27,6 @@ import java.util.UUID;
 
 public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository {
     private static final Set<String> PROJECT_STATUS = setOf("active", "paused", "done");
-    private static final Set<String> TIME_CATEGORY = setOf("work", "learning", "life", "entertainment", "rest",
-            "social");
     private static final Set<String> INCOME_TYPE = setOf("salary", "project", "investment", "system", "other");
     private static final Set<String> EXPENSE_CATEGORY = setOf("necessary", "experience", "subscription", "investment");
     private static final Set<String> LEARNING_LEVEL = setOf("input", "applied", "result");
@@ -108,12 +106,12 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     public String createTimeLog(CreateTimeLogInput input) {
         requireNotBlank(input.startedAt, "timeLog.startedAt");
         requireNotBlank(input.endedAt, "timeLog.endedAt");
-        String category = normalizeOrDefault(input.category, "work");
-        requireContains(TIME_CATEGORY, category, "timeLog.category");
+        String category = normalizeTimeCategory(input.category);
         validateScore(input.efficiencyScore, "timeLog.efficiencyScore");
         validateScore(input.valueScore, "timeLog.valueScore");
         validateScore(input.stateScore, "timeLog.stateScore");
         validatePercentage(input.aiAssistRatio, "timeLog.aiAssistRatio");
+        validateWorkLearningRequiredFields(category, input.valueScore, input.stateScore, input.aiAssistRatio);
         validateAllocations(input.projectAllocations, "timeLog.projectAllocations");
 
         long durationMinutes = computeDurationMinutes(input.startedAt, input.endedAt);
@@ -314,29 +312,23 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     public String createLearning(CreateLearningInput input) {
         requireNotBlank(input.occurredOn, "learning.occurredOn");
         requireNotBlank(input.content, "learning.content");
+        requireNotBlank(input.startedAt, "learning.startedAt");
+        requireNotBlank(input.endedAt, "learning.endedAt");
         String level = normalizeOrDefault(input.applicationLevel, "input");
         requireContains(LEARNING_LEVEL, level, "learning.applicationLevel");
-        String startedAt = trimmedOrNull(input.startedAt);
-        String endedAt = trimmedOrNull(input.endedAt);
-        int durationMinutes = input.durationMinutes;
-        String occurredOn = input.occurredOn.trim();
-        if (!TextUtils.isEmpty(startedAt) || !TextUtils.isEmpty(endedAt)) {
-            if (TextUtils.isEmpty(startedAt) || TextUtils.isEmpty(endedAt)) {
-                throw new IllegalArgumentException("learning.startedAt and learning.endedAt must both be provided");
-            }
-            Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
-            Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
-            if (!endInstant.isAfter(startInstant)) {
-                throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
-            }
-            durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
-            occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
+        String startedAt = input.startedAt.trim();
+        String endedAt = input.endedAt.trim();
+        Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
+        Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
+        if (!endInstant.isAfter(startInstant)) {
+            throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
         }
-        if (durationMinutes <= 0) {
-            throw new IllegalArgumentException("learning.durationMinutes must be > 0");
-        }
+        int durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
+        String occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
         validateScore(input.efficiencyScore, "learning.efficiencyScore");
         validatePercentage(input.aiAssistRatio, "learning.aiAssistRatio");
+        requireNotNull(input.efficiencyScore, "learning.efficiencyScore");
+        requireNotNull(input.aiAssistRatio, "learning.aiAssistRatio");
         validateAllocations(input.projectAllocations, "learning.projectAllocations");
 
         List<ProjectAllocation> allocations = safeList(input.projectAllocations);
@@ -403,19 +395,23 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     }
 
     @Override
-    public String createTag(String name, String emoji, String tagGroup, String scope) {
+    public String createTag(String name, String emoji, String tagGroup, String scope, String parentTagId, int level) {
         requireNotBlank(name, "tag.name");
         String normalizedScope = normalizeOrDefault(scope, "global");
         requireContains(TAG_SCOPE, normalizedScope, "tag.scope");
+        int normalizedLevel = normalizeTagLevel(level);
         String id = randomId();
         String now = nowIso();
         String userId = userContext.requireCurrentUserId();
+        String normalizedParentTagId = normalizeParentTagId(database.readableDb(), parentTagId, normalizedLevel, normalizedScope, userId, null);
         ContentValues values = new ContentValues();
         values.put("id", id);
         values.put("name", name.trim());
         values.put("emoji", nullSafe(emoji));
         values.put("tag_group", TextUtils.isEmpty(tagGroup) ? "custom" : tagGroup.trim().toLowerCase());
         values.put("scope", normalizedScope);
+        values.put("parent_tag_id", normalizedParentTagId);
+        values.put("level", normalizedLevel);
         values.put("sort_order", 0);
         values.put("is_system", 0);
         values.put("is_active", 1);
@@ -503,12 +499,12 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         }
         requireNotBlank(input.startedAt, "timeLog.startedAt");
         requireNotBlank(input.endedAt, "timeLog.endedAt");
-        String category = normalizeOrDefault(input.category, "work");
-        requireContains(TIME_CATEGORY, category, "timeLog.category");
+        String category = normalizeTimeCategory(input.category);
         validateScore(input.efficiencyScore, "timeLog.efficiencyScore");
         validateScore(input.valueScore, "timeLog.valueScore");
         validateScore(input.stateScore, "timeLog.stateScore");
         validatePercentage(input.aiAssistRatio, "timeLog.aiAssistRatio");
+        validateWorkLearningRequiredFields(category, input.valueScore, input.stateScore, input.aiAssistRatio);
         validateAllocations(input.projectAllocations, "timeLog.projectAllocations");
         long durationMinutes = computeDurationMinutes(input.startedAt, input.endedAt);
         boolean hasAllocationsInput = input.projectAllocations != null;
@@ -681,29 +677,23 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         }
         requireNotBlank(input.occurredOn, "learning.occurredOn");
         requireNotBlank(input.content, "learning.content");
+        requireNotBlank(input.startedAt, "learning.startedAt");
+        requireNotBlank(input.endedAt, "learning.endedAt");
         String level = normalizeOrDefault(input.applicationLevel, "input");
         requireContains(LEARNING_LEVEL, level, "learning.applicationLevel");
-        String startedAt = trimmedOrNull(input.startedAt);
-        String endedAt = trimmedOrNull(input.endedAt);
-        int durationMinutes = input.durationMinutes;
-        String occurredOn = input.occurredOn.trim();
-        if (!TextUtils.isEmpty(startedAt) || !TextUtils.isEmpty(endedAt)) {
-            if (TextUtils.isEmpty(startedAt) || TextUtils.isEmpty(endedAt)) {
-                throw new IllegalArgumentException("learning.startedAt and learning.endedAt must both be provided");
-            }
-            Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
-            Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
-            if (!endInstant.isAfter(startInstant)) {
-                throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
-            }
-            durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
-            occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
+        String startedAt = input.startedAt.trim();
+        String endedAt = input.endedAt.trim();
+        Instant startInstant = parseInstantStrict(startedAt, "learning.startedAt");
+        Instant endInstant = parseInstantStrict(endedAt, "learning.endedAt");
+        if (!endInstant.isAfter(startInstant)) {
+            throw new IllegalArgumentException("learning.endedAt must be after learning.startedAt");
         }
-        if (durationMinutes <= 0) {
-            throw new IllegalArgumentException("learning.durationMinutes must be > 0");
-        }
+        int durationMinutes = Math.max(1, (int) Duration.between(startInstant, endInstant).toMinutes());
+        String occurredOn = startInstant.atZone(resolveZoneId()).toLocalDate().toString();
         validateScore(input.efficiencyScore, "learning.efficiencyScore");
         validatePercentage(input.aiAssistRatio, "learning.aiAssistRatio");
+        requireNotNull(input.efficiencyScore, "learning.efficiencyScore");
+        requireNotNull(input.aiAssistRatio, "learning.aiAssistRatio");
         validateAllocations(input.projectAllocations, "learning.projectAllocations");
         boolean hasAllocationsInput = input.projectAllocations != null;
         boolean hasTagsInput = input.tagIds != null;
@@ -720,16 +710,8 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         try {
             ContentValues values = new ContentValues();
             values.put("occurred_on", occurredOn);
-            if (!TextUtils.isEmpty(startedAt)) {
-                values.put("started_at", startedAt);
-            } else {
-                values.putNull("started_at");
-            }
-            if (!TextUtils.isEmpty(endedAt)) {
-                values.put("ended_at", endedAt);
-            } else {
-                values.putNull("ended_at");
-            }
+            values.put("started_at", startedAt);
+            values.put("ended_at", endedAt);
             values.put("content", input.content.trim());
             values.put("duration_minutes", durationMinutes);
             if (input.efficiencyScore != null) {
@@ -763,7 +745,7 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
     }
 
     @Override
-    public void updateTag(String tagId, String name, String emoji, String tagGroup, String scope, boolean active) {
+    public void updateTag(String tagId, String name, String emoji, String tagGroup, String scope, String parentTagId, int level, boolean active) {
         if (TextUtils.isEmpty(tagId)) {
             return;
         }
@@ -771,11 +753,15 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         String normalizedScope = normalizeOrDefault(scope, "global");
         requireContains(TAG_SCOPE, normalizedScope, "tag.scope");
         String userId = userContext.requireCurrentUserId();
+        int normalizedLevel = normalizeTagLevel(level);
+        String normalizedParentTagId = normalizeParentTagId(database.readableDb(), parentTagId, normalizedLevel, normalizedScope, userId, tagId);
         ContentValues values = new ContentValues();
         values.put("name", name.trim());
         values.put("emoji", nullSafe(emoji));
         values.put("tag_group", TextUtils.isEmpty(tagGroup) ? "custom" : tagGroup.trim().toLowerCase());
         values.put("scope", normalizedScope);
+        values.put("parent_tag_id", normalizedParentTagId);
+        values.put("level", normalizedLevel);
         values.put("is_active", toInt(active));
         values.put("updated_at", nowIso());
         database.writableDb().update(
@@ -900,6 +886,51 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         return TextUtils.isEmpty(value) ? null : value.trim();
     }
 
+    private static String normalizeTimeCategory(String value) {
+        requireNotBlank(value, "timeLog.category");
+        return value.trim().toLowerCase();
+    }
+
+    private static int normalizeTagLevel(int level) {
+        return level <= 1 ? 1 : 2;
+    }
+
+    private static String normalizeParentTagId(SQLiteDatabase db, String parentTagId, int level, String scope,
+            String userId, String selfTagId) {
+        if (level <= 1) {
+            return null;
+        }
+        if (TextUtils.isEmpty(parentTagId) || TextUtils.isEmpty(parentTagId.trim())) {
+            throw new IllegalArgumentException("tag.parentTagId is required when tag.level=2");
+        }
+        String normalizedParentId = parentTagId.trim();
+        if (!TextUtils.isEmpty(selfTagId) && selfTagId.trim().equals(normalizedParentId)) {
+            throw new IllegalArgumentException("tag.parentTagId cannot reference itself");
+        }
+        try (Cursor cursor = db.rawQuery(
+                "SELECT COALESCE(scope,'global'), COALESCE(level,1), owner_user_id, is_system " +
+                        "FROM tag WHERE id = ? LIMIT 1",
+                new String[] { normalizedParentId })) {
+            if (!cursor.moveToFirst()) {
+                throw new IllegalArgumentException("tag.parentTagId not found");
+            }
+            String parentScope = cursor.isNull(0) ? "global" : cursor.getString(0);
+            int parentLevel = cursor.getInt(1);
+            String parentOwnerId = cursor.isNull(2) ? null : cursor.getString(2);
+            boolean parentIsSystem = cursor.getInt(3) == 1;
+            if (parentLevel != 1) {
+                throw new IllegalArgumentException("tag.parentTagId must point to a level-1 tag");
+            }
+            if (!"global".equals(parentScope) && !parentScope.equals(scope)) {
+                throw new IllegalArgumentException("tag.parentTagId scope mismatch");
+            }
+            if (!parentIsSystem && !TextUtils.equals(parentOwnerId, userId)) {
+                throw new IllegalArgumentException("tag.parentTagId is not accessible");
+            }
+            return normalizedParentId;
+        }
+    }
+
     private static Instant parseInstantStrict(String value, String fieldName) {
         try {
             return Instant.parse(value);
@@ -948,6 +979,22 @@ public final class SQLiteLifeOsWriteRepository implements LifeOsWriteRepository 
         if (value != null && (value < 0 || value > 100)) {
             throw new IllegalArgumentException(field + " must be 0-100");
         }
+    }
+
+    private static void requireNotNull(Object value, String field) {
+        if (value == null) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+    }
+
+    private static void validateWorkLearningRequiredFields(String category, Integer valueScore, Integer stateScore,
+            Integer aiAssistRatio) {
+        if (!"work".equals(category)) {
+            return;
+        }
+        requireNotNull(valueScore, "timeLog.valueScore");
+        requireNotNull(stateScore, "timeLog.stateScore");
+        requireNotNull(aiAssistRatio, "timeLog.aiAssistRatio");
     }
 
     private static void validateAllocations(List<ProjectAllocation> allocations, String field) {

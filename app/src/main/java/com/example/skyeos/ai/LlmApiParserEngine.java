@@ -106,27 +106,29 @@ public final class LlmApiParserEngine implements ParserEngine {
             }
         }
 
-        String userPrompt = String.format(Locale.US,
-                "context_date=%s\n%s\nraw_text=\n%s\n\n按此 JSON 结构输出：\n%s\n\npayload 可按类型附带字段：\n" +
-                        "- time_log: category,start_hour,end_hour,duration_hours,description,ai_ratio(0-100),efficiency_score(1-10),value_score(1-10),state_score(1-10)\n"
-                        +
-                        "- income: source,type,amount,ai_ratio(0-100)\n" +
-                        "- expense: category,amount,note,ai_ratio(0-100)\n" +
-                        "- learning: content,duration_minutes,application_level,ai_ratio(0-100),efficiency_score(1-10)\n"
-                        +
-                        "注意：\n" +
-                        "1. 主观评分字段只有原文明确才提取。\n" +
-                        "2. 优先匹配提供的可用分类/项目/标签。\n" +
-                        "3. 如果规则引擎已提取部分内容，请验证并完善它，不要漏掉信息。\n" +
-                        "4. 缺失字段可省略，不要编造。",
-                contextDate == null ? "" : contextDate.trim(),
-                contextHint.toString(),
-                rawText == null ? "" : rawText.trim(),
-                schemaHint);
+        String technicalInstructions = "### 技术指令 ###\n"
+                + "1. 只输出 JSON，不要 Markdown，不要解释。\n"
+                + "2. kind 只允许: time_log, income, expense, learning, unknown。\n"
+                + "3. 评分字段默认不要猜测，只有原文明确提及才提取。\n"
+                + "4. context_date=" + (contextDate == null ? "" : contextDate.trim()) + "\n"
+                + contextHint.toString()
+                + "\n### 待处理文本 ###\n"
+                + (rawText == null ? "" : rawText.trim())
+                + "\n\n### 输出 JSON 结构 ###\n"
+                + schemaHint
+                + "\n\n### 字段说明 ###\n"
+                + "- time_log: category,start_hour,end_hour,duration_hours,description,ai_ratio(0-100),efficiency_score(1-10),value_score(1-10),state_score(1-10)\n"
+                + "- income: source,type,amount,ai_ratio(0-100)\n"
+                + "- expense: category,amount,note,ai_ratio(0-100)\n"
+                + "- learning: content,duration_minutes,application_level,ai_ratio(0-100),efficiency_score(1-10)\n"
+                + "\n### 约束条件 ###\n"
+                + "1. 优先匹配提供的可用分类/项目/标签。\n"
+                + "2. 如果规则引擎已提取部分内容，请验证并完善它。\n"
+                + "3. 缺失字段可省略，不要编造。";
 
         JSONArray messages = new JSONArray();
         messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
-        messages.put(new JSONObject().put("role", "user").put("content", userPrompt));
+        messages.put(new JSONObject().put("role", "user").put("content", technicalInstructions));
 
         return new JSONObject()
                 .put("model", model)

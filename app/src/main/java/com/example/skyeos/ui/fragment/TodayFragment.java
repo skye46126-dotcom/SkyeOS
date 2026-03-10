@@ -8,31 +8,41 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.skyeos.AppGraph;
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
+import com.example.skyeos.data.config.TimeGoalStore;
+import com.example.skyeos.domain.model.CapexCostSummary;
 import com.example.skyeos.domain.model.MetricSnapshotSummary;
+import com.example.skyeos.domain.model.MonthlyCostBaseline;
 import com.example.skyeos.domain.model.RateComparisonSummary;
 import com.example.skyeos.domain.model.RecentRecordItem;
+import com.example.skyeos.domain.model.RecurringCostRuleSummary;
 import com.example.skyeos.domain.model.WindowOverview;
+import com.example.skyeos.ui.util.UiFormatters;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.Locale;
 
 public class TodayFragment extends Fragment {
 
     private AppGraph graph;
+    private TimeGoalStore goalStore;
     private TextView tvGreeting, tvDate;
+    private TextView tvDailyGoalStatus;
     private TextView tvMetricTime, tvMetricIncome, tvMetricExpense, tvMetricFreedom;
     private TextView tvTimeDistribution;
     private TextView tvHourlyDebtSummary;
     private TextView tvRateCompareSummary;
+    private TextView tvCostFormulaSummary;
     private TextView tvTodayNotes;
     private TextView tvMetricsTitle;
     private TextView tvTimeTitle;
@@ -48,9 +58,11 @@ public class TodayFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         graph = AppGraph.getInstance(requireContext());
+        goalStore = new TimeGoalStore(requireContext());
 
         tvGreeting = view.findViewById(R.id.tv_greeting);
         tvDate = view.findViewById(R.id.tv_date);
+        tvDailyGoalStatus = view.findViewById(R.id.tv_daily_goal_status);
         tvMetricTime = view.findViewById(R.id.tv_metric_time);
         tvMetricIncome = view.findViewById(R.id.tv_metric_income);
         tvMetricExpense = view.findViewById(R.id.tv_metric_expense);
@@ -58,6 +70,7 @@ public class TodayFragment extends Fragment {
         tvTimeDistribution = view.findViewById(R.id.tv_time_distribution);
         tvHourlyDebtSummary = view.findViewById(R.id.tv_hourly_debt_summary);
         tvRateCompareSummary = view.findViewById(R.id.tv_rate_compare_summary);
+        tvCostFormulaSummary = view.findViewById(R.id.tv_cost_formula_summary);
         tvTodayNotes = view.findViewById(R.id.tv_today_notes);
         tvMetricsTitle = view.findViewById(R.id.tv_today_metrics_title);
         tvTimeTitle = view.findViewById(R.id.tv_today_time_title);
@@ -86,20 +99,11 @@ public class TodayFragment extends Fragment {
             }
         });
 
-        View costManagementCard = view.findViewById(R.id.card_cost_management);
-        if (costManagementCard != null) {
-            costManagementCard.setOnClickListener(v -> {
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).openCostManagement();
-                }
-            });
-        }
-
         View btnDailyReview = view.findViewById(R.id.card_daily_review);
         if (btnDailyReview != null) {
             btnDailyReview.setOnClickListener(v -> {
                 if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).openDayDetail(LocalDate.now().toString());
+                    ((MainActivity) getActivity()).navigateTo(R.id.nav_review);
                 }
             });
         }
@@ -156,14 +160,14 @@ public class TodayFragment extends Fragment {
             }
 
             // Income (cents → yuan)
-            tvMetricIncome.setText(formatYuan(overview.totalIncomeCents));
+            tvMetricIncome.setText(UiFormatters.yuan(requireContext(), overview.totalIncomeCents));
 
             // Expense (cents → yuan)
             refreshExpenseLabel(overview);
 
             // Freedom
             if (snapshot.freedomCents != null) {
-                tvMetricFreedom.setText(formatYuan(snapshot.freedomCents));
+                tvMetricFreedom.setText(UiFormatters.yuan(requireContext(), snapshot.freedomCents));
             } else {
                 tvMetricFreedom.setText("--");
             }
@@ -172,6 +176,8 @@ public class TodayFragment extends Fragment {
             buildTimeDistribution(overview);
             buildHourlyDebtSummary(snapshot);
             buildRateCompareSummary(day);
+            buildCostFormulaSummary(day, overview);
+            buildDailyGoalStatus(overview);
             buildTodayNotes(day);
 
         } catch (Exception e) {
@@ -283,14 +289,14 @@ public class TodayFragment extends Fragment {
         }
         String debtText;
         if (snapshot.timeDebtCents > 0) {
-            debtText = getString(R.string.today_debt_format, formatYuan(snapshot.timeDebtCents));
+            debtText = getString(R.string.today_debt_format, UiFormatters.yuan(requireContext(), snapshot.timeDebtCents));
         } else if (snapshot.timeDebtCents < 0) {
-            debtText = getString(R.string.today_surplus_format, formatYuan(Math.abs(snapshot.timeDebtCents)));
+            debtText = getString(R.string.today_surplus_format, UiFormatters.yuan(requireContext(), Math.abs(snapshot.timeDebtCents)));
         } else {
             debtText = getString(R.string.today_balanced);
         }
         tvHourlyDebtSummary.setText(getString(R.string.today_hourly_summary_format,
-                formatYuan(snapshot.hourlyRateCents), formatYuan(ideal), debtText));
+                UiFormatters.yuan(requireContext(), snapshot.hourlyRateCents), UiFormatters.yuan(requireContext(), ideal), debtText));
     }
 
     private void buildRateCompareSummary(String today) {
@@ -302,22 +308,146 @@ public class TodayFragment extends Fragment {
         tvRateCompareSummary.setText(getString(
                 R.string.today_rate_compare_format,
                 monthLabel,
-                formatYuan(rates.idealHourlyRateCents),
+                UiFormatters.yuan(requireContext(), rates.idealHourlyRateCents),
                 formatNullableHourly(rates.previousYearAverageHourlyRateCents),
                 formatNullableHourly(rates.actualHourlyRateCents)));
     }
 
-    private static String formatNullableHourly(Long cents) {
-        return cents == null ? "--" : formatYuan(cents) + "/h";
+    private void buildCostFormulaSummary(String day, WindowOverview overview) {
+        if (tvCostFormulaSummary == null) {
+            return;
+        }
+        try {
+            String month = day != null && day.length() >= 7 ? day.substring(0, 7) : YearMonth.now().toString();
+            MonthlyCostBaseline baseline = graph.useCases.getMonthlyCostBaseline.execute(month);
+            List<RecurringCostRuleSummary> recurringRules = graph.useCases.listRecurringCostRules.execute();
+            List<CapexCostSummary> capexCosts = graph.useCases.listCapexCosts.execute();
+            long recurringCents = recurringMonthlyForMonth(recurringRules, month);
+            long capexCents = capexMonthlyForMonth(capexCosts, month);
+            long monthlyTotal = Math.max(0L, baseline.basicLivingCents) + recurringCents + capexCents;
+            int monthDays = YearMonth.parse(month).lengthOfMonth();
+            long dailyTotal = monthDays <= 0 ? 0L : Math.round(monthlyTotal / (double) monthDays);
+            long actualExpense = overview == null ? 0L : Math.max(0L, overview.actualExpenseCents);
+            long structuralExpense = overview == null ? 0L : Math.max(0L, overview.structuralExpenseCents);
+            long totalExpense = overview == null ? 0L : Math.max(0L, overview.totalExpenseCents);
+            tvCostFormulaSummary.setText(getString(
+                    R.string.today_cost_formula_format,
+                    month,
+                    UiFormatters.yuan(requireContext(), Math.max(0L, baseline.basicLivingCents)),
+                    UiFormatters.yuan(requireContext(), recurringCents),
+                    UiFormatters.yuan(requireContext(), capexCents),
+                    UiFormatters.yuan(requireContext(), monthlyTotal),
+                    UiFormatters.yuan(requireContext(), dailyTotal),
+                    UiFormatters.yuan(requireContext(), actualExpense),
+                    UiFormatters.yuan(requireContext(), structuralExpense),
+                    UiFormatters.yuan(requireContext(), totalExpense)));
+        } catch (Exception e) {
+            tvCostFormulaSummary.setText(R.string.today_cost_formula_empty);
+        }
     }
 
-    private static String formatYuan(long cents) {
-        if (cents == 0)
-            return "--";
-        if (cents % 100 == 0) {
-            return String.format(Locale.US, "¥%,d", cents / 100);
+    private static long recurringMonthlyForMonth(List<RecurringCostRuleSummary> recurringRules, String month) {
+        if (recurringRules == null || recurringRules.isEmpty()) {
+            return 0L;
         }
-        return String.format(Locale.US, "¥%.2f", cents / 100.0);
+        long total = 0L;
+        for (RecurringCostRuleSummary item : recurringRules) {
+            if (item != null && isRecurringActiveInMonth(item, month)) {
+                total += Math.max(0L, item.monthlyAmountCents);
+            }
+        }
+        return total;
+    }
+
+    private static long capexMonthlyForMonth(List<CapexCostSummary> capexCosts, String month) {
+        if (capexCosts == null || capexCosts.isEmpty()) {
+            return 0L;
+        }
+        long total = 0L;
+        for (CapexCostSummary item : capexCosts) {
+            if (item != null && isCapexActiveInMonth(item, month)) {
+                total += Math.max(0L, item.monthlyAmortizedCents);
+            }
+        }
+        return total;
+    }
+
+    private static boolean isRecurringActiveInMonth(RecurringCostRuleSummary item, String month) {
+        if (item == null || !item.active) {
+            return false;
+        }
+        String target = normalizeMonthOrFallback(month);
+        String start = normalizeMonthOrFallback(item.startMonth);
+        String end = item.endMonth == null || item.endMonth.trim().isEmpty()
+                ? null
+                : normalizeMonthOrFallback(item.endMonth);
+        if (target.compareTo(start) < 0) {
+            return false;
+        }
+        return end == null || target.compareTo(end) <= 0;
+    }
+
+    private static boolean isCapexActiveInMonth(CapexCostSummary item, String month) {
+        if (item == null || !item.active) {
+            return false;
+        }
+        String target = normalizeMonthOrFallback(month);
+        String start = normalizeMonthOrFallback(item.amortizationStartMonth);
+        String end = normalizeMonthOrFallback(item.amortizationEndMonth);
+        return target.compareTo(start) >= 0 && target.compareTo(end) <= 0;
+    }
+
+    private static String normalizeMonthOrFallback(String raw) {
+        try {
+            if (raw == null || raw.trim().isEmpty()) {
+                return YearMonth.now().toString();
+            }
+            return YearMonth.parse(raw.trim()).toString();
+        } catch (Exception e) {
+            return YearMonth.now().toString();
+        }
+    }
+
+    private String formatNullableHourly(Long cents) {
+        return UiFormatters.nullableHourly(requireContext(), cents);
+    }
+
+    private void buildDailyGoalStatus(WindowOverview overview) {
+        if (tvDailyGoalStatus == null) {
+            return;
+        }
+        TimeGoalStore.Goal goal = goalStore.load();
+        if (!goal.isConfigured()) {
+            tvDailyGoalStatus.setText(R.string.today_goal_status_unset);
+            tvDailyGoalStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.textSecondary));
+            return;
+        }
+        int workMinutes = toIntMinutes(overview == null ? 0L : overview.totalWorkMinutes);
+        int learningMinutes = toIntMinutes(overview == null ? 0L : overview.totalLearningMinutes);
+        boolean reached = goal.isReached(workMinutes, learningMinutes);
+        int colorRes = reached ? R.color.statusPositive : R.color.statusNegative;
+        tvDailyGoalStatus.setTextColor(ContextCompat.getColor(requireContext(), colorRes));
+        if (reached) {
+            tvDailyGoalStatus.setText(getString(
+                    R.string.today_goal_status_reached,
+                    workMinutes, goal.minWorkMinutes,
+                    learningMinutes, goal.minLearningMinutes));
+        } else {
+            tvDailyGoalStatus.setText(getString(
+                    R.string.today_goal_status_unreached,
+                    workMinutes, goal.minWorkMinutes,
+                    learningMinutes, goal.minLearningMinutes));
+        }
+    }
+
+    private static int toIntMinutes(long minutes) {
+        if (minutes <= 0L) {
+            return 0;
+        }
+        if (minutes > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) minutes;
     }
 
     private void refreshExpenseLabel(WindowOverview overview) {
@@ -325,9 +455,9 @@ public class TodayFragment extends Fragment {
             return;
         }
         if (overview.structuralExpenseCents > 0) {
-            tvMetricExpense.setText(formatYuan(overview.totalExpenseCents));
+            tvMetricExpense.setText(UiFormatters.yuan(requireContext(), overview.totalExpenseCents));
         } else {
-            tvMetricExpense.setText(formatYuan(overview.actualExpenseCents));
+            tvMetricExpense.setText(UiFormatters.yuan(requireContext(), overview.actualExpenseCents));
         }
     }
 

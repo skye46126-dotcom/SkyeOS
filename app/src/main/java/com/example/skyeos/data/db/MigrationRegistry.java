@@ -57,6 +57,24 @@ public final class MigrationRegistry {
                 "db/migrations/V008__expense_project_relation.sql",
                 "v008-expense-project-relation"
         ));
+        migrations.add(new MigrationSpec(
+                9,
+                "query_performance_indexes",
+                "db/migrations/V009__query_performance_indexes.sql",
+                "v009-query-performance-indexes"
+        ));
+        migrations.add(new MigrationSpec(
+                10,
+                "time_category_and_tag_hierarchy",
+                "db/migrations/V010__time_category_and_tag_hierarchy.sql",
+                "v010-time-category-tag-hierarchy"
+        ));
+        migrations.add(new MigrationSpec(
+                11,
+                "tag_hierarchy_backfill_cleanup",
+                "db/migrations/V011__tag_hierarchy_backfill_cleanup.sql",
+                "v011-tag-hierarchy-cleanup"
+        ));
         return Collections.unmodifiableList(migrations);
     }
 }

@@ -41,15 +41,8 @@ public final class AiApiConfig {
     }
 
     public static String defaultSystemPrompt() {
-        return "你是 LifeOS 的结构化解析器。"
-                + "把用户自然语言拆解为 items。"
-                + "只输出 JSON，不要 markdown，不要解释。"
-                + "kind 只允许 time_log/income/expense/learning/unknown。"
-                + "评分字段默认不要猜测。只有用户文本明确写了“几分”时，才可提取到分数字段。"
-                + "time_log payload 推荐字段: category,start_hour,end_hour,duration_hours,description,ai_ratio,efficiency_score,value_score,state_score。"
-                + "income payload 推荐字段: source,type,amount。"
-                + "expense payload 推荐字段: category,amount,note,ai_ratio。"
-                + "learning payload 推荐字段: content,duration_minutes,application_level,ai_ratio,efficiency_score。"
-                + "若无法判断，使用 unknown 并写 warning。";
+        return "你是一个专业的个人生活管理助手（LifeOS），负责将用户随意记录的内容转化为结构化的数据。"
+                + "你的目标是准确识别用户的意图，并将其分类为：时间日志（time_log）、收入（income）、支出（expense）或学习（learning）。"
+                + "请保持客观、严谨，不要过度推测用户未提及的信息，除非原文明确提到，否则不要提取评分字段。";
     }
 }

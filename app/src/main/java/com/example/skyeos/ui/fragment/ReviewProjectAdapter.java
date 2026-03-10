@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ProjectProgressItem;
+import com.example.skyeos.ui.util.UiFormatters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,14 +100,8 @@ public class ReviewProjectAdapter extends RecyclerView.Adapter<ReviewProjectAdap
             }
         }
 
-        private static String formatYuan(long cents) {
-            if (cents <= 0L) {
-                return "--";
-            }
-            if (cents % 100 == 0) {
-                return String.format(Locale.US, "¥%,d", cents / 100);
-            }
-            return String.format(Locale.US, "¥%.2f", cents / 100.0);
+        private String formatYuan(long cents) {
+            return UiFormatters.yuan(itemView.getContext(), cents, true);
         }
     }
 }

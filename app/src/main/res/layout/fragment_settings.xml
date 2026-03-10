@@ -68,7 +68,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="☁️ Cloud Backup"
+            android:text="@string/settings_cloud_title"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -80,7 +80,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Server URL (https://...)"
+            android:hint="@string/settings_server_url_hint"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_server_url"
@@ -96,7 +96,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="API Key"
+            android:hint="@string/settings_api_key_hint"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_api_key"
@@ -112,7 +112,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Device ID (e.g. android-self)"
+            android:hint="@string/settings_device_id_hint"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_device_id"
@@ -127,7 +127,7 @@
             android:id="@+id/btn_save_config"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:text="@string/settings_save_config"
             android:layout_marginBottom="12dp"/>
 
@@ -135,23 +135,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Cost logic has moved out of Settings. Use Cost Management for ideal rate, monthly baseline, recurring costs, and capex."
+            android:text="@string/settings_cost_moved_note"
             android:textColor="@color/textSecondary"
             android:textSize="13sp"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_open_cost_management"
-            style="@style/Widget.LifeOS.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="20dp"
-            android:text="@string/settings_open_cost_management"/>
 
         <!-- AI config section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🤖 AI Parsing API"
+            android:text="@string/settings_ai_title"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -161,7 +153,7 @@
             style="@style/Widget.LifeOS.TextInputLayout.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI Provider (custom / deepseek / siliconflow)"
+            android:hint="@string/settings_ai_provider_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/et_ai_provider"
@@ -174,7 +166,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI Base URL (OpenAI-compatible, e.g. https://api.openai.com)"
+            android:hint="@string/settings_ai_base_url_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_base_url"
@@ -188,7 +180,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI API Key"
+            android:hint="@string/settings_ai_api_key_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_api_key"
@@ -202,7 +194,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI Model (e.g. gpt-4o-mini / deepseek-chat)"
+            android:hint="@string/settings_ai_model_hint"
             android:layout_marginBottom="14dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_model"
@@ -216,7 +208,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI System Prompt (customizable)"
+            android:hint="@string/settings_ai_system_prompt_hint"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_ai_system_prompt"
@@ -242,7 +234,7 @@
                 android:layout_height="wrap_content"
                 app:strokeColor="@color/lifeBlue"
                 android:textColor="@color/lifeBlue"
-                android:text="Test Connection (Ping)"/>
+                android:text="@string/settings_ai_test_button"/>
             <TextView
                 android:id="@+id/tv_ai_test_result"
                 android:layout_width="0dp"
@@ -259,16 +251,16 @@
             android:id="@+id/btn_upload_backup"
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="⬆ Upload Latest Backup"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_upload_latest_backup"
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_list_backups"
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="📋 List Remote Backups"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_list_remote_backups"
             android:layout_marginBottom="16dp"/>
 
         <!-- Divider -->
@@ -282,7 +274,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔄 Restore Backup"
+            android:text="@string/settings_restore_title"
             android:textColor="@color/textPrimary"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -294,7 +286,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Filename (copy from list)"
+            android:hint="@string/settings_filename_hint"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_download_filename"
@@ -307,8 +299,8 @@
             android:id="@+id/btn_download_restore"
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="⬇ Download &amp; Restore"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_download_restore"
             android:layout_marginBottom="16dp"/>
 
         <!-- Status card -->
@@ -326,7 +318,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Status Log"
+                    android:text="@string/settings_status_log_title"
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp"
                     android:layout_marginBottom="6dp"/>
@@ -334,7 +326,7 @@
                     android:id="@+id/tv_cloud_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ready"
+                    android:text="@string/settings_status_ready"
                     android:textColor="@color/textPrimary"
                     android:textSize="13sp"/>
                 <TextView
@@ -362,7 +354,7 @@
             style="@style/Widget.LifeOS.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Tag name"
+            android:hint="@string/settings_tag_name_hint"
             android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_tag_name"
@@ -383,7 +375,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
-                android:hint="emoji">
+                android:hint="@string/settings_tag_emoji_hint">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_tag_emoji"
                     android:layout_width="match_parent"
@@ -396,9 +388,43 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
-                android:hint="scope">
+                android:hint="@string/settings_tag_scope_hint">
                 <AutoCompleteTextView
                     android:id="@+id/et_tag_scope"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout.ExposedDropdownMenu"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:layout_marginEnd="6dp"
+                android:hint="@string/settings_tag_parent_hint">
+                <AutoCompleteTextView
+                    android:id="@+id/et_tag_parent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LifeOS.TextInputLayout.ExposedDropdownMenu"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/settings_tag_level_hint">
+                <AutoCompleteTextView
+                    android:id="@+id/et_tag_level"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"/>
@@ -409,7 +435,7 @@
             android:id="@+id/btn_create_tag"
             style="@style/Widget.LifeOS.Button.Outlined"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:text="@string/settings_create_tag"
             android:layout_marginBottom="10dp"/>
 

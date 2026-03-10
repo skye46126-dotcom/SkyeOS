@@ -8,15 +8,20 @@ import androidx.fragment.app.Fragment;
 import com.example.skyeos.ui.fragment.CaptureFragment;
 import com.example.skyeos.ui.fragment.CostManagementFragment;
 import com.example.skyeos.ui.fragment.DayDetailFragment;
+import com.example.skyeos.ui.fragment.LedgerManagementFragment;
+import com.example.skyeos.ui.fragment.ManagementFragment;
+import com.example.skyeos.ui.fragment.AiChatFragment;
 import com.example.skyeos.ui.fragment.ProjectsFragment;
 import com.example.skyeos.ui.fragment.ReviewFragment;
 import com.example.skyeos.ui.fragment.SettingsFragment;
+import com.example.skyeos.ui.fragment.TimeManagementFragment;
 import com.example.skyeos.ui.fragment.TodayFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
+    private String pendingCaptureType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,9 +38,14 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_today) {
                 showPrimaryFragment(new TodayFragment());
             } else if (id == R.id.nav_capture) {
-                showPrimaryFragment(new CaptureFragment());
-            } else if (id == R.id.nav_projects) {
-                showPrimaryFragment(new ProjectsFragment());
+                if (pendingCaptureType == null) {
+                    showPrimaryFragment(new CaptureFragment());
+                } else {
+                    showPrimaryFragment(CaptureFragment.newManualWithType(pendingCaptureType));
+                    pendingCaptureType = null;
+                }
+            } else if (id == R.id.nav_management) {
+                showPrimaryFragment(new ManagementFragment());
             } else if (id == R.id.nav_review) {
                 showPrimaryFragment(new ReviewFragment());
             }
@@ -60,8 +70,29 @@ public class MainActivity extends AppCompatActivity {
         openUtilityFragment(new CostManagementFragment());
     }
 
+    public void openProjects() {
+        openUtilityFragment(new ProjectsFragment());
+    }
+
+    public void openTimeManagement() {
+        openUtilityFragment(new TimeManagementFragment());
+    }
+
+    public void openCaptureType(String type) {
+        pendingCaptureType = type;
+        bottomNav.setSelectedItemId(R.id.nav_capture);
+    }
+
+    public void openLedgerManagement(String type) {
+        openUtilityFragment(LedgerManagementFragment.newInstance(type));
+    }
+
     public void openDayDetail(String anchorDate) {
         openUtilityFragment(DayDetailFragment.newInstance(anchorDate));
+    }
+
+    public void openAiChat() {
+        openUtilityFragment(new AiChatFragment());
     }
 
     private void showPrimaryFragment(Fragment fragment) {

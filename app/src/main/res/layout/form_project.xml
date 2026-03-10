@@ -56,18 +56,24 @@
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="6dp"/>
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_tags_project"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:singleSelection="false"/>
+            android:hint="@string/form_tags_multi_hint">
+
+            <MultiAutoCompleteTextView
+                android:id="@+id/acv_project_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_submit_project"
             style="@style/Widget.LifeOS.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:text="@string/form_create_project"/>
 
     </LinearLayout>

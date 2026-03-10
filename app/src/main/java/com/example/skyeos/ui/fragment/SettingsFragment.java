@@ -18,7 +18,6 @@ import androidx.fragment.app.Fragment;
 
 import com.example.skyeos.AppLocaleManager;
 import com.example.skyeos.AppGraph;
-import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.ai.AiApiConfig;
 import com.example.skyeos.ai.AiApiProvider;
@@ -32,7 +31,10 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SettingsFragment extends Fragment {
 
@@ -42,10 +44,13 @@ public class SettingsFragment extends Fragment {
 
     private TextInputEditText etServerUrl, etApiKey, etDeviceId, etDownloadFilename;
     private AutoCompleteTextView etAiProvider, etTagScope, etAppLanguage;
+    private AutoCompleteTextView etTagParent, etTagLevel;
     private TextInputEditText etAiBaseUrl, etAiApiKey, etAiModel, etAiSystemPrompt;
     private TextInputEditText etTagName, etTagEmoji;
     private TextView tvStatus, tvRemoteList, tvAiTestResult;
     private LinearLayout layoutTagList;
+    private final List<TagItem> cachedTags = new ArrayList<>();
+    private final Map<String, String> tagParentLabelToId = new LinkedHashMap<>();
 
     @Nullable
     @Override
@@ -74,6 +79,8 @@ public class SettingsFragment extends Fragment {
         etTagName = view.findViewById(R.id.et_tag_name);
         etTagEmoji = view.findViewById(R.id.et_tag_emoji);
         etTagScope = view.findViewById(R.id.et_tag_scope);
+        etTagParent = view.findViewById(R.id.et_tag_parent);
+        etTagLevel = view.findViewById(R.id.et_tag_level);
         tvStatus = view.findViewById(R.id.tv_cloud_status);
         tvRemoteList = view.findViewById(R.id.tv_remote_list);
         tvAiTestResult = view.findViewById(R.id.tv_ai_test_result);
@@ -91,6 +98,7 @@ public class SettingsFragment extends Fragment {
         setupLanguageDropdown();
         setupAiProviderDropdown();
         setupTagScopeDropdown();
+        setupTagLevelDropdown();
         etAppLanguage.setText(displayLanguage(AppLocaleManager.loadLanguageTag(requireContext())), false);
         etAiProvider.setText(aiConfig.provider.toPersistedValue(), false);
         etAiBaseUrl.setText(aiConfig.baseUrl);
@@ -98,6 +106,7 @@ public class SettingsFragment extends Fragment {
         etAiModel.setText(aiConfig.model);
         etAiSystemPrompt.setText(aiConfig.resolvedSystemPrompt());
         etTagScope.setText(getString(R.string.settings_scope_global), false);
+        etTagLevel.setText(getString(R.string.settings_tag_level_root), false);
         refreshTagList();
 
         MaterialButton btnSave = view.findViewById(R.id.btn_save_config);
@@ -106,7 +115,6 @@ public class SettingsFragment extends Fragment {
         MaterialButton btnDownload = view.findViewById(R.id.btn_download_restore);
         MaterialButton btnTestAi = view.findViewById(R.id.btn_test_ai);
         MaterialButton btnCreateTag = view.findViewById(R.id.btn_create_tag);
-        MaterialButton btnOpenCostManagement = view.findViewById(R.id.btn_open_cost_management);
 
         btnSave.setOnClickListener(v -> saveConfig());
         btnUpload.setOnClickListener(v -> uploadLatestManualBackup());
@@ -114,16 +122,23 @@ public class SettingsFragment extends Fragment {
         btnDownload.setOnClickListener(v -> downloadAndRestore());
         btnTestAi.setOnClickListener(v -> testAiConnection());
         btnCreateTag.setOnClickListener(v -> createTag());
-        btnOpenCostManagement.setOnClickListener(v -> openCostManagement());
+
+        etTagScope.setOnItemClickListener((parent, itemView, position, id) -> refreshTagParentOptions());
+        etTagLevel.setOnItemClickListener((parent, itemView, position, id) -> refreshTagParentOptions());
     }
 
     private void saveConfig() {
+        String oldLanguage = AppLocaleManager.loadLanguageTag(requireContext());
         CloudSyncConfig config = collectConfig();
         configStore.save(config);
         AiApiConfig aiConfig = collectAiConfig();
         graph.aiApiConfigStore.save(aiConfig);
-        AppLocaleManager.saveLanguageTag(requireContext(), languageTagFromDisplay(text(etAppLanguage)));
+        String newLanguage = languageTagFromDisplay(text(etAppLanguage));
+        AppLocaleManager.saveLanguageTag(requireContext(), newLanguage);
         status(getString(R.string.settings_status_config_saved));
+        if ((oldLanguage == null ? "" : oldLanguage).equalsIgnoreCase(newLanguage)) {
+            return;
+        }
         if (getActivity() != null) {
             getActivity().recreate();
         }
@@ -213,7 +228,8 @@ public class SettingsFragment extends Fragment {
                 if (latest == null || !latest.success || latest.filePath == null || latest.filePath.trim().isEmpty()) {
                     BackupResult created = graph.useCases.createBackup.execute("manual");
                     if (!created.success)
-                        throw new IllegalStateException(getString(R.string.settings_backup_create_failed, created.errorMessage));
+                        throw new IllegalStateException(
+                                getString(R.string.settings_backup_create_failed, created.errorMessage));
                     latest = created;
                 }
                 File file = new File(latest.filePath);
@@ -273,9 +289,11 @@ public class SettingsFragment extends Fragment {
                         result.file.getAbsolutePath(), "manual", result.sizeBytes, null);
                 com.example.skyeos.domain.model.RestoreResult restore = graph.useCases.restoreBackup
                         .execute(registered.id);
-                runOnUiThread(() -> status(restore.success ? getString(R.string.settings_status_restore_success) : getString(R.string.settings_status_restore_failed, restore.errorMessage)));
+                runOnUiThread(() -> status(restore.success ? getString(R.string.settings_status_restore_success)
+                        : getString(R.string.settings_status_restore_failed, restore.errorMessage)));
             } catch (Exception e) {
-                runOnUiThread(() -> status(getString(R.string.settings_status_download_restore_failed, e.getMessage())));
+                runOnUiThread(
+                        () -> status(getString(R.string.settings_status_download_restore_failed, e.getMessage())));
             }
         }).start();
     }
@@ -321,7 +339,25 @@ public class SettingsFragment extends Fragment {
     }
 
     private void setupTagScopeDropdown() {
-        String[] values = new String[] {
+        String[] values = tagScopeValues();
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                values);
+        etTagScope.setAdapter(adapter);
+    }
+
+    private void setupTagLevelDropdown() {
+        String[] values = tagLevelValues();
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                values);
+        etTagLevel.setAdapter(adapter);
+    }
+
+    private String[] tagScopeValues() {
+        return new String[] {
                 getString(R.string.settings_scope_global),
                 getString(R.string.settings_scope_time),
                 getString(R.string.settings_scope_project),
@@ -330,25 +366,38 @@ public class SettingsFragment extends Fragment {
                 getString(R.string.settings_scope_learning),
                 getString(R.string.settings_scope_investment)
         };
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
-                values);
-        etTagScope.setAdapter(adapter);
+    }
+
+    private String[] tagLevelValues() {
+        return new String[] {
+                getString(R.string.settings_tag_level_root),
+                getString(R.string.settings_tag_level_child)
+        };
     }
 
     private void createTag() {
         String name = text(etTagName);
         String emoji = text(etTagEmoji);
         String scope = text(etTagScope);
+        int level = selectedTagLevel(text(etTagLevel));
+        String parentTagId = selectedParentTagId(text(etTagParent));
         if (name.isEmpty()) {
             status(getString(R.string.settings_tag_name_required));
             return;
         }
+        if (level == 2 && (parentTagId == null || parentTagId.isEmpty())) {
+            status(getString(R.string.settings_tag_parent_required));
+            return;
+        }
         try {
-            graph.useCases.createTag.execute(name, emoji, "custom", scope.isEmpty() ? getString(R.string.settings_scope_global) : scope);
+            graph.useCases.createTag.execute(name, emoji, "custom",
+                    scope.isEmpty() ? getString(R.string.settings_scope_global) : scope,
+                    parentTagId,
+                    level);
             etTagName.setText("");
             etTagEmoji.setText("");
+            etTagParent.setText(getString(R.string.settings_tag_parent_none), false);
+            etTagLevel.setText(getString(R.string.settings_tag_level_root), false);
             status(getString(R.string.settings_tag_created));
             refreshTagList();
         } catch (Exception e) {
@@ -359,13 +408,17 @@ public class SettingsFragment extends Fragment {
     private void refreshTagList() {
         try {
             List<TagItem> tags = graph.useCases.getTags.execute("all", false);
+            cachedTags.clear();
             layoutTagList.removeAllViews();
             if (tags == null || tags.isEmpty()) {
+                refreshTagParentOptions();
                 TextView empty = new TextView(requireContext());
                 empty.setText(R.string.settings_no_tags);
                 layoutTagList.addView(empty);
                 return;
             }
+            cachedTags.addAll(tags);
+            refreshTagParentOptions();
             for (TagItem tag : tags) {
                 if (tag == null) {
                     continue;
@@ -373,6 +426,8 @@ public class SettingsFragment extends Fragment {
                 layoutTagList.addView(buildTagRow(tag));
             }
         } catch (Exception e) {
+            cachedTags.clear();
+            refreshTagParentOptions();
             layoutTagList.removeAllViews();
             TextView error = new TextView(requireContext());
             error.setText(getString(R.string.settings_load_tags_failed, e.getMessage()));
@@ -386,19 +441,23 @@ public class SettingsFragment extends Fragment {
         row.setPadding(0, 0, 0, 12);
         TextView label = new TextView(requireContext());
         label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        String hierarchyPrefix = tag.level >= 2 ? "↳ " : "";
+        String scopeWithLevel = (tag.scope == null ? getString(R.string.settings_scope_global) : tag.scope) + " · L" + (tag.level <= 1 ? 1 : 2);
         label.setText(getString(
                 R.string.settings_tag_label,
-                tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " ",
+                hierarchyPrefix + (tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " "),
                 tag.name,
-                tag.scope,
+                scopeWithLevel,
                 tag.isActive ? "" : getString(R.string.settings_tag_disabled_suffix)));
         row.addView(label);
-        com.google.android.material.button.MaterialButton edit = new com.google.android.material.button.MaterialButton(requireContext(), null,
+        com.google.android.material.button.MaterialButton edit = new com.google.android.material.button.MaterialButton(
+                requireContext(), null,
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
         edit.setText(R.string.common_edit);
         edit.setOnClickListener(v -> showEditTagDialog(tag));
         row.addView(edit);
-        com.google.android.material.button.MaterialButton delete = new com.google.android.material.button.MaterialButton(requireContext(), null,
+        com.google.android.material.button.MaterialButton delete = new com.google.android.material.button.MaterialButton(
+                requireContext(), null,
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
         delete.setText(R.string.common_delete);
         delete.setOnClickListener(v -> {
@@ -422,21 +481,68 @@ public class SettingsFragment extends Fragment {
         etEmoji2.setHint(R.string.common_emoji);
         etEmoji2.setText(tag.emoji);
         layout.addView(etEmoji2);
-        EditText etScope2 = new EditText(requireContext());
+
+        AutoCompleteTextView etScope2 = new AutoCompleteTextView(requireContext());
         etScope2.setHint(R.string.settings_scope_hint);
         etScope2.setText(tag.scope);
+        etScope2.setAdapter(new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                tagScopeValues()));
         layout.addView(etScope2);
+
+        AutoCompleteTextView etLevel2 = new AutoCompleteTextView(requireContext());
+        etLevel2.setHint(R.string.settings_tag_level_hint);
+        etLevel2.setAdapter(new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                tagLevelValues()));
+        etLevel2.setText(tag.level >= 2 ? getString(R.string.settings_tag_level_child) : getString(R.string.settings_tag_level_root), false);
+        layout.addView(etLevel2);
+
+        AutoCompleteTextView etParent2 = new AutoCompleteTextView(requireContext());
+        etParent2.setHint(R.string.settings_tag_parent_hint);
+        Map<String, String> dialogParentMap = buildParentTagMap(text(etScope2), tag.id);
+        etParent2.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, new ArrayList<>(dialogParentMap.keySet())));
+        etParent2.setText(findParentLabel(dialogParentMap, tag.parentTagId), false);
+        etParent2.setEnabled(tag.level >= 2);
+        layout.addView(etParent2);
+
+        etScope2.setOnItemClickListener((parent, view, position, id) -> {
+            Map<String, String> refreshedMap = buildParentTagMap(text(etScope2), tag.id);
+            dialogParentMap.clear();
+            dialogParentMap.putAll(refreshedMap);
+            etParent2.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, new ArrayList<>(dialogParentMap.keySet())));
+            etParent2.setText(getString(R.string.settings_tag_parent_none), false);
+        });
+
+        etLevel2.setOnItemClickListener((parent, view, position, id) -> {
+            int level = selectedTagLevel(text(etLevel2));
+            etParent2.setEnabled(level >= 2);
+            if (level <= 1) {
+                etParent2.setText(getString(R.string.settings_tag_parent_none), false);
+            }
+        });
+
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.settings_edit_tag_title)
                 .setView(layout)
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
+                        int level = selectedTagLevel(text(etLevel2));
+                        String parentTagId = dialogParentMap.get(text(etParent2));
+                        if (level == 2 && (parentTagId == null || parentTagId.isEmpty())) {
+                            status(getString(R.string.settings_tag_parent_required));
+                            return;
+                        }
                         graph.useCases.updateTag.execute(tag.id,
                                 etName2.getText().toString().trim(),
                                 etEmoji2.getText().toString().trim(),
                                 tag.tagGroup,
                                 etScope2.getText().toString().trim(),
+                                parentTagId,
+                                level,
                                 tag.isActive);
                         refreshTagList();
                     } catch (Exception e) {
@@ -446,10 +552,78 @@ public class SettingsFragment extends Fragment {
                 .show();
     }
 
-    private void openCostManagement() {
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).openCostManagement();
+    private void refreshTagParentOptions() {
+        if (etTagParent == null || etTagLevel == null) {
+            return;
         }
+        tagParentLabelToId.clear();
+        tagParentLabelToId.put(getString(R.string.settings_tag_parent_none), "");
+        tagParentLabelToId.putAll(buildParentTagMap(text(etTagScope), null));
+        etTagParent.setAdapter(new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                new ArrayList<>(tagParentLabelToId.keySet())));
+        if (text(etTagParent).isEmpty()) {
+            etTagParent.setText(getString(R.string.settings_tag_parent_none), false);
+        }
+        int level = selectedTagLevel(text(etTagLevel));
+        etTagParent.setEnabled(level >= 2);
+        if (level <= 1) {
+            etTagParent.setText(getString(R.string.settings_tag_parent_none), false);
+        }
+    }
+
+    private Map<String, String> buildParentTagMap(String scope, String excludeTagId) {
+        Map<String, String> map = new LinkedHashMap<>();
+        String normalizedScope = scope == null || scope.trim().isEmpty()
+                ? getString(R.string.settings_scope_global)
+                : scope.trim().toLowerCase();
+        for (TagItem tag : cachedTags) {
+            if (tag == null || !tag.isActive) {
+                continue;
+            }
+            if (tag.level > 1) {
+                continue;
+            }
+            if (excludeTagId != null && excludeTagId.equals(tag.id)) {
+                continue;
+            }
+            String tagScope = tag.scope == null ? getString(R.string.settings_scope_global) : tag.scope;
+            if (!tagScope.equals(normalizedScope) && !getString(R.string.settings_scope_global).equals(tagScope)) {
+                continue;
+            }
+            map.put(parentDisplayLabel(tag), tag.id);
+        }
+        return map;
+    }
+
+    private String parentDisplayLabel(TagItem tag) {
+        String emoji = tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " ";
+        return emoji + tag.name + " [" + tag.scope + "]";
+    }
+
+    private String selectedParentTagId(String label) {
+        if (label == null || label.trim().isEmpty()) {
+            return "";
+        }
+        String value = tagParentLabelToId.get(label.trim());
+        return value == null ? "" : value;
+    }
+
+    private String findParentLabel(Map<String, String> map, String parentTagId) {
+        if (parentTagId == null || parentTagId.trim().isEmpty()) {
+            return getString(R.string.settings_tag_parent_none);
+        }
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (parentTagId.equals(entry.getValue())) {
+                return entry.getKey();
+            }
+        }
+        return getString(R.string.settings_tag_parent_none);
+    }
+
+    private int selectedTagLevel(String label) {
+        return getString(R.string.settings_tag_level_child).equalsIgnoreCase(label) ? 2 : 1;
     }
 
     private static String text(TextInputEditText et) {

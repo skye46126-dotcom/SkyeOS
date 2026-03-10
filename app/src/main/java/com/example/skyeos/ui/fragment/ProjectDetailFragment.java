@@ -22,7 +22,7 @@ import com.example.skyeos.AppGraph;
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ProjectDetail;
 import com.example.skyeos.domain.model.input.CreateProjectInput;
-import com.example.skyeos.domain.usecase.ProjectUseCases;
+import com.example.skyeos.ui.util.UiFormatters;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -128,11 +128,11 @@ public class ProjectDetailFragment extends Fragment {
 
         long hours = detail.totalTimeMinutes / 60;
         long mins = detail.totalTimeMinutes % 60;
-        tvTime.setText(getString(R.string.common_duration_hours_minutes, hours, mins));
+        tvTime.setText(UiFormatters.duration(requireContext(), detail.totalTimeMinutes));
 
         tvRoi.setText(getString(R.string.project_roi_format, detail.operatingRoiPerc, detail.fullyLoadedRoiPerc));
         tvHourly.setText(
-                getString(R.string.common_hourly_format, formatYuan(Math.round(detail.hourlyRateYuan * 100.0))));
+                UiFormatters.hourly(requireContext(), Math.round(detail.hourlyRateYuan * 100.0)));
         tvTimeCost.setText(formatYuan(detail.timeCostCents));
         tvDirectExpense.setText(formatYuan(detail.directExpenseCents));
         tvStructuralAllocated.setText(formatYuan(detail.allocatedStructuralCostCents));
@@ -251,13 +251,7 @@ public class ProjectDetailFragment extends Fragment {
     }
 
     private String formatYuan(long cents) {
-        if (cents == 0L) {
-            return getString(R.string.common_none);
-        }
-        if (cents % 100 == 0) {
-            return getString(R.string.common_currency_yuan_int, cents / 100);
-        }
-        return getString(R.string.common_currency_yuan, cents / 100.0);
+        return UiFormatters.yuan(requireContext(), cents);
     }
 
     private String buildProfitBlock(long profitCents, long costCents, long breakEvenCents, double roiPerc) {

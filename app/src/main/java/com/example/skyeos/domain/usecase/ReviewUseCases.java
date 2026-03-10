@@ -39,6 +39,17 @@ public class ReviewUseCases {
         return repository.getYearlyReview(startOfYear.toString(), endOfYear.toString());
     }
 
+    public ReviewReport getRangeReview(LocalDate startDate, LocalDate endDate) {
+        LocalDate start = startDate;
+        LocalDate end = endDate;
+        if (end.isBefore(start)) {
+            LocalDate tmp = start;
+            start = end;
+            end = tmp;
+        }
+        return repository.getRangeReview(start.toString(), end.toString());
+    }
+
     public List<RecentRecordItem> getDailyTagDetail(LocalDate date, String scope, String tagName, int limit) {
         String day = date.toString();
         return repository.getTagDetailRecords(scope, tagName, day, day, limit);
@@ -60,5 +71,17 @@ public class ReviewUseCases {
         LocalDate startOfYear = dateInYear.withDayOfYear(1);
         LocalDate endOfYear = dateInYear.with(TemporalAdjusters.lastDayOfYear());
         return repository.getTagDetailRecords(scope, tagName, startOfYear.toString(), endOfYear.toString(), limit);
+    }
+
+    public List<RecentRecordItem> getRangeTagDetail(LocalDate startDate, LocalDate endDate, String scope, String tagName,
+            int limit) {
+        LocalDate start = startDate;
+        LocalDate end = endDate;
+        if (end.isBefore(start)) {
+            LocalDate tmp = start;
+            start = end;
+            end = tmp;
+        }
+        return repository.getTagDetailRecords(scope, tagName, start.toString(), end.toString(), limit);
     }
 }

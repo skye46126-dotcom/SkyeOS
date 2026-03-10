@@ -9,9 +9,9 @@
         android:icon="@drawable/ic_nav_capture"
         android:title="@string/nav_capture" />
     <item
-        android:id="@+id/nav_projects"
+        android:id="@+id/nav_management"
         android:icon="@drawable/ic_nav_projects"
-        android:title="@string/nav_projects" />
+        android:title="@string/nav_management" />
     <item
         android:id="@+id/nav_review"
         android:icon="@drawable/ic_nav_review"

@@ -9,7 +9,7 @@ public final class UpdateTagUseCase {
         this.repository = repository;
     }
 
-    public void execute(String tagId, String name, String emoji, String tagGroup, String scope, boolean active) {
-        repository.updateTag(tagId, name, emoji, tagGroup, scope, active);
+    public void execute(String tagId, String name, String emoji, String tagGroup, String scope, String parentTagId, int level, boolean active) {
+        repository.updateTag(tagId, name, emoji, tagGroup, scope, parentTagId, level, active);
     }
 }

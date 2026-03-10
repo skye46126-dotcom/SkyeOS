@@ -17,6 +17,8 @@ import com.example.skyeos.domain.model.CapexCostSummary;
 import com.example.skyeos.domain.model.MonthlyCostBaseline;
 import com.example.skyeos.domain.model.RateComparisonSummary;
 import com.example.skyeos.domain.model.RecurringCostRuleSummary;
+import com.example.skyeos.ui.util.UiFormatters;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
@@ -39,7 +41,6 @@ public class CostManagementFragment extends Fragment {
     private TextInputEditText etMonth;
     private TextInputEditText etIdeal;
     private TextInputEditText etMonthlyBasic;
-    private TextInputEditText etMonthlyFixed;
     private TextInputEditText etRecurringName;
     private TextInputEditText etRecurringCategory;
     private TextInputEditText etRecurringAmount;
@@ -86,7 +87,6 @@ public class CostManagementFragment extends Fragment {
         etMonth = view.findViewById(R.id.et_cost_month);
         etIdeal = view.findViewById(R.id.et_cost_ideal_rate);
         etMonthlyBasic = view.findViewById(R.id.et_cost_monthly_basic);
-        etMonthlyFixed = view.findViewById(R.id.et_cost_monthly_fixed);
         etRecurringName = view.findViewById(R.id.et_recurring_name);
         etRecurringCategory = view.findViewById(R.id.et_recurring_category);
         etRecurringAmount = view.findViewById(R.id.et_recurring_amount);
@@ -128,9 +128,9 @@ public class CostManagementFragment extends Fragment {
             etCapexUsefulMonths.setText(R.string.cost_default_useful_months);
         }
 
-        View btnSave = view.findViewById(R.id.btn_save_cost_inputs);
-        View btnAddRecurring = view.findViewById(R.id.btn_add_recurring);
-        View btnAddCapex = view.findViewById(R.id.btn_add_capex);
+        MaterialButton btnSave = view.findViewById(R.id.btn_save_cost_inputs);
+        MaterialButton btnAddRecurring = view.findViewById(R.id.btn_add_recurring);
+        MaterialButton btnAddCapex = view.findViewById(R.id.btn_add_capex);
         bindToggle(tvToggleBaseline, baselineContent, R.string.cost_monthly_baseline_collapsed, R.string.cost_monthly_baseline_open);
         bindToggle(tvToggleRecurring, recurringContent, R.string.cost_recurring_collapsed, R.string.cost_recurring_open);
         bindToggle(tvToggleCapex, capexContent, R.string.cost_capex_collapsed, R.string.cost_capex_open);
@@ -138,68 +138,83 @@ public class CostManagementFragment extends Fragment {
         bindData();
 
         btnSave.setOnClickListener(v -> {
-            long idealValue = parseYuanToCents(text(etIdeal));
-            long basicValue = parseYuanToCents(text(etMonthlyBasic));
-            long fixedValue = parseYuanToCents(text(etMonthlyFixed));
-            String month = normalizeMonthOrFallback(text(etMonth));
-            graph.useCases.setIdealHourlyRate.execute(idealValue);
-            graph.useCases.upsertMonthlyCostBaseline.execute(month, basicValue, fixedValue);
-            Snackbar.make(view, R.string.cost_saved, Snackbar.LENGTH_SHORT).show();
-            bindData();
+            try {
+                long idealValue = parseYuanToCents(text(etIdeal));
+                long basicValue = parseYuanToCents(text(etMonthlyBasic));
+                String month = normalizeMonthOrFallback(text(etMonth));
+                graph.useCases.setIdealHourlyRate.execute(idealValue);
+                // Fixed subscription has been merged into recurring rules and no longer
+                // participates in monthly baseline calculations.
+                graph.useCases.upsertMonthlyCostBaseline.execute(month, basicValue, 0L);
+                Snackbar.make(view, R.string.cost_saved, Snackbar.LENGTH_SHORT).show();
+                bindData();
+            } catch (Exception e) {
+                showActionError(view, e);
+            }
         });
 
         btnAddRecurring.setOnClickListener(v -> {
-            if (editingRecurringId == null) {
-                graph.useCases.createRecurringCostRule.execute(
-                        text(etRecurringName),
-                        text(etRecurringCategory),
-                        parseYuanToCents(text(etRecurringAmount)),
-                        swRecurringNecessary != null && swRecurringNecessary.isChecked(),
-                        normalizeMonthOrFallback(text(etRecurringStartMonth)),
-                        text(etRecurringEndMonth).isEmpty() ? null : normalizeMonthOrFallback(text(etRecurringEndMonth)),
-                        text(etRecurringNote));
-            } else {
-                graph.useCases.updateRecurringCostRule.execute(
-                        editingRecurringId,
-                        text(etRecurringName),
-                        text(etRecurringCategory),
-                        parseYuanToCents(text(etRecurringAmount)),
-                        swRecurringNecessary != null && swRecurringNecessary.isChecked(),
-                        normalizeMonthOrFallback(text(etRecurringStartMonth)),
-                        text(etRecurringEndMonth).isEmpty() ? null : normalizeMonthOrFallback(text(etRecurringEndMonth)),
-                        text(etRecurringNote));
+            try {
+                boolean wasEditing = editingRecurringId != null;
+                if (!wasEditing) {
+                    graph.useCases.createRecurringCostRule.execute(
+                            text(etRecurringName),
+                            text(etRecurringCategory),
+                            parseYuanToCents(text(etRecurringAmount)),
+                            swRecurringNecessary != null && swRecurringNecessary.isChecked(),
+                            normalizeMonthOrFallback(text(etRecurringStartMonth)),
+                            text(etRecurringEndMonth).isEmpty() ? null : normalizeMonthOrFallback(text(etRecurringEndMonth)),
+                            text(etRecurringNote));
+                } else {
+                    graph.useCases.updateRecurringCostRule.execute(
+                            editingRecurringId,
+                            text(etRecurringName),
+                            text(etRecurringCategory),
+                            parseYuanToCents(text(etRecurringAmount)),
+                            swRecurringNecessary != null && swRecurringNecessary.isChecked(),
+                            normalizeMonthOrFallback(text(etRecurringStartMonth)),
+                            text(etRecurringEndMonth).isEmpty() ? null : normalizeMonthOrFallback(text(etRecurringEndMonth)),
+                            text(etRecurringNote));
+                }
+                clearRecurringInputs();
+                Snackbar.make(view, wasEditing ? R.string.cost_recurring_updated : R.string.cost_recurring_added, Snackbar.LENGTH_SHORT).show();
+                editingRecurringId = null;
+                btnAddRecurring.setText(R.string.cost_add_recurring_rule);
+                bindData();
+            } catch (Exception e) {
+                showActionError(view, e);
             }
-            clearRecurringInputs();
-            Snackbar.make(view, editingRecurringId == null ? R.string.cost_recurring_added : R.string.cost_recurring_updated, Snackbar.LENGTH_SHORT).show();
-            editingRecurringId = null;
-            ((TextView) btnAddRecurring).setText(R.string.cost_add_recurring_rule);
-            bindData();
         });
 
         btnAddCapex.setOnClickListener(v -> {
-            if (editingCapexId == null) {
-                graph.useCases.createCapexCost.execute(
-                        text(etCapexName),
-                        normalizeDateOrToday(text(etCapexPurchaseDate)),
-                        parseYuanToCents(text(etCapexAmount)),
-                        parseIntOrDefault(text(etCapexUsefulMonths), 12),
-                        parseIntOrDefault(text(etCapexResidualBps), 0),
-                        text(etCapexNote));
-            } else {
-                graph.useCases.updateCapexCost.execute(
-                        editingCapexId,
-                        text(etCapexName),
-                        normalizeDateOrToday(text(etCapexPurchaseDate)),
-                        parseYuanToCents(text(etCapexAmount)),
-                        parseIntOrDefault(text(etCapexUsefulMonths), 12),
-                        parseIntOrDefault(text(etCapexResidualBps), 0),
-                        text(etCapexNote));
+            try {
+                boolean wasEditing = editingCapexId != null;
+                if (!wasEditing) {
+                    graph.useCases.createCapexCost.execute(
+                            text(etCapexName),
+                            normalizeDateOrToday(text(etCapexPurchaseDate)),
+                            parseYuanToCents(text(etCapexAmount)),
+                            parseIntOrDefault(text(etCapexUsefulMonths), 12),
+                            parseIntOrDefault(text(etCapexResidualBps), 0),
+                            text(etCapexNote));
+                } else {
+                    graph.useCases.updateCapexCost.execute(
+                            editingCapexId,
+                            text(etCapexName),
+                            normalizeDateOrToday(text(etCapexPurchaseDate)),
+                            parseYuanToCents(text(etCapexAmount)),
+                            parseIntOrDefault(text(etCapexUsefulMonths), 12),
+                            parseIntOrDefault(text(etCapexResidualBps), 0),
+                            text(etCapexNote));
+                }
+                clearCapexInputs();
+                Snackbar.make(view, wasEditing ? R.string.cost_capex_updated : R.string.cost_capex_added, Snackbar.LENGTH_SHORT).show();
+                editingCapexId = null;
+                btnAddCapex.setText(R.string.cost_add_capex_item);
+                bindData();
+            } catch (Exception e) {
+                showActionError(view, e);
             }
-            clearCapexInputs();
-            Snackbar.make(view, editingCapexId == null ? R.string.cost_capex_added : R.string.cost_capex_updated, Snackbar.LENGTH_SHORT).show();
-            editingCapexId = null;
-            ((TextView) btnAddCapex).setText(R.string.cost_add_capex_item);
-            bindData();
         });
     }
 
@@ -215,67 +230,153 @@ public class CostManagementFragment extends Fragment {
     }
 
     private void bindData() {
-        String month = normalizeMonthOrFallback(text(etMonth));
-        RateComparisonSummary rates = graph.useCases.getRateComparison.execute(YearMonth.parse(month).atEndOfMonth().toString(), "month");
-        MonthlyCostBaseline baseline = graph.useCases.getMonthlyCostBaseline.execute(month);
-        List<RecurringCostRuleSummary> recurringRules = graph.useCases.listRecurringCostRules.execute();
-        List<CapexCostSummary> capexCosts = graph.useCases.listCapexCosts.execute();
+        try {
+            String month = normalizeMonthOrFallback(text(etMonth));
+            RateComparisonSummary rates = graph.useCases.getRateComparison.execute(YearMonth.parse(month).atEndOfMonth().toString(), "month");
+            MonthlyCostBaseline baseline = graph.useCases.getMonthlyCostBaseline.execute(month);
+            List<RecurringCostRuleSummary> recurringRules = graph.useCases.listRecurringCostRules.execute();
+            List<CapexCostSummary> capexCosts = graph.useCases.listCapexCosts.execute();
+            long recurringMonthlyCents = recurringMonthlyForMonth(recurringRules, month);
+            long capexMonthlyCents = capexMonthlyForMonth(capexCosts, month);
+            long monthlyBaselineCents = Math.max(0L, baseline.basicLivingCents) + recurringMonthlyCents + capexMonthlyCents;
+            int monthDays = YearMonth.parse(month).lengthOfMonth();
+            long dailyBaselineCents = monthDays <= 0 ? 0L : Math.round(monthlyBaselineCents / (double) monthDays);
 
-        tvIdeal.setText(formatHourly(rates.idealHourlyRateCents));
-        tvPreviousYear.setText(formatNullableHourly(rates.previousYearAverageHourlyRateCents));
-        tvActual.setText(formatNullableHourly(rates.actualHourlyRateCents));
-        tvRateMeta.setText(getString(
-                R.string.cost_rate_meta_format,
-                formatYuan(nullableLong(rates.currentIncomeCents)),
-                formatMinutes(rates.currentWorkMinutes),
-                formatYuan(nullableLong(rates.previousYearIncomeCents)),
-                formatMinutes(rates.previousYearWorkMinutes)));
-        tvBaseline.setText(getString(R.string.cost_baseline_summary_format,
-                month, formatYuan(baseline.basicLivingCents), formatYuan(baseline.fixedSubscriptionCents)));
-        tvRecurring.setText(buildRecurringSummary(recurringRules));
-        tvCapex.setText(buildCapexSummary(capexCosts));
-        renderRecurringItems(recurringRules);
-        renderCapexItems(capexCosts);
-        etMonth.setText(month);
-        etIdeal.setText(toEditableYuan(rates.idealHourlyRateCents));
-        etMonthlyBasic.setText(toEditableYuan(baseline.basicLivingCents));
-        etMonthlyFixed.setText(toEditableYuan(baseline.fixedSubscriptionCents));
+            tvIdeal.setText(formatHourly(rates.idealHourlyRateCents));
+            tvPreviousYear.setText(formatNullableHourly(rates.previousYearAverageHourlyRateCents));
+            tvActual.setText(formatNullableHourly(rates.actualHourlyRateCents));
+            tvRateMeta.setText(getString(
+                    R.string.cost_rate_meta_format,
+                    formatYuan(nullableLong(rates.currentIncomeCents)),
+                    formatMinutes(rates.currentWorkMinutes),
+                    formatYuan(nullableLong(rates.previousYearIncomeCents)),
+                    formatMinutes(rates.previousYearWorkMinutes)));
+            tvBaseline.setText(getString(R.string.cost_baseline_summary_format,
+                    month,
+                    formatYuan(baseline.basicLivingCents),
+                    formatYuan(recurringMonthlyCents),
+                    formatYuan(capexMonthlyCents),
+                    formatYuan(monthlyBaselineCents),
+                    formatYuan(dailyBaselineCents)));
+            tvRecurring.setText(buildRecurringSummary(recurringRules, month));
+            tvCapex.setText(buildCapexSummary(capexCosts, month));
+            renderRecurringItems(recurringRules);
+            renderCapexItems(capexCosts);
+            etMonth.setText(month);
+            etIdeal.setText(toEditableYuan(rates.idealHourlyRateCents));
+            etMonthlyBasic.setText(toEditableYuan(baseline.basicLivingCents));
+        } catch (Exception e) {
+            View anchor = getView();
+            if (anchor != null) {
+                showActionError(anchor, e);
+            }
+        }
     }
 
-    private String buildRecurringSummary(List<RecurringCostRuleSummary> recurringRules) {
-        StringBuilder sb = new StringBuilder();
+    private String buildRecurringSummary(List<RecurringCostRuleSummary> recurringRules, String month) {
         if (recurringRules == null || recurringRules.isEmpty()) {
-            sb.append(getString(R.string.cost_no_recurring_rules));
-        } else {
-            int limit = Math.min(3, recurringRules.size());
-            for (int i = 0; i < limit; i++) {
-                RecurringCostRuleSummary item = recurringRules.get(i);
-                String necessity = item.necessary ? getString(R.string.common_necessary) : getString(R.string.common_optional);
-                sb.append(item.endMonth != null && !item.endMonth.isEmpty()
-                        ? getString(R.string.cost_recurring_summary_line_with_end, item.name, formatYuan(item.monthlyAmountCents), item.necessary ? " | necessary" : " | optional", item.startMonth, item.endMonth)
-                        : getString(R.string.cost_recurring_summary_line, item.name, formatYuan(item.monthlyAmountCents), item.necessary ? " | necessary" : " | optional", item.startMonth));
-                sb = new StringBuilder(sb.toString().replace(item.necessary ? "necessary" : "optional", necessity));
-                sb.append('\n');
+            return getString(R.string.cost_no_recurring_rules);
+        }
+        long monthlyTotalCents = 0L;
+        int necessaryCount = 0;
+        int activeCount = 0;
+        for (RecurringCostRuleSummary item : recurringRules) {
+            if (item == null) {
+                continue;
+            }
+            if (!isRecurringActiveInMonth(item, month)) {
+                continue;
+            }
+            activeCount++;
+            monthlyTotalCents += item.monthlyAmountCents;
+            if (item.necessary) {
+                necessaryCount++;
             }
         }
-        return sb.toString().trim();
+        if (activeCount <= 0) {
+            return getString(R.string.cost_no_recurring_rules);
+        }
+        return getString(
+                R.string.cost_recurring_summary_overview,
+                activeCount,
+                formatYuan(monthlyTotalCents),
+                necessaryCount);
     }
 
-    private String buildCapexSummary(List<CapexCostSummary> capexCosts) {
-        StringBuilder sb = new StringBuilder();
+    private String buildCapexSummary(List<CapexCostSummary> capexCosts, String month) {
         if (capexCosts == null || capexCosts.isEmpty()) {
-            sb.append(getString(R.string.cost_no_capex_items));
-        } else {
-            int limit = Math.min(3, capexCosts.size());
-            for (int i = 0; i < limit; i++) {
-                CapexCostSummary item = capexCosts.get(i);
-                sb.append(getString(R.string.cost_capex_summary_line, item.name, formatYuan(item.monthlyAmortizedCents), item.amortizationStartMonth, item.amortizationEndMonth));
-                if (i < limit - 1) {
-                    sb.append('\n');
-                }
+            return getString(R.string.cost_no_capex_items);
+        }
+        long monthlyAmortizedTotalCents = 0L;
+        int activeCount = 0;
+        for (CapexCostSummary item : capexCosts) {
+            if (item == null) {
+                continue;
+            }
+            if (!isCapexActiveInMonth(item, month)) {
+                continue;
+            }
+            activeCount++;
+            monthlyAmortizedTotalCents += item.monthlyAmortizedCents;
+        }
+        if (activeCount <= 0) {
+            return getString(R.string.cost_no_capex_items);
+        }
+        return getString(
+                R.string.cost_capex_summary_overview,
+                activeCount,
+                formatYuan(monthlyAmortizedTotalCents));
+    }
+
+    private static long recurringMonthlyForMonth(List<RecurringCostRuleSummary> recurringRules, String month) {
+        if (recurringRules == null || recurringRules.isEmpty()) {
+            return 0L;
+        }
+        long total = 0L;
+        for (RecurringCostRuleSummary item : recurringRules) {
+            if (item != null && isRecurringActiveInMonth(item, month)) {
+                total += Math.max(0L, item.monthlyAmountCents);
             }
         }
-        return sb.toString().trim();
+        return total;
+    }
+
+    private static long capexMonthlyForMonth(List<CapexCostSummary> capexCosts, String month) {
+        if (capexCosts == null || capexCosts.isEmpty()) {
+            return 0L;
+        }
+        long total = 0L;
+        for (CapexCostSummary item : capexCosts) {
+            if (item != null && isCapexActiveInMonth(item, month)) {
+                total += Math.max(0L, item.monthlyAmortizedCents);
+            }
+        }
+        return total;
+    }
+
+    private static boolean isRecurringActiveInMonth(RecurringCostRuleSummary item, String month) {
+        if (item == null || !item.active) {
+            return false;
+        }
+        String target = normalizeMonthOrFallback(month);
+        String start = normalizeMonthOrFallback(item.startMonth);
+        String end = item.endMonth == null || item.endMonth.trim().isEmpty()
+                ? null
+                : normalizeMonthOrFallback(item.endMonth);
+        if (target.compareTo(start) < 0) {
+            return false;
+        }
+        return end == null || target.compareTo(end) <= 0;
+    }
+
+    private static boolean isCapexActiveInMonth(CapexCostSummary item, String month) {
+        if (item == null || !item.active) {
+            return false;
+        }
+        String target = normalizeMonthOrFallback(month);
+        String start = normalizeMonthOrFallback(item.amortizationStartMonth);
+        String end = normalizeMonthOrFallback(item.amortizationEndMonth);
+        return target.compareTo(start) >= 0 && target.compareTo(end) <= 0;
     }
 
     private void clearRecurringInputs() {
@@ -345,15 +446,22 @@ public class CostManagementFragment extends Fragment {
                 }
             });
             delete.setOnClickListener(v -> {
-                graph.useCases.deleteRecurringCostRule.execute(item.id);
-                if (item.id.equals(editingRecurringId)) {
-                    editingRecurringId = null;
-                    clearRecurringInputs();
-                    TextView btn = requireView().findViewById(R.id.btn_add_recurring);
-                    btn.setText(R.string.cost_add_recurring_rule);
+                try {
+                    graph.useCases.deleteRecurringCostRule.execute(item.id);
+                    if (item.id.equals(editingRecurringId)) {
+                        editingRecurringId = null;
+                        clearRecurringInputs();
+                        TextView btn = requireView().findViewById(R.id.btn_add_recurring);
+                        btn.setText(R.string.cost_add_recurring_rule);
+                    }
+                    Snackbar.make(requireView(), R.string.cost_recurring_deleted, Snackbar.LENGTH_SHORT).show();
+                    bindData();
+                } catch (Exception e) {
+                    View anchor = getView();
+                    if (anchor != null) {
+                        showActionError(anchor, e);
+                    }
                 }
-                Snackbar.make(requireView(), R.string.cost_recurring_deleted, Snackbar.LENGTH_SHORT).show();
-                bindData();
             });
             recurringItemsContainer.addView(row);
         }
@@ -403,33 +511,37 @@ public class CostManagementFragment extends Fragment {
                 }
             });
             delete.setOnClickListener(v -> {
-                graph.useCases.deleteCapexCost.execute(item.id);
-                if (item.id.equals(editingCapexId)) {
-                    editingCapexId = null;
-                    clearCapexInputs();
-                    TextView btn = requireView().findViewById(R.id.btn_add_capex);
-                    btn.setText(R.string.cost_add_capex_item);
+                try {
+                    graph.useCases.deleteCapexCost.execute(item.id);
+                    if (item.id.equals(editingCapexId)) {
+                        editingCapexId = null;
+                        clearCapexInputs();
+                        TextView btn = requireView().findViewById(R.id.btn_add_capex);
+                        btn.setText(R.string.cost_add_capex_item);
+                    }
+                    Snackbar.make(requireView(), R.string.cost_capex_deleted, Snackbar.LENGTH_SHORT).show();
+                    bindData();
+                } catch (Exception e) {
+                    View anchor = getView();
+                    if (anchor != null) {
+                        showActionError(anchor, e);
+                    }
                 }
-                Snackbar.make(requireView(), R.string.cost_capex_deleted, Snackbar.LENGTH_SHORT).show();
-                bindData();
             });
             capexItemsContainer.addView(row);
         }
     }
 
     private String formatHourly(long cents) {
-        return getString(R.string.common_hourly_format, formatYuan(cents));
+        return UiFormatters.hourly(requireContext(), cents);
     }
 
     private String formatNullableHourly(Long cents) {
-        return cents == null ? getString(R.string.common_none) : formatHourly(cents);
+        return UiFormatters.nullableHourly(requireContext(), cents);
     }
 
     private String formatMinutes(Long minutes) {
-        if (minutes == null || minutes <= 0L) {
-            return getString(R.string.common_none);
-        }
-        return getString(R.string.common_duration_hours_minutes, minutes / 60, minutes % 60);
+        return UiFormatters.duration(requireContext(), minutes == null ? 0L : minutes);
     }
 
     private static long nullableLong(Long value) {
@@ -492,12 +604,13 @@ public class CostManagementFragment extends Fragment {
     }
 
     private String formatYuan(long cents) {
-        if (cents == 0L) {
-            return getString(R.string.common_none);
-        }
-        if (cents % 100 == 0) {
-            return getString(R.string.common_currency_yuan_int, cents / 100);
-        }
-        return getString(R.string.common_currency_yuan, cents / 100.0);
+        return UiFormatters.yuan(requireContext(), cents);
+    }
+
+    private void showActionError(View anchor, Exception e) {
+        String message = e == null || e.getMessage() == null || e.getMessage().trim().isEmpty()
+                ? getString(R.string.common_operation_failed, getString(R.string.common_unknown_error))
+                : getString(R.string.common_operation_failed, e.getMessage());
+        Snackbar.make(anchor, message, Snackbar.LENGTH_LONG).show();
     }
 }
