@@ -1,15 +1,21 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -18,10 +24,14 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.ai.ParseDraftItem;
 import com.example.skyeos.ai.ParseResult;
@@ -42,25 +52,56 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.textfield.TextInputEditText;
+import org.json.JSONArray;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+@AndroidEntryPoint
 public class CaptureFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    @Inject
+    com.example.skyeos.ai.AiParseOrchestrator aiParseOrchestrator;
+
+    @Inject
+    com.example.skyeos.ai.ParserSettingsStore parserSettingsStore;
     private static final String ARG_INITIAL_TYPE = "initial_type";
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Shanghai");
+    private static final Pattern NUMBER_TOKEN = Pattern.compile("-?\\d+(?:\\.\\d+)?");
+    private static final Pattern CLOCK_TOKEN = Pattern.compile(
+            "(?i)(上午|早上|中午|下午|晚上|凌晨|傍晚|am|pm)?\\s*(\\d{1,2})(?:[:点时](\\d{1,2}))?(半)?\\s*(am|pm)?");
+    private static final Pattern FULL_DATE_TOKEN = Pattern.compile("(\\d{4})\\s*[/-]\\s*(\\d{1,2})\\s*[/-]\\s*(\\d{1,2})");
+    private static final Pattern MONTH_DAY_TOKEN = Pattern.compile("(\\d{1,2})\\s*[月/-]\\s*(\\d{1,2})\\s*日?");
 
-    private AppGraph graph;
+    
     private View root;
 
     // ─── Main tab state ───
@@ -127,7 +168,7 @@ public class CaptureFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
         root = view;
 
         captureTabLayout = view.findViewById(R.id.capture_tab_layout);
@@ -294,7 +335,7 @@ public class CaptureFragment extends Fragment {
             Integer aiRatio = parseOptionalPercentage(text(etWorkAiRatio));
             validateWorkLearningRequired("work", valueScore, stateScore, aiRatio);
 
-            graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
+            useCases.createTimeLog.execute(new CreateTimeLogInput(
                     toUtcInstant(text(etWorkStart)),
                     toUtcInstant(text(etWorkEnd)),
                     "work",
@@ -372,7 +413,7 @@ public class CaptureFragment extends Fragment {
         try {
             String catLabel = text(acvTimeCategory);
             String catVal = mapCategoryValue(catLabel, catLabels, catVals);
-            graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
+            useCases.createTimeLog.execute(new CreateTimeLogInput(
                     toUtcInstant(text(etTimeStart)),
                     toUtcInstant(text(etTimeEnd)),
                     catVal,
@@ -423,7 +464,7 @@ public class CaptureFragment extends Fragment {
             String typeVal = mapCategoryValue(typeLabel, typeLabels, typeVals);
             String source = text(etIncomeSource);
 
-            graph.useCases.createIncome.execute(new CreateIncomeInput(
+            useCases.createIncome.execute(new CreateIncomeInput(
                     LocalDate.now().format(DATE_FMT),
                     source.isEmpty() ? getString(R.string.capture_source_manual_input) : source,
                     typeVal,
@@ -478,7 +519,7 @@ public class CaptureFragment extends Fragment {
             String catVal = mapCategoryValue(catLabel, catLabels, catVals);
             String note = text(etExpenseNote);
 
-            graph.useCases.createExpense.execute(new CreateExpenseInput(
+            useCases.createExpense.execute(new CreateExpenseInput(
                     LocalDate.now().format(DATE_FMT),
                     catVal,
                     amountCents,
@@ -554,7 +595,7 @@ public class CaptureFragment extends Fragment {
             }
             String note = text(etLearningNote);
 
-            graph.useCases.createLearning.execute(new CreateLearningInput(
+            useCases.createLearning.execute(new CreateLearningInput(
                     occurredOn,
                     startedAt,
                     endedAt,
@@ -607,7 +648,7 @@ public class CaptureFragment extends Fragment {
                 return;
             }
 
-            graph.useCases.createProject.execute(new CreateProjectInput(
+            useCases.createProject.execute(new CreateProjectInput(
                     name, start, "active", 0, null, getString(R.string.capture_note_created_from_capture),
                     resolveTagIdsFromDropdown("project", text(acvProjectTags), null)));
             snack(getString(R.string.capture_project_created, name));
@@ -649,7 +690,7 @@ public class CaptureFragment extends Fragment {
         btnAiCommit.setOnClickListener(x -> commitAiResult());
 
         // Load saved mode into chips
-        ParserMode saved = graph.parserSettingsStore.loadMode();
+        ParserMode saved = parserSettingsStore.loadMode();
         Chip ruleChip = aiView.findViewById(R.id.chip_mode_rule);
         if (saved == ParserMode.RULE && ruleChip != null)
             ruleChip.setChecked(true);
@@ -669,8 +710,8 @@ public class CaptureFragment extends Fragment {
         cardAiPreview.setVisibility(View.GONE);
 
         ParserMode mode = getSelectedParserMode();
-        graph.parserSettingsStore.saveMode(mode);
-        graph.aiParseOrchestrator.setParserMode(mode);
+        parserSettingsStore.saveMode(mode);
+        aiParseOrchestrator.setParserMode(mode);
 
         String contextDate = etAiDate.getText() == null ? LocalDate.now().toString()
                 : etAiDate.getText().toString().trim();
@@ -692,14 +733,35 @@ public class CaptureFragment extends Fragment {
 
         List<String> projectNames = new ArrayList<>();
         if (projectOptions != null) {
-            for (ProjectOption p : projectOptions)
-                projectNames.add(p.name);
+            for (ProjectOption p : projectOptions) {
+                if (p == null || p.name == null || p.name.trim().isEmpty()) {
+                    continue;
+                }
+                projectNames.add(p.name.trim());
+            }
         }
 
-        ParserContext context = new ParserContext(categories, projectNames, null);
+        List<String> tagNames = new ArrayList<>();
+        for (String scope : new String[] { "global", "time", "income", "expense", "learning", "project" }) {
+            List<TagItem> tags = useCases.getTags.execute(scope, true);
+            if (tags == null) {
+                continue;
+            }
+            for (TagItem tag : tags) {
+                if (tag == null || tag.name == null || tag.name.trim().isEmpty()) {
+                    continue;
+                }
+                String name = tag.name.trim();
+                if (!tagNames.contains(name)) {
+                    tagNames.add(name);
+                }
+            }
+        }
+
+        ParserContext context = new ParserContext(categories, projectNames, tagNames);
 
         new Thread(() -> {
-            ParseResult result = graph.aiParseOrchestrator.parse(raw, safeDate(contextDate), context);
+            ParseResult result = aiParseOrchestrator.parse(raw, safeDate(contextDate), context);
             if (getActivity() == null)
                 return;
             getActivity().runOnUiThread(() -> {
@@ -709,7 +771,7 @@ public class CaptureFragment extends Fragment {
                 progressAiParse.setVisibility(View.GONE);
 
                 boolean hasItems = result != null && result.items != null && !result.items.isEmpty();
-                btnAiCommit.setEnabled(hasItems);
+                btnAiCommit.setEnabled(hasCommittableItems(result));
                 cardAiPreview.setVisibility(View.VISIBLE);
                 renderDraftItems(result);
 
@@ -747,6 +809,7 @@ public class CaptureFragment extends Fragment {
             ImageView ivIcon = v.findViewById(R.id.iv_item_icon);
             TextView tvTitle = v.findViewById(R.id.tv_item_title);
             TextView tvSubtitle = v.findViewById(R.id.tv_item_subtitle);
+            ImageButton btnEdit = v.findViewById(R.id.btn_item_edit);
             ImageButton btnDelete = v.findViewById(R.id.btn_item_delete);
 
             String kind = item.kind != null ? item.kind : "unknown";
@@ -774,13 +837,25 @@ public class CaptureFragment extends Fragment {
                     iconRes = R.drawable.ic_cat_learning;
                     title = getString(R.string.capture_ai_preview_learning_title, valueOr(p, "content", "?"));
                     subtitle.append(getString(R.string.capture_ai_preview_duration, valueOr(p, "duration_minutes", "60")));
+                    String learningStart = valueOr(p, "start_time", valueOr(p, "start_hour", ""));
+                    String learningEnd = valueOr(p, "end_time", valueOr(p, "end_hour", ""));
+                    if (!learningStart.isEmpty() || !learningEnd.isEmpty()) {
+                        subtitle.append(" | ").append(learningStart.isEmpty() ? "?" : learningStart)
+                                .append("-").append(learningEnd.isEmpty() ? "?" : learningEnd);
+                    }
                     break;
                 case "time_log":
                     iconRes = R.drawable.ic_cat_time;
                     title = getString(R.string.capture_ai_preview_time_title, valueOr(p, "description", "?"));
-                    subtitle.append(valueOr(p, "start_hour", "?")).append("-").append(valueOr(p, "end_hour", "?"))
+                    String timeStart = valueOr(p, "start_time", valueOr(p, "start_hour", "?"));
+                    String timeEnd = valueOr(p, "end_time", valueOr(p, "end_hour", "?"));
+                    subtitle.append(timeStart).append("-").append(timeEnd)
                             .append(" | ").append(getString(R.string.capture_ai_preview_category,
                                     valueOr(p, "category", "work")));
+                    break;
+                default:
+                    title = getString(R.string.capture_ai_preview_unknown_title);
+                    subtitle.append(valueOr(p, "raw", ""));
                     break;
             }
 
@@ -789,15 +864,311 @@ public class CaptureFragment extends Fragment {
             tvSubtitle.setText(subtitle.toString());
 
             final int index = i;
+            btnEdit.setOnClickListener(x -> showDraftEditDialog(result, index));
             btnDelete.setOnClickListener(x -> {
                 result.items.remove(index);
                 renderDraftItems(result);
-                btnAiCommit.setEnabled(!result.items.isEmpty());
+                btnAiCommit.setEnabled(hasCommittableItems(result));
                 tvAiPreviewLabel.setText(getString(R.string.capture_ai_confirm_draft, result.items.size()));
             });
 
             llAiDraftContainer.addView(v);
         }
+    }
+
+    private void showDraftEditDialog(ParseResult result, int index) {
+        if (result == null || result.items == null || index < 0 || index >= result.items.size()) {
+            return;
+        }
+        ParseDraftItem item = result.items.get(index);
+        if (item == null) {
+            return;
+        }
+        Map<String, String> payload = item.payload == null ? new HashMap<>() : new HashMap<>(item.payload);
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad / 2, pad, 0);
+
+        String[] kindLabels = {
+                "time_log",
+                "income",
+                "expense",
+                "learning",
+                "unknown"
+        };
+        String[] kindValues = {
+                "time_log",
+                "income",
+                "expense",
+                "learning",
+                "unknown"
+        };
+        AutoCompleteTextView acvKind = dialogDropdownField(getString(R.string.common_type), layout, kindLabels);
+        String normalizedKind = normalizeDraftKind(item.kind);
+        acvKind.setText(mapValueToLabel(normalizedKind, kindLabels, kindValues), false);
+
+        EditText etDate = dialogEditField(getString(R.string.common_date), valueOr(payload, "date", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+
+        EditText etTimeCategory = dialogEditField(getString(R.string.common_category), valueOr(payload, "category", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etTimeStartTime = dialogEditField(getString(R.string.capture_ai_field_start_hour),
+                valueOr(payload, "start_time", valueOr(payload, "start_hour", "")),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etTimeEndTime = dialogEditField(getString(R.string.capture_ai_field_end_hour),
+                valueOr(payload, "end_time", valueOr(payload, "end_hour", "")),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etTimeDurationMinutes = dialogEditField(getString(R.string.capture_ai_field_duration_minutes),
+                valueOr(payload, "duration_minutes", valueOr(payload, "duration_hours", "")),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, layout);
+        EditText etTimeDescription = dialogEditField(getString(R.string.capture_ai_field_description),
+                valueOr(payload, "description", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etTimeAi = dialogEditField(getString(R.string.capture_time_ai_ratio), valueOr(payload, "ai_ratio", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etTimeEfficiency = dialogEditField(getString(R.string.capture_time_efficiency_score),
+                valueOr(payload, "efficiency_score", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etTimeValue = dialogEditField(getString(R.string.capture_time_value_score), valueOr(payload, "value_score", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etTimeState = dialogEditField(getString(R.string.capture_time_state_score), valueOr(payload, "state_score", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+
+        EditText etIncomeSource = dialogEditField(getString(R.string.common_source), valueOr(payload, "source", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etIncomeType = dialogEditField(getString(R.string.common_type), valueOr(payload, "type", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etIncomeAmount = dialogEditField(getString(R.string.common_amount_cny), valueOr(payload, "amount", ""),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, layout);
+        EditText etIncomeAi = dialogEditField(getString(R.string.capture_time_ai_ratio), valueOr(payload, "ai_ratio", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etIncomeNote = dialogEditField(getString(R.string.common_note), valueOr(payload, "note", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+
+        EditText etExpenseCategory = dialogEditField(getString(R.string.common_category), valueOr(payload, "category", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etExpenseAmount = dialogEditField(getString(R.string.common_amount_cny), valueOr(payload, "amount", ""),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, layout);
+        EditText etExpenseAi = dialogEditField(getString(R.string.capture_time_ai_ratio), valueOr(payload, "ai_ratio", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etExpenseNote = dialogEditField(getString(R.string.common_note), valueOr(payload, "note", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+
+        EditText etLearningContent = dialogEditField(getString(R.string.common_content), valueOr(payload, "content", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etLearningDuration = dialogEditField(getString(R.string.capture_ai_field_duration_minutes),
+                valueOr(payload, "duration_minutes", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etLearningLevel = dialogEditField(getString(R.string.capture_ai_field_application_level),
+                valueOr(payload, "application_level", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etLearningStartTime = dialogEditField(getString(R.string.capture_ai_field_start_hour),
+                valueOr(payload, "start_time", valueOr(payload, "start_hour", "")),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etLearningEndTime = dialogEditField(getString(R.string.capture_ai_field_end_hour),
+                valueOr(payload, "end_time", valueOr(payload, "end_hour", "")),
+                InputType.TYPE_CLASS_TEXT, layout);
+        EditText etLearningEfficiency = dialogEditField(getString(R.string.capture_learning_efficiency_score),
+                valueOr(payload, "efficiency_score", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etLearningAi = dialogEditField(getString(R.string.capture_learning_ai_ratio), valueOr(payload, "ai_ratio", ""),
+                InputType.TYPE_CLASS_NUMBER, layout);
+        EditText etLearningNote = dialogEditField(getString(R.string.common_note), valueOr(payload, "note", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+
+        EditText etUnknownRaw = dialogEditField(getString(R.string.capture_ai_field_raw), valueOr(payload, "raw", ""),
+                InputType.TYPE_CLASS_TEXT, layout);
+
+        View[] timeViews = {
+                etTimeCategory, etTimeStartTime, etTimeEndTime, etTimeDurationMinutes, etTimeDescription,
+                etTimeAi, etTimeEfficiency, etTimeValue, etTimeState
+        };
+        View[] incomeViews = {
+                etIncomeSource, etIncomeType, etIncomeAmount, etIncomeAi, etIncomeNote
+        };
+        View[] expenseViews = {
+                etExpenseCategory, etExpenseAmount, etExpenseAi, etExpenseNote
+        };
+        View[] learningViews = {
+                etLearningContent, etLearningDuration, etLearningLevel, etLearningStartTime, etLearningEndTime,
+                etLearningEfficiency, etLearningAi, etLearningNote
+        };
+        View[] unknownViews = { etUnknownRaw };
+
+        Runnable syncKindVisibility = () -> {
+            String selectedKind = normalizeDraftKind(mapCategoryValue(text(acvKind), kindLabels, kindValues));
+            setViewsVisibility(timeViews, "time_log".equals(selectedKind));
+            setViewsVisibility(incomeViews, "income".equals(selectedKind));
+            setViewsVisibility(expenseViews, "expense".equals(selectedKind));
+            setViewsVisibility(learningViews, "learning".equals(selectedKind));
+            setViewsVisibility(unknownViews, "unknown".equals(selectedKind));
+        };
+        acvKind.setOnClickListener(v -> acvKind.showDropDown());
+        acvKind.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                syncKindVisibility.run();
+            }
+        });
+        syncKindVisibility.run();
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.capture_ai_edit_draft)
+                .setView(layout)
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.common_save, (dialog, which) -> {
+                    String selectedKind = normalizeDraftKind(mapCategoryValue(text(acvKind), kindLabels, kindValues));
+                    Map<String, String> updatedPayload = new HashMap<>();
+                    putIfNotBlank(updatedPayload, "date", etDate.getText().toString().trim());
+                    switch (selectedKind) {
+                        case "time_log":
+                            putIfNotBlank(updatedPayload, "category", etTimeCategory.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "start_time", etTimeStartTime.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "end_time", etTimeEndTime.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "duration_minutes", etTimeDurationMinutes.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "description", etTimeDescription.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "ai_ratio", etTimeAi.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "efficiency_score", etTimeEfficiency.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "value_score", etTimeValue.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "state_score", etTimeState.getText().toString().trim());
+                            break;
+                        case "income":
+                            putIfNotBlank(updatedPayload, "source", etIncomeSource.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "type", etIncomeType.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "amount", etIncomeAmount.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "ai_ratio", etIncomeAi.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "note", etIncomeNote.getText().toString().trim());
+                            break;
+                        case "expense":
+                            putIfNotBlank(updatedPayload, "category", etExpenseCategory.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "amount", etExpenseAmount.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "ai_ratio", etExpenseAi.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "note", etExpenseNote.getText().toString().trim());
+                            break;
+                        case "learning":
+                            putIfNotBlank(updatedPayload, "content", etLearningContent.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "duration_minutes", etLearningDuration.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "application_level", etLearningLevel.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "start_time", etLearningStartTime.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "end_time", etLearningEndTime.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "efficiency_score", etLearningEfficiency.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "ai_ratio", etLearningAi.getText().toString().trim());
+                            putIfNotBlank(updatedPayload, "note", etLearningNote.getText().toString().trim());
+                            break;
+                        default:
+                            putIfNotBlank(updatedPayload, "raw", etUnknownRaw.getText().toString().trim());
+                            selectedKind = "unknown";
+                            break;
+                    }
+                    result.items.set(index, new ParseDraftItem(
+                            selectedKind,
+                            updatedPayload,
+                            item.confidence,
+                            item.source,
+                            item.warning));
+                    renderDraftItems(result);
+                    btnAiCommit.setEnabled(hasCommittableItems(result));
+                })
+                .show();
+    }
+
+    private EditText dialogEditField(String hint, String value, int inputType, LinearLayout parent) {
+        EditText input = new EditText(requireContext());
+        input.setHint(hint);
+        input.setInputType(inputType);
+        input.setText(value == null ? "" : value);
+        parent.addView(input);
+        return input;
+    }
+
+    private AutoCompleteTextView dialogDropdownField(String hint, LinearLayout parent, String[] options) {
+        com.google.android.material.textfield.TextInputLayout til = new com.google.android.material.textfield.TextInputLayout(
+                requireContext(),
+                null,
+                com.google.android.material.R.style.Widget_MaterialComponents_TextInputLayout_OutlinedBox_ExposedDropdownMenu);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(0, 32, 0, 0);
+        til.setLayoutParams(lp);
+        til.setHint(hint);
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acv =
+                new com.google.android.material.textfield.MaterialAutoCompleteTextView(til.getContext());
+        acv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        acv.setInputType(InputType.TYPE_NULL);
+        acv.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, options));
+        til.addView(acv);
+        parent.addView(til);
+        return acv;
+    }
+
+    private static void setViewsVisibility(View[] views, boolean visible) {
+        int visibility = visible ? View.VISIBLE : View.GONE;
+        for (View view : views) {
+            if (view != null) {
+                view.setVisibility(visibility);
+            }
+        }
+    }
+
+    private static void putIfNotBlank(Map<String, String> payload, String key, String value) {
+        if (payload == null || key == null) {
+            return;
+        }
+        if (value == null || value.trim().isEmpty()) {
+            return;
+        }
+        payload.put(key, value.trim());
+    }
+
+    private static String mapValueToLabel(String value, String[] labels, String[] values) {
+        if (value == null || labels == null || values == null || labels.length != values.length || labels.length == 0) {
+            return labels != null && labels.length > 0 ? labels[0] : "";
+        }
+        String normalized = value.trim().toLowerCase(Locale.US);
+        for (int i = 0; i < values.length; i++) {
+            if (normalized.equals(values[i])) {
+                return labels[i];
+            }
+        }
+        return labels[0];
+    }
+
+    private static String normalizeDraftKind(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return "unknown";
+        }
+        String normalized = raw.trim().toLowerCase(Locale.US);
+        if ("time".equals(normalized)) {
+            return "time_log";
+        }
+        if ("time_log".equals(normalized) || "income".equals(normalized) || "expense".equals(normalized)
+                || "learning".equals(normalized) || "unknown".equals(normalized)) {
+            return normalized;
+        }
+        return "unknown";
+    }
+
+    private static boolean hasCommittableItems(ParseResult result) {
+        if (result == null || result.items == null || result.items.isEmpty()) {
+            return false;
+        }
+        for (ParseDraftItem item : result.items) {
+            if (item == null) {
+                continue;
+            }
+            if (!"unknown".equals(normalizeDraftKind(item.kind))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void commitAiResult() {
@@ -810,7 +1181,7 @@ public class CaptureFragment extends Fragment {
         int ok = 0;
         List<String> fails = new ArrayList<>();
         for (ParseDraftItem item : latestParseResult.items) {
-            if (item == null || item.kind == null || "unknown".equals(item.kind))
+            if (item == null || "unknown".equals(normalizeDraftKind(item.kind)))
                 continue;
             try {
                 commitOneAiItem(item, safeDate(contextDate));
@@ -837,25 +1208,37 @@ public class CaptureFragment extends Fragment {
     }
 
     private void commitOneAiItem(ParseDraftItem item, String contextDate) {
-        Map<String, String> p = item.payload;
-        switch (item.kind) {
+        Map<String, String> p = item.payload == null ? new HashMap<>() : item.payload;
+        String itemDate = resolveItemDate(p, contextDate);
+        String itemKind = normalizeDraftKind(item.kind);
+        switch (itemKind) {
             case "income":
-                graph.useCases.createIncome.execute(new CreateIncomeInput(
-                        contextDate,
-                        valueOr(p, "source", getString(R.string.capture_source_ai_parse)),
-                        valueOr(p, "type", "other"),
-                        toCents(valueOr(p, "amount", "0")),
-                        false, null, getString(R.string.capture_note_ai_capture), null, null));
+                String normalizedIncomeType = normalizeIncomeType(valueOr(p, "type", "other"));
+                useCases.createIncome.execute(new CreateIncomeInput(
+                        itemDate,
+                        valueOr(p, "source", valueOr(p, "source_name", getString(R.string.capture_source_ai_parse))),
+                        normalizedIncomeType,
+                        parseAiAmountCents(p),
+                        parseBooleanText(valueOr(p, "is_passive", "")),
+                        parseOptionalPercentage(valueOr(p, "ai_ratio", "")),
+                        valueOr(p, "note", getString(R.string.capture_note_ai_capture)),
+                        resolveAiProjectAllocations(p),
+                        resolveAiTagIds("income", p, null)));
                 break;
             case "expense":
-                graph.useCases.createExpense.execute(new CreateExpenseInput(
-                        contextDate,
-                        valueOr(p, "category", "necessary"),
-                        toCents(valueOr(p, "amount", "0")),
-                        null,
+                String normalizedExpenseCategory = normalizeExpenseCategory(valueOr(p, "category", "necessary"));
+                long expenseAmountCents = parseAiAmountCents(p);
+                if (expenseAmountCents <= 0) {
+                    throw new IllegalArgumentException(getString(R.string.capture_error_expense_amount_gt_zero));
+                }
+                useCases.createExpense.execute(new CreateExpenseInput(
+                        itemDate,
+                        normalizedExpenseCategory,
+                        expenseAmountCents,
+                        parseOptionalPercentage(valueOr(p, "ai_ratio", "")),
                         valueOr(p, "note", getString(R.string.capture_note_ai_capture)),
-                        null,
-                        null));
+                        resolveAiProjectAllocations(p),
+                        resolveAiTagIds("expense", p, null)));
                 break;
             case "learning":
                 Integer learningAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
@@ -866,33 +1249,29 @@ public class CaptureFragment extends Fragment {
                 if (learningEfficiencyScore == null) {
                     learningEfficiencyScore = 5;
                 }
-                String learningStartAt = valueOr(p, "start_hour", "").isEmpty() ? null : buildAiStartAt(p, contextDate);
-                String learningEndAt = valueOr(p, "end_hour", "").isEmpty() ? null : buildAiEndAt(p, contextDate);
-                if (learningStartAt == null) {
-                    learningStartAt = buildAiStartAt(p, contextDate);
-                }
-                if (learningEndAt == null) {
-                    learningEndAt = buildAiEndAt(p, contextDate);
-                }
-                graph.useCases.createLearning.execute(new CreateLearningInput(
-                        contextDate,
-                        learningStartAt,
-                        learningEndAt,
-                        valueOr(p, "content", getString(R.string.common_learning)),
-                        FormParsers.parseInt(valueOr(p, "duration_minutes", "60"), 60),
+                int learningFallbackMinutes = resolveAiDurationMinutes(p, 60);
+                AiTimeWindow learningWindow = resolveAiTimeWindow(p, itemDate, learningFallbackMinutes);
+                useCases.createLearning.execute(new CreateLearningInput(
+                        itemDate,
+                        learningWindow.startedAtUtc,
+                        learningWindow.endedAtUtc,
+                        valueOr(p, "content", valueOr(p, "description", getString(R.string.common_learning))),
+                        learningWindow.durationMinutes,
                         learningEfficiencyScore,
-                        valueOr(p, "application_level", "input"),
+                        normalizeLearningLevel(valueOr(p, "application_level", "input")),
                         learningAiRatio,
-                        valueOr(p, "note", getString(R.string.capture_note_ai_capture)), null, null));
+                        valueOr(p, "note", getString(R.string.capture_note_ai_capture)),
+                        resolveAiProjectAllocations(p),
+                        resolveAiTagIds("learning", p, null)));
                 break;
             case "time_log":
-                String startAt = buildAiStartAt(p, contextDate);
-                String endAt = buildAiEndAt(p, contextDate);
+                int timeFallbackMinutes = resolveAiDurationMinutes(p, 60);
+                AiTimeWindow timeWindow = resolveAiTimeWindow(p, itemDate, timeFallbackMinutes);
                 Integer timeAiRatio = parseOptionalPercentage(valueOr(p, "ai_ratio", ""));
                 Integer timeEfficiencyScore = parseOptionalScore(valueOr(p, "efficiency_score", ""));
                 Integer timeValueScore = parseOptionalScore(valueOr(p, "value_score", ""));
                 Integer timeStateScore = parseOptionalScore(valueOr(p, "state_score", ""));
-                String parsedCategory = valueOr(p, "category", "work");
+                String parsedCategory = normalizeTimeCategory(valueOr(p, "category", "work"));
                 if (("work".equalsIgnoreCase(parsedCategory) || "learning".equalsIgnoreCase(parsedCategory))) {
                     if (timeAiRatio == null) {
                         timeAiRatio = 0;
@@ -904,13 +1283,14 @@ public class CaptureFragment extends Fragment {
                         timeStateScore = 5;
                     }
                 }
-                graph.useCases.createTimeLog.execute(new CreateTimeLogInput(
-                        startAt, endAt,
+                useCases.createTimeLog.execute(new CreateTimeLogInput(
+                        timeWindow.startedAtUtc, timeWindow.endedAtUtc,
                         parsedCategory,
                         timeEfficiencyScore, timeValueScore, timeStateScore,
                         timeAiRatio,
-                        valueOr(p, "description", getString(R.string.capture_source_ai_parse)),
-                        null, null));
+                        valueOr(p, "description", valueOr(p, "note", getString(R.string.capture_source_ai_parse))),
+                        resolveAiProjectAllocations(p),
+                        resolveAiTagIds("time", p, parsedCategory)));
                 break;
         }
     }
@@ -920,7 +1300,7 @@ public class CaptureFragment extends Fragment {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     private void loadProjectOptions() {
-        projectOptions = graph.useCases.getProjectOptions.execute(false);
+        projectOptions = useCases.getProjectOptions.execute(false);
         if (projectOptions == null)
             projectOptions = new ArrayList<>();
     }
@@ -948,7 +1328,7 @@ public class CaptureFragment extends Fragment {
         if (dropdown == null) {
             return;
         }
-        List<TagItem> tags = graph.useCases.getTags.execute(scope, true);
+        List<TagItem> tags = useCases.getTags.execute(scope, true);
         if ("time".equals(scope) && timeCategory != null) {
             List<TagItem> visibleTags = filterTimeTagsByCategory(tags, timeCategory);
             if (!visibleTags.isEmpty()) {
@@ -1018,7 +1398,7 @@ public class CaptureFragment extends Fragment {
         if (raw == null || raw.trim().isEmpty()) {
             return null;
         }
-        List<TagItem> tags = graph.useCases.getTags.execute(scope, true);
+        List<TagItem> tags = useCases.getTags.execute(scope, true);
         if ("time".equals(scope) && timeCategory != null) {
             List<TagItem> visibleTags = filterTimeTagsByCategory(tags, timeCategory);
             if (!visibleTags.isEmpty()) {
@@ -1082,10 +1462,9 @@ public class CaptureFragment extends Fragment {
         if (tag == null) {
             return "";
         }
-        String emoji = tag.emoji == null || tag.emoji.isEmpty() ? "" : tag.emoji + " ";
         String prefix = tag.level >= 2 ? "↳ " : "";
         String name = tag.name == null ? "" : tag.name;
-        return prefix + emoji + name;
+        return prefix + name;
     }
 
     private static List<TagItem> filterTimeTagsByCategory(List<TagItem> tags, String timeCategory) {
@@ -1249,27 +1628,382 @@ public class CaptureFragment extends Fragment {
         return duration;
     }
 
-    private String buildAiStartAt(Map<String, String> p, String contextDate) {
-        String hour = valueOr(p, "start_hour", "");
-        if (!hour.isEmpty()) {
-            int h = FormParsers.parseInt(hour, 9);
-            return LocalDateTime.parse(contextDate + String.format(Locale.US, " %02d:00", h), DT_FMT)
-                    .atZone(ZoneId.of("Asia/Shanghai")).withZoneSameInstant(ZoneOffset.UTC).toInstant().toString();
-        }
-        int dur = FormParsers.parseInt(valueOr(p, "duration_hours", "1"), 1);
-        return LocalDateTime.now().minusHours(Math.max(1, dur))
-                .atZone(ZoneId.of("Asia/Shanghai")).withZoneSameInstant(ZoneOffset.UTC).toInstant().toString();
+    private String resolveItemDate(Map<String, String> payload, String fallbackDate) {
+        String dateRaw = firstNonBlank(payload, "date", "occurred_on", "occurredOn");
+        return normalizeDateWithContext(dateRaw, safeDate(fallbackDate));
     }
 
-    private String buildAiEndAt(Map<String, String> p, String contextDate) {
-        String hour = valueOr(p, "end_hour", "");
-        if (!hour.isEmpty()) {
-            int h = FormParsers.parseInt(hour, 10);
-            return LocalDateTime.parse(contextDate + String.format(Locale.US, " %02d:00", h), DT_FMT)
-                    .atZone(ZoneId.of("Asia/Shanghai")).withZoneSameInstant(ZoneOffset.UTC).toInstant().toString();
+    private String normalizeDateWithContext(String raw, String fallbackDate) {
+        String fallback = safeDate(fallbackDate);
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback;
         }
-        return LocalDateTime.now()
-                .atZone(ZoneId.of("Asia/Shanghai")).withZoneSameInstant(ZoneOffset.UTC).toInstant().toString();
+        String text = raw.trim();
+        LocalDate anchor = LocalDate.parse(fallback);
+        if (text.contains("前天")) {
+            return anchor.minusDays(2).toString();
+        }
+        if (text.contains("昨天")) {
+            return anchor.minusDays(1).toString();
+        }
+        if (text.contains("明天")) {
+            return anchor.plusDays(1).toString();
+        }
+        if (text.contains("后天")) {
+            return anchor.plusDays(2).toString();
+        }
+        if (text.contains("今天")) {
+            return anchor.toString();
+        }
+        try {
+            return LocalDate.parse(text).toString();
+        } catch (Exception ignored) {
+        }
+        Matcher fullDate = FULL_DATE_TOKEN.matcher(text);
+        if (fullDate.find()) {
+            try {
+                int y = Integer.parseInt(fullDate.group(1));
+                int m = Integer.parseInt(fullDate.group(2));
+                int d = Integer.parseInt(fullDate.group(3));
+                return LocalDate.of(y, m, d).toString();
+            } catch (Exception ignored) {
+            }
+        }
+        Matcher monthDay = MONTH_DAY_TOKEN.matcher(text);
+        if (monthDay.find()) {
+            try {
+                int m = Integer.parseInt(monthDay.group(1));
+                int d = Integer.parseInt(monthDay.group(2));
+                return LocalDate.of(anchor.getYear(), m, d).toString();
+            } catch (Exception ignored) {
+            }
+        }
+        return fallback;
+    }
+
+    private List<ProjectAllocation> resolveAiProjectAllocations(Map<String, String> payload) {
+        String raw = firstNonBlank(payload, "project_allocations", "project_names", "projects", "project");
+        String normalized = normalizeMultiValue(raw);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        return resolveProjectAllocationsFromDropdown(normalized);
+    }
+
+    private List<String> resolveAiTagIds(String scope, Map<String, String> payload, @Nullable String timeCategory) {
+        String raw = firstNonBlank(payload, "tag_ids", "tag_names", "tags", "tag");
+        String normalized = normalizeMultiValue(raw);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        return resolveTagIdsFromDropdown(scope, normalized, timeCategory);
+    }
+
+    private String normalizeMultiValue(String raw) {
+        List<String> tokens = parseListTokens(raw);
+        if (tokens.isEmpty()) {
+            return "";
+        }
+        return String.join(",", tokens);
+    }
+
+    private List<String> parseListTokens(String raw) {
+        List<String> out = new ArrayList<>();
+        if (raw == null || raw.trim().isEmpty()) {
+            return out;
+        }
+        String text = raw.trim();
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        if (text.startsWith("[") && text.endsWith("]")) {
+            try {
+                JSONArray arr = new JSONArray(text);
+                for (int i = 0; i < arr.length(); i++) {
+                    String token = arr.optString(i, "").trim();
+                    if (!token.isEmpty()) {
+                        unique.add(token);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        if (unique.isEmpty()) {
+            String[] chunks = text.split("[,，、;；\\n|]");
+            for (String chunk : chunks) {
+                if (chunk == null) {
+                    continue;
+                }
+                String token = chunk.trim();
+                if (!token.isEmpty()) {
+                    unique.add(token);
+                }
+            }
+        }
+        out.addAll(unique);
+        return out;
+    }
+
+    private String normalizeTimeCategory(String raw) {
+        String text = raw == null ? "" : raw.trim().toLowerCase(Locale.US);
+        if (text.contains("learn") || text.contains("学习") || text.contains("阅读") || text.contains("课程")) {
+            return "learning";
+        }
+        if (text.contains("life") || text.contains("生活") || text.contains("家务") || text.contains("通勤")) {
+            return "life";
+        }
+        if (text.contains("entertain") || text.contains("娱乐") || text.contains("电影") || text.contains("游戏")) {
+            return "entertainment";
+        }
+        if (text.contains("rest") || text.contains("休息") || text.contains("睡")) {
+            return "rest";
+        }
+        if (text.contains("social") || text.contains("社交") || text.contains("朋友") || text.contains("聚会")) {
+            return "social";
+        }
+        return "work";
+    }
+
+    private String normalizeIncomeType(String raw) {
+        String text = raw == null ? "" : raw.trim().toLowerCase(Locale.US);
+        if (text.contains("salary") || text.contains("工资") || text.contains("薪")) {
+            return "salary";
+        }
+        if (text.contains("project") || text.contains("项目") || text.contains("回款") || text.contains("外包")) {
+            return "project";
+        }
+        if (text.contains("invest") || text.contains("投资") || text.contains("分红")) {
+            return "investment";
+        }
+        if (text.contains("system") || text.contains("系统") || text.contains("补贴")) {
+            return "system";
+        }
+        return "other";
+    }
+
+    private String normalizeExpenseCategory(String raw) {
+        String text = raw == null ? "" : raw.trim().toLowerCase(Locale.US);
+        if (text.contains("subscription") || text.contains("订阅") || text.contains("会员")) {
+            return "subscription";
+        }
+        if (text.contains("invest") || text.contains("投资")) {
+            return "investment";
+        }
+        if (text.contains("experience") || text.contains("体验") || text.contains("娱乐")
+                || text.contains("旅游") || text.contains("聚餐")) {
+            return "experience";
+        }
+        return "necessary";
+    }
+
+    private String normalizeLearningLevel(String raw) {
+        String text = raw == null ? "" : raw.trim().toLowerCase(Locale.US);
+        if (text.contains("result") || text.contains("成果") || text.contains("产出")) {
+            return "result";
+        }
+        if (text.contains("apply") || text.contains("applied") || text.contains("实践")
+                || text.contains("应用") || text.contains("落地")) {
+            return "applied";
+        }
+        return "input";
+    }
+
+    private long parseAiAmountCents(Map<String, String> payload) {
+        String centsRaw = firstNonBlank(payload, "amount_cents");
+        Double explicitCents = parseFirstDecimal(centsRaw);
+        if (explicitCents != null && explicitCents >= 0) {
+            return Math.max(0L, Math.round(explicitCents));
+        }
+        String amountRaw = firstNonBlank(payload, "amount", "amount_yuan", "money");
+        if (amountRaw.isEmpty()) {
+            return 0L;
+        }
+        Double number = parseFirstDecimal(amountRaw);
+        if (number == null || number < 0) {
+            return 0L;
+        }
+        String lower = amountRaw.toLowerCase(Locale.US);
+        if (lower.contains("分") && !lower.contains("元") && !lower.contains("块")) {
+            return Math.max(0L, Math.round(number));
+        }
+        double yuan = number;
+        if (lower.contains("万") || lower.matches(".*\\bw\\b.*")) {
+            yuan *= 10_000.0;
+        } else if (lower.contains("千") || lower.matches(".*\\bk\\b.*")) {
+            yuan *= 1_000.0;
+        }
+        return Math.max(0L, Math.round(yuan * 100.0));
+    }
+
+    private int resolveAiDurationMinutes(Map<String, String> payload, int fallbackMinutes) {
+        Integer minutes = parseDurationTextMinutes(firstNonBlank(payload,
+                "duration_minutes", "duration", "minutes", "duration_min"));
+        if (minutes != null && minutes > 0) {
+            return minutes;
+        }
+        Double hours = parseFirstDecimal(firstNonBlank(payload, "duration_hours", "hours"));
+        if (hours != null && hours > 0) {
+            return Math.max(1, (int) Math.round(hours * 60.0));
+        }
+        return Math.max(1, fallbackMinutes);
+    }
+
+    private Integer parseDurationTextMinutes(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        Double number = parseFirstDecimal(raw);
+        if (number == null || number <= 0) {
+            return null;
+        }
+        String text = raw.toLowerCase(Locale.US);
+        if (text.contains("小时") || text.contains("hour") || text.matches(".*\\bh\\b.*")) {
+            return Math.max(1, (int) Math.round(number * 60.0));
+        }
+        if (text.contains("分钟") || text.contains("min") || text.matches(".*\\bm\\b.*")) {
+            return Math.max(1, (int) Math.round(number));
+        }
+        if (text.contains(".") && number <= 12) {
+            return Math.max(1, (int) Math.round(number * 60.0));
+        }
+        return Math.max(1, (int) Math.round(number));
+    }
+
+    private AiTimeWindow resolveAiTimeWindow(Map<String, String> payload, String itemDate, int fallbackDurationMinutes) {
+        LocalDate baseDate = LocalDate.parse(safeDate(itemDate));
+        ZonedDateTime start = parseAiDateTime(firstNonBlank(payload,
+                "started_at", "start_at", "start_time", "start", "start_hour"), baseDate);
+        ZonedDateTime end = parseAiDateTime(firstNonBlank(payload,
+                "ended_at", "end_at", "end_time", "end", "end_hour"), baseDate);
+        int durationMinutes = Math.max(1, fallbackDurationMinutes);
+        if (start == null && end == null) {
+            start = baseDate.atTime(9, 0).atZone(APP_ZONE);
+            end = start.plusMinutes(durationMinutes);
+        } else if (start != null && end == null) {
+            end = start.plusMinutes(durationMinutes);
+        } else if (start == null) {
+            start = end.minusMinutes(durationMinutes);
+        }
+        if (!end.isAfter(start)) {
+            end = end.plusDays(1);
+            if (!end.isAfter(start)) {
+                end = start.plusMinutes(Math.max(15, durationMinutes));
+            }
+        }
+        int resolvedMinutes = Math.max(1, (int) Duration.between(start, end).toMinutes());
+        return new AiTimeWindow(
+                start.withZoneSameInstant(ZoneOffset.UTC).toInstant().toString(),
+                end.withZoneSameInstant(ZoneOffset.UTC).toInstant().toString(),
+                resolvedMinutes);
+    }
+
+    private ZonedDateTime parseAiDateTime(String raw, LocalDate fallbackDate) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        String text = raw.trim();
+        try {
+            return Instant.parse(text).atZone(APP_ZONE);
+        } catch (Exception ignored) {
+        }
+        try {
+            return OffsetDateTime.parse(text).atZoneSameInstant(APP_ZONE);
+        } catch (Exception ignored) {
+        }
+        DateTimeFormatter[] localFormatters = new DateTimeFormatter[] {
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DT_FMT,
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
+        };
+        for (DateTimeFormatter formatter : localFormatters) {
+            try {
+                return LocalDateTime.parse(text, formatter).atZone(APP_ZONE);
+            } catch (Exception ignored) {
+            }
+        }
+        LocalTime localTime = parseAiLocalTime(text);
+        if (localTime != null) {
+            return fallbackDate.atTime(localTime).atZone(APP_ZONE);
+        }
+        return null;
+    }
+
+    private LocalTime parseAiLocalTime(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        String text = raw.trim();
+        try {
+            return LocalTime.parse(text, DateTimeFormatter.ofPattern("H:mm"));
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalTime.parse(text, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception ignored) {
+        }
+        if (text.matches("\\d{1,2}")) {
+            int hour = FormParsers.parseInt(text, -1);
+            if (hour >= 0 && hour <= 23) {
+                return LocalTime.of(hour, 0);
+            }
+        }
+        Matcher matcher = CLOCK_TOKEN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        String period = safeText(matcher.group(1));
+        int hour;
+        try {
+            hour = Integer.parseInt(safeText(matcher.group(2)));
+        } catch (Exception ignored) {
+            return null;
+        }
+        int minute = 0;
+        String minuteRaw = safeText(matcher.group(3));
+        if (!minuteRaw.isEmpty()) {
+            minute = FormParsers.parseInt(minuteRaw, 0);
+        } else if (!safeText(matcher.group(4)).isEmpty()) {
+            minute = 30;
+        }
+        String suffix = safeText(matcher.group(5));
+        if (!suffix.isEmpty()) {
+            period = suffix;
+        }
+        hour = normalizeHourByPeriod(hour, period);
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            return null;
+        }
+        return LocalTime.of(hour, minute);
+    }
+
+    private int normalizeHourByPeriod(int hour, String periodRaw) {
+        String period = periodRaw == null ? "" : periodRaw.trim().toLowerCase(Locale.US);
+        if (period.isEmpty()) {
+            return hour;
+        }
+        if (period.contains("pm") || period.contains("下午") || period.contains("晚上") || period.contains("傍晚")) {
+            if (hour < 12) {
+                return hour + 12;
+            }
+            return hour;
+        }
+        if (period.contains("am") || period.contains("早上") || period.contains("上午") || period.contains("凌晨")) {
+            if (hour == 12) {
+                return 0;
+            }
+            return hour;
+        }
+        if (period.contains("中午")) {
+            if (hour < 11) {
+                return hour + 12;
+            }
+            return hour;
+        }
+        return hour;
+    }
+
+    private static String safeText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private ParserMode getSelectedParserMode() {
@@ -1297,22 +2031,27 @@ public class CaptureFragment extends Fragment {
         }
     }
 
+    private static String firstNonBlank(Map<String, String> payload, String... keys) {
+        if (payload == null || keys == null) {
+            return "";
+        }
+        for (String key : keys) {
+            if (key == null || key.trim().isEmpty()) {
+                continue;
+            }
+            String value = payload.get(key);
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
     private static String valueOr(Map<String, String> m, String k, String def) {
         if (m == null)
             return def;
         String v = m.get(k);
         return v == null || v.trim().isEmpty() ? def : v.trim();
-    }
-
-    private static long toCents(String s) {
-        try {
-            String n = s == null ? "0" : s.trim();
-            if (n.isEmpty())
-                return 0L;
-            return n.contains(".") ? (long) Math.round(Double.parseDouble(n) * 100) : Long.parseLong(n);
-        } catch (Exception e) {
-            return 0L;
-        }
     }
 
     private static long yuanToCents(String s) {
@@ -1330,7 +2069,14 @@ public class CaptureFragment extends Fragment {
         if (raw == null || raw.trim().isEmpty()) {
             return null;
         }
-        int value = FormParsers.parseInt(raw.trim(), -1);
+        Double number = parseFirstDecimal(raw);
+        if (number == null) {
+            return null;
+        }
+        if (number > 0 && number <= 1.0 && raw.contains(".")) {
+            number = number * 100.0;
+        }
+        int value = (int) Math.round(number);
         if (value < 0 || value > 100) {
             throw new IllegalArgumentException(getString(R.string.capture_error_ai_ratio_range));
         }
@@ -1341,11 +2087,38 @@ public class CaptureFragment extends Fragment {
         if (raw == null || raw.trim().isEmpty()) {
             return null;
         }
-        int value = FormParsers.parseInt(raw.trim(), -1);
+        Double number = parseFirstDecimal(raw);
+        if (number == null) {
+            return null;
+        }
+        int value = (int) Math.round(number);
         if (value < 1 || value > 10) {
             throw new IllegalArgumentException(getString(R.string.capture_error_score_range));
         }
         return value;
+    }
+
+    private static Double parseFirstDecimal(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        Matcher matcher = NUMBER_TOKEN.matcher(raw.replace(",", "").replace("，", ""));
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(matcher.group());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean parseBooleanText(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return false;
+        }
+        String text = raw.trim().toLowerCase(Locale.US);
+        return "true".equals(text) || "1".equals(text) || text.contains("是") || text.contains("被动");
     }
 
     private void snack(String msg) {
@@ -1358,6 +2131,18 @@ public class CaptureFragment extends Fragment {
             return getString(R.string.common_unknown_error);
         }
         return e.getMessage();
+    }
+
+    private static final class AiTimeWindow {
+        final String startedAtUtc;
+        final String endedAtUtc;
+        final int durationMinutes;
+
+        AiTimeWindow(String startedAtUtc, String endedAtUtc, int durationMinutes) {
+            this.startedAtUtc = startedAtUtc;
+            this.endedAtUtc = endedAtUtc;
+            this.durationMinutes = durationMinutes;
+        }
     }
 
     // Tiny holder to keep reference to the FrameLayout
