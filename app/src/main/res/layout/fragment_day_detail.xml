@@ -123,6 +123,14 @@
             android:textColor="@color/textPrimary"
             android:textSize="13sp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_day_detail_add_time_log"
+            style="@style/Widget.LifeOS.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/day_detail_add_time_log" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_day_detail_records"
             android:layout_width="match_parent"

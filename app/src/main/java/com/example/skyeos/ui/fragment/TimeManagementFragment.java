@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,8 +15,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.data.config.TimeGoalStore;
@@ -22,9 +29,22 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.time.LocalDate;
 
+@AndroidEntryPoint
 public class TimeManagementFragment extends Fragment {
-    private AppGraph graph;
-    private TimeGoalStore goalStore;
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    @Inject
+    com.example.skyeos.data.config.TimeGoalStore goalStore;
+    
+    
     private LocalDate selectedDate = LocalDate.now();
     private TextView tvDate;
     private TextInputEditText etGoalWorkMinutes;
@@ -41,8 +61,8 @@ public class TimeManagementFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
-        goalStore = new TimeGoalStore(requireContext());
+
+
         tvDate = view.findViewById(R.id.tv_time_mgmt_date);
         etGoalWorkMinutes = view.findViewById(R.id.et_time_goal_work_minutes);
         etGoalLearningMinutes = view.findViewById(R.id.et_time_goal_learning_minutes);
@@ -114,7 +134,7 @@ public class TimeManagementFragment extends Fragment {
             tvGoalStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.textSecondary));
             return;
         }
-        WindowOverview overview = graph.useCases.getOverview.execute(selectedDate.toString(), "day");
+        WindowOverview overview = useCases.getOverview.execute(selectedDate.toString(), "day");
         int workMinutes = toIntMinutes(overview == null ? 0L : overview.totalWorkMinutes);
         int learningMinutes = toIntMinutes(overview == null ? 0L : overview.totalLearningMinutes);
         boolean reached = goal.isReached(workMinutes, learningMinutes);

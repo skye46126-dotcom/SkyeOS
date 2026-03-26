@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
+import javax.inject.Inject;
 
 public final class AiApiConfigStore {
     private static final String PREF = "lifeos_ai_api_settings";
@@ -16,7 +17,8 @@ public final class AiApiConfigStore {
 
     private final SharedPreferences sharedPreferences;
 
-    public AiApiConfigStore(Context context) {
+    @Inject
+    public AiApiConfigStore(@dagger.hilt.android.qualifiers.ApplicationContext Context context) {
         Context appContext = context.getApplicationContext();
         this.sharedPreferences = createSecurePreferences(appContext);
     }

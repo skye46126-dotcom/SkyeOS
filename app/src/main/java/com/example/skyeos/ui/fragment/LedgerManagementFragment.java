@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -14,10 +18,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.RecentRecordItem;
@@ -34,10 +41,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class LedgerManagementFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
     private static final String ARG_TYPE = "type";
 
-    private AppGraph graph;
+    
     private String ledgerType;
     private YearMonth currentMonth = YearMonth.now();
 
@@ -46,7 +63,7 @@ public class LedgerManagementFragment extends Fragment {
     private TextView tvSummary;
     private TextView tvEmpty;
     private TextInputEditText etMonth;
-    private RecentRecordsAdapter adapter;
+    RecentRecordsAdapter adapter;
 
     public static LedgerManagementFragment newInstance(String type) {
         LedgerManagementFragment fragment = new LedgerManagementFragment();
@@ -66,7 +83,7 @@ public class LedgerManagementFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
         ledgerType = resolveType();
 
         tvTitle = view.findViewById(R.id.tv_ledger_title);
@@ -76,6 +93,7 @@ public class LedgerManagementFragment extends Fragment {
         etMonth = view.findViewById(R.id.et_ledger_month);
         RecyclerView rv = view.findViewById(R.id.rv_ledger_records);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         adapter = new RecentRecordsAdapter();
         adapter.setOnRecordActionListener(new RecentRecordsAdapter.OnRecordActionListener() {
             @Override
@@ -89,15 +107,15 @@ public class LedgerManagementFragment extends Fragment {
                     return;
                 }
                 try {
-                    graph.useCases.deleteRecord.execute(record.type, record.recordId);
+                    useCases.deleteRecord.execute(record.type, record.recordId);
                     bindData();
                 } catch (Exception e) {
                     String message = e == null || TextUtils.isEmpty(e.getMessage())
                             ? getString(R.string.common_operation_failed, getString(R.string.common_unknown_error))
                             : getString(R.string.common_operation_failed, e.getMessage());
                     Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+                    }
                 }
-            }
         });
         rv.setAdapter(adapter);
 
@@ -141,7 +159,7 @@ public class LedgerManagementFragment extends Fragment {
         tvEmpty.setText(emptyRes);
         etMonth.setText(currentMonth.toString());
 
-        List<RecentRecordItem> all = graph.useCases.getRecentRecords.execute(500);
+        List<RecentRecordItem> all = useCases.getRecentRecords.execute(500);
         List<RecentRecordItem> filtered = new ArrayList<>();
         long totalCents = 0L;
         for (RecentRecordItem item : all) {
@@ -251,7 +269,7 @@ public class LedgerManagementFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateIncome.execute(record.recordId, new CreateIncomeInput(
+                        useCases.updateIncome.execute(record.recordId, new CreateIncomeInput(
                                 etDate.getText().toString().trim(),
                                 etSource.getText().toString().trim(),
                                 etType.getText().toString().trim().toLowerCase(Locale.US),
@@ -286,7 +304,7 @@ public class LedgerManagementFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateExpense.execute(record.recordId, new CreateExpenseInput(
+                        useCases.updateExpense.execute(record.recordId, new CreateExpenseInput(
                                 etDate.getText().toString().trim(),
                                 etCategory.getText().toString().trim().toLowerCase(Locale.US),
                                 toCents(etAmount.getText().toString().trim()),
@@ -306,7 +324,7 @@ public class LedgerManagementFragment extends Fragment {
     }
 
     private IncomeEditState loadIncomeState(RecentRecordItem record) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT occurred_on, source_name, type, amount_cents, is_passive, COALESCE(note, '') FROM income WHERE id = ? LIMIT 1",
                 new String[] { record.recordId })) {
             if (cursor.moveToFirst()) {
@@ -320,7 +338,7 @@ public class LedgerManagementFragment extends Fragment {
     }
 
     private ExpenseEditState loadExpenseState(RecentRecordItem record) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT occurred_on, category, amount_cents, COALESCE(note, '') FROM expense WHERE id = ? LIMIT 1",
                 new String[] { record.recordId })) {
             if (cursor.moveToFirst()) {

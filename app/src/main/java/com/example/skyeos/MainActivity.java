@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import com.example.skyeos.ui.fragment.CaptureFragment;
 import com.example.skyeos.ui.fragment.CostManagementFragment;
@@ -16,8 +17,9 @@ import com.example.skyeos.ui.fragment.ReviewFragment;
 import com.example.skyeos.ui.fragment.SettingsFragment;
 import com.example.skyeos.ui.fragment.TimeManagementFragment;
 import com.example.skyeos.ui.fragment.TodayFragment;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import dagger.hilt.android.AndroidEntryPoint;
 
+@AndroidEntryPoint
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
@@ -29,8 +31,6 @@ public class MainActivity extends AppCompatActivity {
         // Apply the new LifeOS theme
         setTheme(R.style.Theme_LifeOS);
         setContentView(R.layout.activity_main);
-
-        AppGraph.getInstance(this); // init graph eagerly
 
         bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {

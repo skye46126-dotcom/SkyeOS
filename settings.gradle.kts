@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "SkyeOS"
 include(":app")
- 
+ include(":core:domain")
+include(":core:data")

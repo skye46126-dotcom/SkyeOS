@@ -2,6 +2,7 @@ package com.example.skyeos.ai;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import javax.inject.Inject;
 
 public final class ParserSettingsStore {
     private static final String PREF = "lifeos_parser_settings";
@@ -9,8 +10,9 @@ public final class ParserSettingsStore {
 
     private final SharedPreferences sharedPreferences;
 
-    public ParserSettingsStore(Context context) {
-        this.sharedPreferences = context.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
+    @javax.inject.Inject
+    public ParserSettingsStore(@dagger.hilt.android.qualifiers.ApplicationContext android.content.Context context) {
+        this.sharedPreferences = context.getApplicationContext().getSharedPreferences(PREF, android.content.Context.MODE_PRIVATE);
     }
 
     public ParserMode loadMode() {

@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,8 +14,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.CapexCostSummary;
 import com.example.skyeos.domain.model.MonthlyCostBaseline;
@@ -28,9 +35,19 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class CostManagementFragment extends Fragment {
 
-    private AppGraph graph;
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    
     private TextView tvIdeal;
     private TextView tvPreviousYear;
     private TextView tvActual;
@@ -75,7 +92,7 @@ public class CostManagementFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
 
         tvIdeal = view.findViewById(R.id.tv_cost_ideal_rate);
         tvPreviousYear = view.findViewById(R.id.tv_cost_previous_year_rate);
@@ -142,10 +159,10 @@ public class CostManagementFragment extends Fragment {
                 long idealValue = parseYuanToCents(text(etIdeal));
                 long basicValue = parseYuanToCents(text(etMonthlyBasic));
                 String month = normalizeMonthOrFallback(text(etMonth));
-                graph.useCases.setIdealHourlyRate.execute(idealValue);
+                useCases.setIdealHourlyRate.execute(idealValue);
                 // Fixed subscription has been merged into recurring rules and no longer
                 // participates in monthly baseline calculations.
-                graph.useCases.upsertMonthlyCostBaseline.execute(month, basicValue, 0L);
+                useCases.upsertMonthlyCostBaseline.execute(month, basicValue, 0L);
                 Snackbar.make(view, R.string.cost_saved, Snackbar.LENGTH_SHORT).show();
                 bindData();
             } catch (Exception e) {
@@ -157,7 +174,7 @@ public class CostManagementFragment extends Fragment {
             try {
                 boolean wasEditing = editingRecurringId != null;
                 if (!wasEditing) {
-                    graph.useCases.createRecurringCostRule.execute(
+                    useCases.createRecurringCostRule.execute(
                             text(etRecurringName),
                             text(etRecurringCategory),
                             parseYuanToCents(text(etRecurringAmount)),
@@ -166,7 +183,7 @@ public class CostManagementFragment extends Fragment {
                             text(etRecurringEndMonth).isEmpty() ? null : normalizeMonthOrFallback(text(etRecurringEndMonth)),
                             text(etRecurringNote));
                 } else {
-                    graph.useCases.updateRecurringCostRule.execute(
+                    useCases.updateRecurringCostRule.execute(
                             editingRecurringId,
                             text(etRecurringName),
                             text(etRecurringCategory),
@@ -190,7 +207,7 @@ public class CostManagementFragment extends Fragment {
             try {
                 boolean wasEditing = editingCapexId != null;
                 if (!wasEditing) {
-                    graph.useCases.createCapexCost.execute(
+                    useCases.createCapexCost.execute(
                             text(etCapexName),
                             normalizeDateOrToday(text(etCapexPurchaseDate)),
                             parseYuanToCents(text(etCapexAmount)),
@@ -198,7 +215,7 @@ public class CostManagementFragment extends Fragment {
                             parseIntOrDefault(text(etCapexResidualBps), 0),
                             text(etCapexNote));
                 } else {
-                    graph.useCases.updateCapexCost.execute(
+                    useCases.updateCapexCost.execute(
                             editingCapexId,
                             text(etCapexName),
                             normalizeDateOrToday(text(etCapexPurchaseDate)),
@@ -232,10 +249,10 @@ public class CostManagementFragment extends Fragment {
     private void bindData() {
         try {
             String month = normalizeMonthOrFallback(text(etMonth));
-            RateComparisonSummary rates = graph.useCases.getRateComparison.execute(YearMonth.parse(month).atEndOfMonth().toString(), "month");
-            MonthlyCostBaseline baseline = graph.useCases.getMonthlyCostBaseline.execute(month);
-            List<RecurringCostRuleSummary> recurringRules = graph.useCases.listRecurringCostRules.execute();
-            List<CapexCostSummary> capexCosts = graph.useCases.listCapexCosts.execute();
+            RateComparisonSummary rates = useCases.getRateComparison.execute(YearMonth.parse(month).atEndOfMonth().toString(), "month");
+            MonthlyCostBaseline baseline = useCases.getMonthlyCostBaseline.execute(month);
+            List<RecurringCostRuleSummary> recurringRules = useCases.listRecurringCostRules.execute();
+            List<CapexCostSummary> capexCosts = useCases.listCapexCosts.execute();
             long recurringMonthlyCents = recurringMonthlyForMonth(recurringRules, month);
             long capexMonthlyCents = capexMonthlyForMonth(capexCosts, month);
             long monthlyBaselineCents = Math.max(0L, baseline.basicLivingCents) + recurringMonthlyCents + capexMonthlyCents;
@@ -447,7 +464,7 @@ public class CostManagementFragment extends Fragment {
             });
             delete.setOnClickListener(v -> {
                 try {
-                    graph.useCases.deleteRecurringCostRule.execute(item.id);
+                    useCases.deleteRecurringCostRule.execute(item.id);
                     if (item.id.equals(editingRecurringId)) {
                         editingRecurringId = null;
                         clearRecurringInputs();
@@ -512,7 +529,7 @@ public class CostManagementFragment extends Fragment {
             });
             delete.setOnClickListener(v -> {
                 try {
-                    graph.useCases.deleteCapexCost.execute(item.id);
+                    useCases.deleteCapexCost.execute(item.id);
                     if (item.id.equals(editingCapexId)) {
                         editingCapexId = null;
                         clearCapexInputs();

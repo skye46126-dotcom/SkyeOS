@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,10 +13,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ProjectOverview;
 import com.google.android.material.tabs.TabLayout;
@@ -20,13 +27,23 @@ import com.google.android.material.tabs.TabLayout;
 import java.util.List;
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class ProjectsFragment extends Fragment {
 
-    private AppGraph graph;
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    
     private TabLayout tabLayout;
     private RecyclerView rvProjects;
     private TextView tvProjectsSummary;
-    private ProjectAdapter adapter;
+    ProjectAdapter adapter;
 
     @Nullable
     @Override
@@ -38,7 +55,7 @@ public class ProjectsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
 
         tabLayout = view.findViewById(R.id.tab_layout_projects);
         rvProjects = view.findViewById(R.id.rv_projects);
@@ -83,7 +100,7 @@ public class ProjectsFragment extends Fragment {
     }
 
     private void loadProjects(String statusType) {
-        List<ProjectOverview> projects = graph.useCases.projectUseCases.getProjects(statusType);
+        List<ProjectOverview> projects = useCases.projectUseCases.getProjects(statusType);
         adapter.submitList(projects);
 
         View placeholder = getView().findViewById(R.id.tv_projects_placeholder);
@@ -97,8 +114,8 @@ public class ProjectsFragment extends Fragment {
         if (tvProjectsSummary == null) {
             return;
         }
-        List<ProjectOverview> active = graph.useCases.projectUseCases.getProjects("active");
-        List<ProjectOverview> done = graph.useCases.projectUseCases.getProjects("done");
+        List<ProjectOverview> active = useCases.projectUseCases.getProjects("active");
+        List<ProjectOverview> done = useCases.projectUseCases.getProjects("done");
         tvProjectsSummary.setText(String.format(Locale.US, "%d active · %d done", active.size(), done.size()));
     }
 }

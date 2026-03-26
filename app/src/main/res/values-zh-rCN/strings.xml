@@ -198,9 +198,9 @@
     <string name="form_time_intro">非工作时间记录（生活/娱乐/休息/社交，以记录与备注为主）</string>
     <string name="form_time_start_hint">开始时间（yyyy-MM-dd HH:mm）</string>
     <string name="form_time_end_hint">结束时间（yyyy-MM-dd HH:mm）</string>
-    <string name="form_time_efficiency_hint">效率（1-10）</string>
-    <string name="form_time_value_hint">价值（1-10）</string>
-    <string name="form_time_state_hint">状态（1-10）</string>
+    <string name="form_time_efficiency_hint">效率(1-10)</string>
+    <string name="form_time_value_hint">价值(1-10)</string>
+    <string name="form_time_state_hint">状态(1-10)</string>
     <string name="form_save_time">保存时间记录</string>
     <string name="form_save_work">保存工作记录</string>
     <string name="form_income_intro">收入记录（支持项目绑定和标签统计）</string>
@@ -214,8 +214,8 @@
     <string name="form_learning_end_optional">结束时间（必填）</string>
     <string name="form_learning_content_hint">学习内容</string>
     <string name="form_learning_duration_hint">时长（分钟）</string>
-    <string name="form_learning_efficiency_hint">学习效率（1-10）</string>
-    <string name="form_learning_ai_ratio_hint">学习 AI 协助比例（0-100）</string>
+    <string name="form_learning_efficiency_hint">效率(1-10)</string>
+    <string name="form_learning_ai_ratio_hint">AI率(0-100)</string>
     <string name="form_learning_level_hint">学习层级</string>
     <string name="form_save_learning">保存学习记录</string>
     <string name="form_project_intro">创建项目以跟踪 ROI / 成本 / 回本点</string>
@@ -325,6 +325,8 @@
     <string name="day_detail_notes_bullet">• %1$s</string>
     <string name="day_detail_filter_all_records">全部记录</string>
     <string name="day_detail_filter_type_records">%1$s记录</string>
+    <string name="day_detail_add_time_log">补录时间记录</string>
+    <string name="day_detail_add_time_log_title">为这一天补录时间记录</string>
     <string name="day_detail_edit_start_utc">开始 UTC</string>
     <string name="day_detail_edit_end_utc">结束 UTC</string>
     <string name="day_detail_edit_duration_minutes">时长（分钟）</string>
@@ -332,7 +334,7 @@
     <string name="capture_time_efficiency_score">效率评分（1-10）</string>
     <string name="capture_time_value_score">价值评分（1-10）</string>
     <string name="capture_time_state_score">状态评分（1-10）</string>
-    <string name="capture_time_ai_ratio">AI 协助比例（0-100）</string>
+    <string name="capture_time_ai_ratio">AI率(0-100)</string>
     <string name="capture_learning_efficiency_score">学习效率评分（1-10）</string>
     <string name="capture_learning_ai_ratio">学习 AI 协助比例（0-100）</string>
     <string name="capture_time_category_work">工作</string>
@@ -377,6 +379,15 @@
     <string name="capture_ai_preview_learning_title">学习：%1$s</string>
     <string name="capture_ai_preview_duration">时长：%1$s 分钟</string>
     <string name="capture_ai_preview_time_title">时间：%1$s</string>
+    <string name="capture_ai_preview_unknown_title">未识别条目</string>
+    <string name="capture_ai_edit_draft">编辑草稿条目</string>
+    <string name="capture_ai_field_start_hour">开始小时（0-23）</string>
+    <string name="capture_ai_field_end_hour">结束小时（0-23）</string>
+    <string name="capture_ai_field_duration_hours">时长（小时）</string>
+    <string name="capture_ai_field_duration_minutes">时长（分钟）</string>
+    <string name="capture_ai_field_description">描述</string>
+    <string name="capture_ai_field_application_level">学习层级（input/applied/result）</string>
+    <string name="capture_ai_field_raw">原始内容</string>
     <string name="capture_ai_no_content_to_commit">没有可提交内容</string>
     <string name="capture_ai_commit_success">✓ 提交成功（%1$d 条）</string>
     <string name="capture_ai_commit_partial">部分提交成功：成功 %1$d 条，失败 %2$d 条</string>

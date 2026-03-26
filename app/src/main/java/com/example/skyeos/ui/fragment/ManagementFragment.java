@@ -1,5 +1,15 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
+
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,7 +22,17 @@ import androidx.fragment.app.Fragment;
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 
+@AndroidEntryPoint
 public class ManagementFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
 
     @Nullable
     @Override

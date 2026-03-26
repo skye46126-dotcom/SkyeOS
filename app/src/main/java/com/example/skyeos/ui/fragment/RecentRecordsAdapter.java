@@ -1,5 +1,15 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
+
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class RecentRecordsAdapter extends RecyclerView.Adapter<RecentRecordsAdapter.RecordViewHolder> {
+
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.US);
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("MM-dd", Locale.US);
 

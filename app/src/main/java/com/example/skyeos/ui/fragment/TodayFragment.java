@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,8 +14,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.data.config.TimeGoalStore;
@@ -32,10 +39,23 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class TodayFragment extends Fragment {
 
-    private AppGraph graph;
-    private TimeGoalStore goalStore;
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    @Inject
+    com.example.skyeos.data.config.TimeGoalStore goalStore;
+
+    
+    
     private TextView tvGreeting, tvDate;
     private TextView tvDailyGoalStatus;
     private TextView tvMetricTime, tvMetricIncome, tvMetricExpense, tvMetricFreedom;
@@ -57,8 +77,6 @@ public class TodayFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
-        goalStore = new TimeGoalStore(requireContext());
 
         tvGreeting = view.findViewById(R.id.tv_greeting);
         tvDate = view.findViewById(R.id.tv_date);
@@ -148,8 +166,8 @@ public class TodayFragment extends Fragment {
     private void refreshMetrics() {
         try {
             String day = LocalDate.now().toString();
-            WindowOverview overview = graph.useCases.getOverview.execute(day, "day");
-            MetricSnapshotSummary snapshot = graph.useCases.recomputeMetricSnapshot.execute(day, "day");
+            WindowOverview overview = useCases.getOverview.execute(day, "day");
+            MetricSnapshotSummary snapshot = useCases.recomputeMetricSnapshot.execute(day, "day");
 
             // Time (minutes → hours)
             long workMinutes = overview.totalWorkMinutes;
@@ -217,7 +235,7 @@ public class TodayFragment extends Fragment {
         if (tvTodayNotes == null) {
             return;
         }
-        List<RecentRecordItem> records = graph.useCases.getRecordsForDate.execute(today, 80);
+        List<RecentRecordItem> records = useCases.getRecordsForDate.execute(today, 80);
         if (records == null || records.isEmpty()) {
             tvTodayNotes.setText(R.string.today_no_notes);
             return;
@@ -282,7 +300,7 @@ public class TodayFragment extends Fragment {
     }
 
     private void buildHourlyDebtSummary(MetricSnapshotSummary snapshot) {
-        long ideal = graph.useCases.getIdealHourlyRate.execute();
+        long ideal = useCases.getIdealHourlyRate.execute();
         if (snapshot == null || snapshot.hourlyRateCents == null || snapshot.timeDebtCents == null) {
             tvHourlyDebtSummary.setText(R.string.today_no_hourly_data);
             return;
@@ -303,7 +321,7 @@ public class TodayFragment extends Fragment {
         if (tvRateCompareSummary == null) {
             return;
         }
-        RateComparisonSummary rates = graph.useCases.getRateComparison.execute(today, "month");
+        RateComparisonSummary rates = useCases.getRateComparison.execute(today, "month");
         String monthLabel = today.length() >= 7 ? today.substring(0, 7) : today;
         tvRateCompareSummary.setText(getString(
                 R.string.today_rate_compare_format,
@@ -319,9 +337,9 @@ public class TodayFragment extends Fragment {
         }
         try {
             String month = day != null && day.length() >= 7 ? day.substring(0, 7) : YearMonth.now().toString();
-            MonthlyCostBaseline baseline = graph.useCases.getMonthlyCostBaseline.execute(month);
-            List<RecurringCostRuleSummary> recurringRules = graph.useCases.listRecurringCostRules.execute();
-            List<CapexCostSummary> capexCosts = graph.useCases.listCapexCosts.execute();
+            MonthlyCostBaseline baseline = useCases.getMonthlyCostBaseline.execute(month);
+            List<RecurringCostRuleSummary> recurringRules = useCases.listRecurringCostRules.execute();
+            List<CapexCostSummary> capexCosts = useCases.listCapexCosts.execute();
             long recurringCents = recurringMonthlyForMonth(recurringRules, month);
             long capexCents = capexMonthlyForMonth(capexCosts, month);
             long monthlyTotal = Math.max(0L, baseline.basicLivingCents) + recurringCents + capexCents;

@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,9 +19,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
 import com.example.skyeos.AppLocaleManager;
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.ai.AiApiConfig;
 import com.example.skyeos.ai.AiApiProvider;
@@ -36,9 +43,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@AndroidEntryPoint
 public class SettingsFragment extends Fragment {
 
-    private AppGraph graph;
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    @Inject
+    com.example.skyeos.ai.AiApiConfigStore aiApiConfigStore;
+
+    
     private CloudSyncConfigStore configStore;
     private CloudSyncClient cloudSyncClient;
 
@@ -62,7 +82,7 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
         configStore = new CloudSyncConfigStore(requireContext());
         cloudSyncClient = new CloudSyncClient();
 
@@ -94,7 +114,7 @@ public class SettingsFragment extends Fragment {
             etApiKey.setText(config.apiKey);
         if (config.deviceId != null)
             etDeviceId.setText(config.deviceId);
-        AiApiConfig aiConfig = graph.aiApiConfigStore.load();
+        AiApiConfig aiConfig = aiApiConfigStore.load();
         setupLanguageDropdown();
         setupAiProviderDropdown();
         setupTagScopeDropdown();
@@ -132,7 +152,7 @@ public class SettingsFragment extends Fragment {
         CloudSyncConfig config = collectConfig();
         configStore.save(config);
         AiApiConfig aiConfig = collectAiConfig();
-        graph.aiApiConfigStore.save(aiConfig);
+        aiApiConfigStore.save(aiConfig);
         String newLanguage = languageTagFromDisplay(text(etAppLanguage));
         AppLocaleManager.saveLanguageTag(requireContext(), newLanguage);
         status(getString(R.string.settings_status_config_saved));
@@ -224,9 +244,9 @@ public class SettingsFragment extends Fragment {
                 CloudSyncConfig config = configStore.load();
                 if (!config.isValid())
                     throw new IllegalStateException(getString(R.string.settings_cloud_config_incomplete));
-                BackupResult latest = graph.useCases.getLatestBackup.execute("manual");
+                BackupResult latest = useCases.getLatestBackup.execute("manual");
                 if (latest == null || !latest.success || latest.filePath == null || latest.filePath.trim().isEmpty()) {
-                    BackupResult created = graph.useCases.createBackup.execute("manual");
+                    BackupResult created = useCases.createBackup.execute("manual");
                     if (!created.success)
                         throw new IllegalStateException(
                                 getString(R.string.settings_backup_create_failed, created.errorMessage));
@@ -285,9 +305,9 @@ public class SettingsFragment extends Fragment {
                     throw new IllegalStateException(getString(R.string.settings_create_directory_failed));
                 File target = new File(cloudDir, Instant.now().toEpochMilli() + "_" + filename);
                 CloudSyncClient.DownloadResult result = cloudSyncClient.downloadBackup(config, filename, target);
-                BackupResult registered = graph.useCases.registerExternalBackup.execute(
+                BackupResult registered = useCases.registerExternalBackup.execute(
                         result.file.getAbsolutePath(), "manual", result.sizeBytes, null);
-                com.example.skyeos.domain.model.RestoreResult restore = graph.useCases.restoreBackup
+                com.example.skyeos.domain.model.RestoreResult restore = useCases.restoreBackup
                         .execute(registered.id);
                 runOnUiThread(() -> status(restore.success ? getString(R.string.settings_status_restore_success)
                         : getString(R.string.settings_status_restore_failed, restore.errorMessage)));
@@ -390,7 +410,7 @@ public class SettingsFragment extends Fragment {
             return;
         }
         try {
-            graph.useCases.createTag.execute(name, emoji, "custom",
+            useCases.createTag.execute(name, emoji, "custom",
                     scope.isEmpty() ? getString(R.string.settings_scope_global) : scope,
                     parentTagId,
                     level);
@@ -407,7 +427,7 @@ public class SettingsFragment extends Fragment {
 
     private void refreshTagList() {
         try {
-            List<TagItem> tags = graph.useCases.getTags.execute("all", false);
+            List<TagItem> tags = useCases.getTags.execute("all", false);
             cachedTags.clear();
             layoutTagList.removeAllViews();
             if (tags == null || tags.isEmpty()) {
@@ -461,7 +481,7 @@ public class SettingsFragment extends Fragment {
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
         delete.setText(R.string.common_delete);
         delete.setOnClickListener(v -> {
-            graph.useCases.deleteTag.execute(tag.id);
+            useCases.deleteTag.execute(tag.id);
             refreshTagList();
         });
         row.addView(delete);
@@ -536,7 +556,7 @@ public class SettingsFragment extends Fragment {
                             status(getString(R.string.settings_tag_parent_required));
                             return;
                         }
-                        graph.useCases.updateTag.execute(tag.id,
+                        useCases.updateTag.execute(tag.id,
                                 etName2.getText().toString().trim(),
                                 etEmoji2.getText().toString().trim(),
                                 tag.tagGroup,

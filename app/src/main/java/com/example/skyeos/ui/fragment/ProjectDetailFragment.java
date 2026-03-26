@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -15,10 +19,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ProjectDetail;
 import com.example.skyeos.domain.model.input.CreateProjectInput;
@@ -28,11 +35,21 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class ProjectDetailFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
 
     private static final String ARG_PROJECT_ID = "project_id";
     private String projectId;
-    private AppGraph graph;
+    
 
     private TextView tvTitle;
     private TextView tvScore;
@@ -48,6 +65,7 @@ public class ProjectDetailFragment extends Fragment {
     private TextView tvCostMethod;
     private TextInputEditText etNote;
     private RecyclerView rvRecords;
+    private RecentRecordsAdapter adapter;
     private MaterialButton btnMarkDone;
     private MaterialButton btnDelete;
 
@@ -69,7 +87,7 @@ public class ProjectDetailFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
 
         if (getArguments() != null) {
             projectId = getArguments().getString(ARG_PROJECT_ID);
@@ -101,6 +119,8 @@ public class ProjectDetailFragment extends Fragment {
 
         rvRecords = view.findViewById(R.id.rv_detail_records);
         rvRecords.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new RecentRecordsAdapter();
+        rvRecords.setAdapter(adapter);
 
         btnMarkDone = view.findViewById(R.id.btn_mark_done);
         btnMarkDone.setOnClickListener(v -> markProjectStatus("done"));
@@ -114,7 +134,7 @@ public class ProjectDetailFragment extends Fragment {
         if (TextUtils.isEmpty(projectId))
             return;
 
-        ProjectDetail detail = graph.useCases.projectUseCases.getProjectDetail(projectId);
+        ProjectDetail detail = useCases.projectUseCases.getProjectDetail(projectId);
         if (detail == null) {
             Toast.makeText(requireContext(), R.string.project_not_found, Toast.LENGTH_SHORT).show();
             requireActivity().getSupportFragmentManager().popBackStack();
@@ -165,20 +185,21 @@ public class ProjectDetailFragment extends Fragment {
         // or create a simple one here. For now we use the existing structure if
         // possible.
         // Assuming we'll build a RecentRecordsAdapter shortly.
-        RecentRecordsAdapter adapter = new RecentRecordsAdapter();
-        adapter.submitList(detail.recentRecords);
-        rvRecords.setAdapter(adapter);
+
+        if (adapter != null) {
+            adapter.submitList(detail.recentRecords);
+        }
     }
 
     private void saveNote() {
         String note = etNote.getText().toString();
-        graph.useCases.projectUseCases.updateProject(projectId, null, -1, note, null);
+        useCases.projectUseCases.updateProject(projectId, null, -1, note, null);
         Toast.makeText(requireContext(), R.string.project_note_saved, Toast.LENGTH_SHORT).show();
     }
 
     private void markProjectStatus(String status) {
         String endedOn = "done".equals(status) ? java.time.LocalDate.now().toString() : "";
-        graph.useCases.projectUseCases.updateProject(projectId, status, -1, null, endedOn);
+        useCases.projectUseCases.updateProject(projectId, status, -1, null, endedOn);
         loadProjectDetail();
     }
 
@@ -188,7 +209,7 @@ public class ProjectDetailFragment extends Fragment {
                 .setMessage(R.string.project_deleted_hidden_note)
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_delete, (dialog, which) -> {
-                    graph.useCases.deleteProject.execute(projectId);
+                    useCases.deleteProject.execute(projectId);
                     Toast.makeText(requireContext(), R.string.project_deleted, Toast.LENGTH_SHORT).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 })
@@ -196,7 +217,7 @@ public class ProjectDetailFragment extends Fragment {
     }
 
     private void showEditProjectDialog() {
-        ProjectDetail detail = graph.useCases.projectUseCases.getProjectDetail(projectId);
+        ProjectDetail detail = useCases.projectUseCases.getProjectDetail(projectId);
         if (detail == null) {
             return;
         }
@@ -234,7 +255,7 @@ public class ProjectDetailFragment extends Fragment {
                         Integer score = etScore.getText() == null || etScore.getText().toString().trim().isEmpty()
                                 ? null
                                 : Integer.parseInt(etScore.getText().toString().trim());
-                        graph.useCases.updateProjectRecord.execute(projectId, new CreateProjectInput(
+                        useCases.updateProjectRecord.execute(projectId, new CreateProjectInput(
                                 etName.getText().toString().trim(),
                                 etStart.getText().toString().trim(),
                                 etStatus.getText().toString().trim(),

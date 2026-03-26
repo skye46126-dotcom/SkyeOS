@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,8 +14,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.ai.AiApiConfig;
 import com.example.skyeos.domain.model.RecentRecordItem;
@@ -39,11 +46,24 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@AndroidEntryPoint
 public class AiChatFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
+
+    @Inject
+    com.example.skyeos.ai.AiApiConfigStore configStore;
     private static final int CONNECT_TIMEOUT_MS = 15000;
     private static final int READ_TIMEOUT_MS = 60000;
 
-    private AppGraph graph;
+    
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private LocalDate selectedDate = LocalDate.now();
 
@@ -66,7 +86,7 @@ public class AiChatFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
 
         btnDate = view.findViewById(R.id.btn_ai_chat_date);
         btnRefresh = view.findViewById(R.id.btn_ai_chat_refresh);
@@ -110,8 +130,8 @@ public class AiChatFragment extends Fragment {
         tvContext.setText(R.string.ai_chat_context_loading);
         executor.execute(() -> {
             String day = selectedDate.toString();
-            WindowOverview overview = graph.useCases.getOverview.execute(day, "day");
-            List<RecentRecordItem> rows = graph.useCases.getRecordsForDate.execute(day, 40);
+            WindowOverview overview = useCases.getOverview.execute(day, "day");
+            List<RecentRecordItem> rows = useCases.getRecordsForDate.execute(day, 40);
             String context = buildContext(day, overview, rows);
             if (getActivity() == null) {
                 return;
@@ -197,7 +217,7 @@ public class AiChatFragment extends Fragment {
     }
 
     private String requestAiReply(String question) throws Exception {
-        AiApiConfig config = graph.aiApiConfigStore.load();
+        AiApiConfig config = configStore.load();
         if (config == null || !config.isValid()) {
             return getString(R.string.ai_chat_config_missing);
         }

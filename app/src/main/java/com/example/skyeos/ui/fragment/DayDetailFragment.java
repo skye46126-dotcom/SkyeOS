@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -13,10 +17,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.MetricSnapshotSummary;
 import com.example.skyeos.domain.model.RecentRecordItem;
@@ -26,17 +33,32 @@ import com.example.skyeos.domain.model.input.CreateIncomeInput;
 import com.example.skyeos.domain.model.input.CreateLearningInput;
 import com.example.skyeos.domain.model.input.CreateTimeLogInput;
 import com.example.skyeos.ui.util.UiFormatters;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 
 import java.util.ArrayList;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
+@AndroidEntryPoint
 public class DayDetailFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
+
+    @Inject
+    LifeOsUseCases useCases;
     private static final String ARG_ANCHOR_DATE = "anchor_date";
 
-    private AppGraph graph;
+    
     private String anchorDate;
     private TextView tvTitle;
     private TextView tvSummary;
@@ -44,8 +66,10 @@ public class DayDetailFragment extends Fragment {
     private TextView tvNotes;
     private TextView tvRecordSummary;
     private ChipGroup chipGroupFilter;
-    private RecentRecordsAdapter adapter;
+    private MaterialButton btnAddTimeLog;
+    RecentRecordsAdapter adapter;
     private List<RecentRecordItem> fullRows = new ArrayList<>();
+    private static final DateTimeFormatter LOCAL_DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.US);
 
     public static DayDetailFragment newInstance(String anchorDate) {
         DayDetailFragment fragment = new DayDetailFragment();
@@ -65,7 +89,7 @@ public class DayDetailFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        graph = AppGraph.getInstance(requireContext());
+
         anchorDate = resolveAnchorDate();
 
         tvTitle = view.findViewById(R.id.tv_day_detail_title);
@@ -74,8 +98,10 @@ public class DayDetailFragment extends Fragment {
         tvNotes = view.findViewById(R.id.tv_day_detail_notes);
         tvRecordSummary = view.findViewById(R.id.tv_day_detail_record_summary);
         chipGroupFilter = view.findViewById(R.id.chip_group_day_detail_filter);
+        btnAddTimeLog = view.findViewById(R.id.btn_day_detail_add_time_log);
         RecyclerView rvRecords = view.findViewById(R.id.rv_day_detail_records);
         rvRecords.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         adapter = new RecentRecordsAdapter();
         adapter.setOnRecordActionListener(new RecentRecordsAdapter.OnRecordActionListener() {
             @Override
@@ -92,14 +118,17 @@ public class DayDetailFragment extends Fragment {
         if (chipGroupFilter != null) {
             chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> applyFilter());
         }
+        if (btnAddTimeLog != null) {
+            btnAddTimeLog.setOnClickListener(v -> showAddTimeLogDialog());
+        }
 
         load();
     }
 
     private void load() {
-        WindowOverview overview = graph.useCases.getOverview.execute(anchorDate, "day");
-        MetricSnapshotSummary snapshot = graph.useCases.recomputeMetricSnapshot.execute(anchorDate, "day");
-        fullRows = graph.useCases.getRecordsForDate.execute(anchorDate, 200);
+        WindowOverview overview = useCases.getOverview.execute(anchorDate, "day");
+        MetricSnapshotSummary snapshot = useCases.recomputeMetricSnapshot.execute(anchorDate, "day");
+        fullRows = useCases.getRecordsForDate.execute(anchorDate, 200);
 
         tvTitle.setText(getString(R.string.day_detail_title_with_date, anchorDate));
         tvSummary.setText(getString(
@@ -253,7 +282,7 @@ public class DayDetailFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_delete, (dialog, which) -> {
                     try {
-                        graph.useCases.deleteRecord.execute(record.type, record.recordId);
+                        useCases.deleteRecord.execute(record.type, record.recordId);
                         load();
                     } catch (Exception e) {
                         android.widget.Toast.makeText(requireContext(), e.getMessage(), android.widget.Toast.LENGTH_SHORT)
@@ -290,7 +319,21 @@ public class DayDetailFragment extends Fragment {
         LinearLayout layout = dialogLayout();
         EditText etStart = editField(getString(R.string.day_detail_edit_start_utc), state.startedAt, InputType.TYPE_CLASS_TEXT, layout);
         EditText etEnd = editField(getString(R.string.day_detail_edit_end_utc), state.endedAt, InputType.TYPE_CLASS_TEXT, layout);
-        EditText etCategory = editField(getString(R.string.common_category), state.category, InputType.TYPE_CLASS_TEXT, layout);
+        
+        // Setup Category Dropdown
+        String[] cats = {
+                getString(R.string.capture_time_category_work),
+                getString(R.string.capture_time_category_learning),
+                getString(R.string.capture_time_category_life),
+                getString(R.string.capture_time_category_entertainment),
+                getString(R.string.capture_time_category_rest),
+                getString(R.string.capture_time_category_social)
+        };
+        String[] catVals = { "work", "learning", "life", "entertainment", "rest", "social" };
+        
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acvCategory = dropdownField(getString(R.string.common_category), layout, cats);
+        acvCategory.setText(mapInternalToLabel(state.category, cats, catVals), false);
+
         EditText etEfficiency = editField(getString(R.string.capture_time_efficiency_score), state.efficiencyScore == null ? "" : String.valueOf(state.efficiencyScore), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etValue = editField(getString(R.string.capture_time_value_score), state.valueScore == null ? "" : String.valueOf(state.valueScore), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etState = editField(getString(R.string.capture_time_state_score), state.stateScore == null ? "" : String.valueOf(state.stateScore), InputType.TYPE_CLASS_NUMBER, layout);
@@ -302,10 +345,13 @@ public class DayDetailFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateTimeLog.execute(record.recordId, new CreateTimeLogInput(
+                        String selectedLabel = acvCategory.getText().toString().trim();
+                        String mappedCategory = mapCategoryValue(selectedLabel, cats, catVals);
+                        
+                        useCases.updateTimeLog.execute(record.recordId, new CreateTimeLogInput(
                                 etStart.getText().toString().trim(),
                                 etEnd.getText().toString().trim(),
-                                etCategory.getText().toString().trim().toLowerCase(Locale.US),
+                                mappedCategory,
                                 parseOptionalScore(etEfficiency.getText().toString().trim()),
                                 parseOptionalScore(etValue.getText().toString().trim()),
                                 parseOptionalScore(etState.getText().toString().trim()),
@@ -326,7 +372,18 @@ public class DayDetailFragment extends Fragment {
         LinearLayout layout = dialogLayout();
         EditText etDate = editField(getString(R.string.common_date), state.occurredOn, InputType.TYPE_CLASS_TEXT, layout);
         EditText etSource = editField(getString(R.string.common_source), state.sourceName, InputType.TYPE_CLASS_TEXT, layout);
-        EditText etType = editField(getString(R.string.common_type), state.type, InputType.TYPE_CLASS_TEXT, layout);
+
+        String[] incomeLabels = {
+                getString(R.string.capture_income_type_other),
+                getString(R.string.capture_income_type_salary),
+                getString(R.string.capture_income_type_project),
+                getString(R.string.capture_income_type_investment),
+                getString(R.string.capture_income_type_system)
+        };
+        String[] incomeVals = { "other", "salary", "project", "investment", "system" };
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acvType = dropdownField(getString(R.string.common_type), layout, incomeLabels);
+        acvType.setText(mapInternalToLabel(state.type, incomeLabels, incomeVals), false);
+
         EditText etAmount = editField(getString(R.string.common_amount_cny), formatDecimalYuan(state.amountCents), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, layout);
         EditText etNote = editField(getString(R.string.common_note), state.note, InputType.TYPE_CLASS_TEXT, layout);
         new AlertDialog.Builder(requireContext())
@@ -335,10 +392,11 @@ public class DayDetailFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateIncome.execute(record.recordId, new CreateIncomeInput(
+                        String typeVal = mapCategoryValue(acvType.getText().toString().trim(), incomeLabels, incomeVals);
+                        useCases.updateIncome.execute(record.recordId, new CreateIncomeInput(
                                 etDate.getText().toString().trim(),
                                 etSource.getText().toString().trim(),
-                                etType.getText().toString().trim().toLowerCase(Locale.US),
+                                typeVal.toLowerCase(Locale.US),
                                 toCents(etAmount.getText().toString().trim()),
                                 state.isPassive,
                                 null,
@@ -357,7 +415,17 @@ public class DayDetailFragment extends Fragment {
         ExpenseEditState state = loadExpenseState(record.recordId);
         LinearLayout layout = dialogLayout();
         EditText etDate = editField(getString(R.string.common_date), state.occurredOn, InputType.TYPE_CLASS_TEXT, layout);
-        EditText etCategory = editField(getString(R.string.common_category), state.category, InputType.TYPE_CLASS_TEXT, layout);
+
+        String[] expenseLabels = {
+                getString(R.string.capture_expense_category_essential),
+                getString(R.string.capture_expense_category_experience),
+                getString(R.string.capture_expense_category_subscription),
+                getString(R.string.capture_expense_category_investment)
+        };
+        String[] expenseVals = { "necessary", "experience", "subscription", "investment" };
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acvCat = dropdownField(getString(R.string.common_category), layout, expenseLabels);
+        acvCat.setText(mapInternalToLabel(state.category, expenseLabels, expenseVals), false);
+
         EditText etAmount = editField(getString(R.string.common_amount_cny), formatDecimalYuan(state.amountCents), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, layout);
         EditText etNote = editField(getString(R.string.common_note), state.note, InputType.TYPE_CLASS_TEXT, layout);
         new AlertDialog.Builder(requireContext())
@@ -366,9 +434,10 @@ public class DayDetailFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateExpense.execute(record.recordId, new CreateExpenseInput(
+                        String catVal = mapCategoryValue(acvCat.getText().toString().trim(), expenseLabels, expenseVals);
+                        useCases.updateExpense.execute(record.recordId, new CreateExpenseInput(
                                 etDate.getText().toString().trim(),
-                                etCategory.getText().toString().trim().toLowerCase(Locale.US),
+                                catVal,
                                 toCents(etAmount.getText().toString().trim()),
                                 null,
                                 etNote.getText().toString().trim(),
@@ -392,7 +461,16 @@ public class DayDetailFragment extends Fragment {
         EditText etDuration = editField(getString(R.string.day_detail_edit_duration_minutes), String.valueOf(state.durationMinutes), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etEfficiency = editField(getString(R.string.capture_learning_efficiency_score), state.efficiencyScore == null ? "" : String.valueOf(state.efficiencyScore), InputType.TYPE_CLASS_NUMBER, layout);
         EditText etAi = editField(getString(R.string.capture_learning_ai_ratio), state.aiAssistRatio == null ? "" : String.valueOf(state.aiAssistRatio), InputType.TYPE_CLASS_NUMBER, layout);
-        EditText etLevel = editField(getString(R.string.day_detail_edit_learning_level), state.applicationLevel, InputType.TYPE_CLASS_TEXT, layout);
+
+        String[] levelLabels = {
+                getString(R.string.capture_learning_level_input),
+                getString(R.string.capture_learning_level_applied),
+                getString(R.string.capture_learning_level_result)
+        };
+        String[] levelVals = { "input", "applied", "result" };
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acvLvl = dropdownField(getString(R.string.day_detail_edit_learning_level), layout, levelLabels);
+        acvLvl.setText(mapInternalToLabel(state.applicationLevel, levelLabels, levelVals), false);
+
         EditText etNote = editField(getString(R.string.common_note), state.note, InputType.TYPE_CLASS_TEXT, layout);
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.day_detail_edit_learning)
@@ -400,18 +478,108 @@ public class DayDetailFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.common_save, (dialog, which) -> {
                     try {
-                        graph.useCases.updateLearning.execute(record.recordId, new CreateLearningInput(
+                        String lvlVal = mapCategoryValue(acvLvl.getText().toString().trim(), levelLabels, levelVals);
+                        useCases.updateLearning.execute(record.recordId, new CreateLearningInput(
                                 etDate.getText().toString().trim(),
                                 blankToNull(etStart.getText().toString().trim()),
                                 blankToNull(etEnd.getText().toString().trim()),
                                 etContent.getText().toString().trim(),
                                 parseInt(etDuration.getText().toString().trim()),
                                 parseOptionalScore(etEfficiency.getText().toString().trim()),
-                                etLevel.getText().toString().trim().toLowerCase(Locale.US),
+                                lvlVal,
                                 parseOptionalPercentage(etAi.getText().toString().trim()),
                                 etNote.getText().toString().trim(),
                                 null, null));
                         load();
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(requireContext(), e.getMessage(), android.widget.Toast.LENGTH_SHORT)
+                                .show();
+                    }
+                })
+                .show();
+    }
+
+    private void showAddTimeLogDialog() {
+        LinearLayout layout = dialogLayout();
+        EditText etStart = editField(
+                getString(R.string.form_time_start_hint),
+                anchorDate + " 09:00",
+                InputType.TYPE_CLASS_TEXT,
+                layout);
+        EditText etEnd = editField(
+                getString(R.string.form_time_end_hint),
+                anchorDate + " 10:00",
+                InputType.TYPE_CLASS_TEXT,
+                layout);
+        String[] cats = {
+                getString(R.string.capture_time_category_life),
+                getString(R.string.capture_time_category_entertainment),
+                getString(R.string.capture_time_category_rest),
+                getString(R.string.capture_time_category_social),
+                getString(R.string.capture_time_category_work),
+                getString(R.string.capture_time_category_learning)
+        };
+        String[] catVals = { "life", "entertainment", "rest", "social", "work", "learning" };
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acvCategory = dropdownField(
+                getString(R.string.common_category), layout, cats);
+        acvCategory.setText(cats[0], false);
+        EditText etEfficiency = editField(
+                getString(R.string.capture_time_efficiency_score),
+                "",
+                InputType.TYPE_CLASS_NUMBER,
+                layout);
+        EditText etValue = editField(
+                getString(R.string.capture_time_value_score),
+                "",
+                InputType.TYPE_CLASS_NUMBER,
+                layout);
+        EditText etState = editField(
+                getString(R.string.capture_time_state_score),
+                "",
+                InputType.TYPE_CLASS_NUMBER,
+                layout);
+        EditText etAi = editField(
+                getString(R.string.capture_time_ai_ratio),
+                "",
+                InputType.TYPE_CLASS_NUMBER,
+                layout);
+        EditText etNote = editField(getString(R.string.common_note), "", InputType.TYPE_CLASS_TEXT, layout);
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.day_detail_add_time_log_title)
+                .setView(layout)
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.common_save, (dialog, which) -> {
+                    try {
+                        String category = mapCategoryValue(acvCategory.getText().toString().trim(), cats, catVals);
+                        Integer efficiency = parseOptionalScore(etEfficiency.getText().toString().trim());
+                        Integer value = parseOptionalScore(etValue.getText().toString().trim());
+                        Integer state = parseOptionalScore(etState.getText().toString().trim());
+                        Integer ai = parseOptionalPercentage(etAi.getText().toString().trim());
+                        if ("work".equals(category) || "learning".equals(category)) {
+                            if (value == null) {
+                                value = 5;
+                            }
+                            if (state == null) {
+                                state = 5;
+                            }
+                            if (ai == null) {
+                                ai = 0;
+                            }
+                        }
+                        useCases.createTimeLog.execute(new CreateTimeLogInput(
+                                toUtcInstant(etStart.getText().toString().trim()),
+                                toUtcInstant(etEnd.getText().toString().trim()),
+                                category,
+                                efficiency,
+                                value,
+                                state,
+                                ai,
+                                etNote.getText().toString().trim(),
+                                null,
+                                null));
+                        load();
+                        android.widget.Toast.makeText(requireContext(), R.string.capture_time_saved, android.widget.Toast.LENGTH_SHORT)
+                                .show();
                     } catch (Exception e) {
                         android.widget.Toast.makeText(requireContext(), e.getMessage(), android.widget.Toast.LENGTH_SHORT)
                                 .show();
@@ -488,6 +656,14 @@ public class DayDetailFragment extends Fragment {
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
+    private static String toUtcInstant(String localDateTime) {
+        return LocalDateTime.parse(localDateTime.trim(), LOCAL_DT_FMT)
+                .atZone(ZoneId.of("Asia/Shanghai"))
+                .withZoneSameInstant(ZoneOffset.UTC)
+                .toInstant()
+                .toString();
+    }
+
     private static ParsedRecord parseRecord(RecentRecordItem item) {
         String detail = item == null || item.detail == null ? "" : item.detail.trim();
         int idx = detail.indexOf('|');
@@ -518,7 +694,7 @@ public class DayDetailFragment extends Fragment {
     }
 
     private TimeEditState loadTimeState(String recordId) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT started_at, ended_at, category, efficiency_score, value_score, state_score, ai_assist_ratio, COALESCE(note, '') FROM time_log WHERE id = ? LIMIT 1",
                 new String[] { recordId })) {
             if (cursor.moveToFirst()) {
@@ -541,7 +717,7 @@ public class DayDetailFragment extends Fragment {
     }
 
     private IncomeEditState loadIncomeState(String recordId) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT occurred_on, source_name, type, amount_cents, is_passive, COALESCE(note, '') FROM income WHERE id = ? LIMIT 1",
                 new String[] { recordId })) {
             if (cursor.moveToFirst()) {
@@ -554,7 +730,7 @@ public class DayDetailFragment extends Fragment {
     }
 
     private ExpenseEditState loadExpenseState(String recordId) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT occurred_on, category, amount_cents, COALESCE(note, '') FROM expense WHERE id = ? LIMIT 1",
                 new String[] { recordId })) {
             if (cursor.moveToFirst()) {
@@ -565,7 +741,7 @@ public class DayDetailFragment extends Fragment {
     }
 
     private LearningEditState loadLearningState(String recordId) {
-        try (android.database.Cursor cursor = graph.database.readableDb().rawQuery(
+        try (android.database.Cursor cursor = database.readableDb().rawQuery(
                 "SELECT occurred_on, COALESCE(started_at, ''), COALESCE(ended_at, ''), content, duration_minutes, efficiency_score, application_level, ai_assist_ratio, COALESCE(note, '') FROM learning_record WHERE id = ? LIMIT 1",
                 new String[] { recordId })) {
             if (cursor.moveToFirst()) {
@@ -660,5 +836,41 @@ public class DayDetailFragment extends Fragment {
             this.aiAssistRatio = aiAssistRatio;
             this.note = note;
         }
+    }
+    private String mapInternalToLabel(String val, String[] labels, String[] values) {
+        if (val == null) return labels[0];
+        String normalized = val.trim().toLowerCase(Locale.US);
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].equals(normalized)) {
+                return labels[i];
+            }
+        }
+        return labels[0];
+    }
+
+    private String mapCategoryValue(String label, String[] labels, String[] values) {
+        for (int i = 0; i < labels.length; i++) {
+            if (labels[i].equals(label)) {
+                return values[i];
+            }
+        }
+        return values[0];
+    }
+
+    private com.google.android.material.textfield.MaterialAutoCompleteTextView dropdownField(String label, LinearLayout parent, String[] options) {
+        com.google.android.material.textfield.TextInputLayout til = new com.google.android.material.textfield.TextInputLayout(requireContext(), null, com.google.android.material.R.style.Widget_MaterialComponents_TextInputLayout_OutlinedBox_ExposedDropdownMenu);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(0, 32, 0, 0);
+        til.setLayoutParams(lp);
+        til.setHint(label);
+
+        com.google.android.material.textfield.MaterialAutoCompleteTextView acv = new com.google.android.material.textfield.MaterialAutoCompleteTextView(til.getContext());
+        acv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        acv.setInputType(InputType.TYPE_NULL);
+        acv.setAdapter(new android.widget.ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, options));
+
+        til.addView(acv);
+        parent.addView(til);
+        return acv;
     }
 }

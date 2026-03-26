@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml:2:13-83
+INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml:2:13-83
+	package
+		INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml
+	xmlns:android
+		ADDED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml:2:23-81
+uses-sdk
+INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml reason: use-sdk injection requested
+INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml
+INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml
+	android:targetSdkVersion
+		INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml
+	android:minSdkVersion
+		INJECTED from /Users/Zhuanz/SkyeOS/core/domain/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9162016959728235567.xml

@@ -1,5 +1,9 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,10 +15,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.skyeos.AppGraph;
+
 import com.example.skyeos.MainActivity;
 import com.example.skyeos.R;
 import com.example.skyeos.domain.model.ReviewReport;
@@ -32,10 +39,18 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@AndroidEntryPoint
 public class ReviewFragment extends Fragment {
+
+    @Inject
+    CurrentUserContext userContext;
+
+    @Inject
+    LifeOsDatabase database;
     private static final String TAG = "ReviewFragment";
 
-    private LifeOsUseCases useCases;
+    @Inject
+    LifeOsUseCases useCases;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private TabLayout tabReviewPeriod;
@@ -51,7 +66,7 @@ public class ReviewFragment extends Fragment {
     private TextView tvTrendDetailTitle;
 
     private RecyclerView rvTimeAllocation;
-    private TimeAllocationAdapter timeAdapter;
+    TimeAllocationAdapter timeAdapter;
 
     private RecyclerView rvTopProjects;
     private ReviewProjectAdapter topProjectAdapter;
@@ -60,24 +75,24 @@ public class ReviewFragment extends Fragment {
     private ReviewProjectAdapter sinkholeAdapter;
 
     private RecyclerView rvKeyEvents;
-    private RecentRecordsAdapter keyEventsAdapter;
+    RecentRecordsAdapter keyEventsAdapter;
     private TextView tvIncomeHistorySummary;
     private RecyclerView rvIncomeHistory;
-    private RecentRecordsAdapter incomeHistoryAdapter;
+    RecentRecordsAdapter incomeHistoryAdapter;
     private ChipGroup chipGroupTrendDetail;
     private RecyclerView rvTrendDetailRecords;
-    private RecentRecordsAdapter trendDetailAdapter;
+    RecentRecordsAdapter trendDetailAdapter;
     private ChipGroup chipGroupHistoryFilter;
     private TextView tvHistoryLedgerSummary;
     private RecyclerView rvHistoryLedger;
-    private RecentRecordsAdapter historyLedgerAdapter;
+    RecentRecordsAdapter historyLedgerAdapter;
     private RecyclerView rvTagTimeMetrics;
     private RecyclerView rvTagExpenseMetrics;
     private RecyclerView rvTagDetailRecords;
     private TextView tvTagDetailTitle;
-    private TagMetricAdapter timeTagAdapter;
-    private TagMetricAdapter expenseTagAdapter;
-    private RecentRecordsAdapter tagDetailAdapter;
+    TagMetricAdapter timeTagAdapter;
+    TagMetricAdapter expenseTagAdapter;
+    RecentRecordsAdapter tagDetailAdapter;
     private List<com.example.skyeos.domain.model.RecentRecordItem> latestHistoryRecords = new ArrayList<>();
     private int currentTabPosition = 0;
     private ReviewReport latestReport;
@@ -92,7 +107,7 @@ public class ReviewFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_review, container, false);
-        useCases = AppGraph.getInstance(requireContext()).useCases;
+
 
         tvReviewTitle = view.findViewById(R.id.tv_review_title);
         tvReviewSubtitle = view.findViewById(R.id.tv_review_subtitle);
@@ -159,32 +174,38 @@ public class ReviewFragment extends Fragment {
         // Setup RecyclerViews
         rvTimeAllocation = view.findViewById(R.id.rv_time_allocation);
         rvTimeAllocation.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         timeAdapter = new TimeAllocationAdapter();
         rvTimeAllocation.setAdapter(timeAdapter);
 
         rvTopProjects = view.findViewById(R.id.rv_top_projects);
         rvTopProjects.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         topProjectAdapter = new ReviewProjectAdapter();
         rvTopProjects.setAdapter(topProjectAdapter);
 
         rvSinkholeProjects = view.findViewById(R.id.rv_sinkhole_projects);
         rvSinkholeProjects.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         sinkholeAdapter = new ReviewProjectAdapter();
         rvSinkholeProjects.setAdapter(sinkholeAdapter);
 
         rvKeyEvents = view.findViewById(R.id.rv_key_events);
         rvKeyEvents.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         keyEventsAdapter = new RecentRecordsAdapter();
         rvKeyEvents.setAdapter(keyEventsAdapter);
 
         tvIncomeHistorySummary = view.findViewById(R.id.tv_income_history_summary);
         rvIncomeHistory = view.findViewById(R.id.rv_income_history);
         rvIncomeHistory.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         incomeHistoryAdapter = new RecentRecordsAdapter();
         rvIncomeHistory.setAdapter(incomeHistoryAdapter);
         chipGroupTrendDetail = view.findViewById(R.id.chip_group_trend_detail);
         rvTrendDetailRecords = view.findViewById(R.id.rv_trend_detail_records);
         rvTrendDetailRecords.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         trendDetailAdapter = new RecentRecordsAdapter();
         rvTrendDetailRecords.setAdapter(trendDetailAdapter);
         chipGroupTrendDetail.setOnCheckedStateChangeListener((group, checkedIds) -> applyTrendDetailSelection());
@@ -193,19 +214,22 @@ public class ReviewFragment extends Fragment {
         tvHistoryLedgerSummary = view.findViewById(R.id.tv_history_ledger_summary);
         rvHistoryLedger = view.findViewById(R.id.rv_history_ledger);
         rvHistoryLedger.setLayoutManager(new LinearLayoutManager(requireContext()));
-        historyLedgerAdapter = new RecentRecordsAdapter();
+
         rvHistoryLedger.setAdapter(historyLedgerAdapter);
         chipGroupHistoryFilter.setOnCheckedStateChangeListener((group, checkedIds) -> applyHistoryFilter());
         rvTagTimeMetrics = view.findViewById(R.id.rv_tag_time_metrics);
         rvTagTimeMetrics.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         timeTagAdapter = new TagMetricAdapter(false, metric -> loadTagDetail("time", metric));
         rvTagTimeMetrics.setAdapter(timeTagAdapter);
         rvTagExpenseMetrics = view.findViewById(R.id.rv_tag_expense_metrics);
         rvTagExpenseMetrics.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         expenseTagAdapter = new TagMetricAdapter(true, metric -> loadTagDetail("expense", metric));
         rvTagExpenseMetrics.setAdapter(expenseTagAdapter);
         rvTagDetailRecords = view.findViewById(R.id.rv_tag_detail_records);
         rvTagDetailRecords.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         tagDetailAdapter = new RecentRecordsAdapter();
         rvTagDetailRecords.setAdapter(tagDetailAdapter);
         tvTagDetailTitle = view.findViewById(R.id.tv_tag_detail_title);
@@ -407,8 +431,7 @@ public class ReviewFragment extends Fragment {
             return;
         }
         if (tvTagDetailTitle != null) {
-            String emoji = metric.emoji == null || metric.emoji.isEmpty() ? "" : metric.emoji + " ";
-            tvTagDetailTitle.setText(getString(R.string.review_tag_details_format, emoji + metric.tagName, scope));
+            tvTagDetailTitle.setText(getString(R.string.review_tag_details_format, metric.tagName, scope));
         }
         executor.execute(() -> {
             List<com.example.skyeos.domain.model.RecentRecordItem> rows;

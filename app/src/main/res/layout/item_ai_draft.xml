@@ -50,10 +50,21 @@
         </LinearLayout>
 
         <ImageButton
+            android:id="@+id/btn_item_edit"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/common_edit"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="@color/textSecondary" />
+
+        <ImageButton
             android:id="@+id/btn_item_delete"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/common_delete"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:tint="@color/lifeRed"/>
 

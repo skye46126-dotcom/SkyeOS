@@ -198,9 +198,9 @@
     <string name="form_time_intro">Non-work time log (life/entertainment/rest/social, primarily for notes and tracking)</string>
     <string name="form_time_start_hint">Start time (yyyy-MM-dd HH:mm)</string>
     <string name="form_time_end_hint">End time (yyyy-MM-dd HH:mm)</string>
-    <string name="form_time_efficiency_hint">Efficiency (1-10)</string>
-    <string name="form_time_value_hint">Value (1-10)</string>
-    <string name="form_time_state_hint">State (1-10)</string>
+    <string name="form_time_efficiency_hint">Efficiency(1-10)</string>
+    <string name="form_time_value_hint">Value(1-10)</string>
+    <string name="form_time_state_hint">State(1-10)</string>
     <string name="form_save_time">Save Time Log</string>
     <string name="form_save_work">Save Work Log</string>
     <string name="form_income_intro">Income record (supports project binding and tag metrics)</string>
@@ -214,8 +214,8 @@
     <string name="form_learning_end_optional">End time (required)</string>
     <string name="form_learning_content_hint">Learning content</string>
     <string name="form_learning_duration_hint">Duration (minutes)</string>
-    <string name="form_learning_efficiency_hint">Learning efficiency (1-10)</string>
-    <string name="form_learning_ai_ratio_hint">Learning AI assist ratio (0-100)</string>
+    <string name="form_learning_efficiency_hint">Efficiency(1-10)</string>
+    <string name="form_learning_ai_ratio_hint">AI Ratio(0-100)</string>
     <string name="form_learning_level_hint">Learning level</string>
     <string name="form_save_learning">Save Learning Record</string>
     <string name="form_project_intro">Create a project to track ROI / cost / break-even</string>
@@ -325,6 +325,8 @@
     <string name="day_detail_notes_bullet">• %1$s</string>
     <string name="day_detail_filter_all_records">All records</string>
     <string name="day_detail_filter_type_records">%1$s records</string>
+    <string name="day_detail_add_time_log">Add Missing Time Log</string>
+    <string name="day_detail_add_time_log_title">Add Time Log For This Day</string>
     <string name="day_detail_edit_start_utc">Start UTC</string>
     <string name="day_detail_edit_end_utc">End UTC</string>
     <string name="day_detail_edit_duration_minutes">Duration minutes</string>
@@ -332,7 +334,7 @@
     <string name="capture_time_efficiency_score">Efficiency score (1-10)</string>
     <string name="capture_time_value_score">Value score (1-10)</string>
     <string name="capture_time_state_score">State score (1-10)</string>
-    <string name="capture_time_ai_ratio">AI assist ratio (0-100)</string>
+    <string name="capture_time_ai_ratio">AI Ratio(0-100)</string>
     <string name="capture_learning_efficiency_score">Learning efficiency score (1-10)</string>
     <string name="capture_learning_ai_ratio">Learning AI assist ratio (0-100)</string>
     <string name="capture_time_category_work">Work</string>
@@ -377,6 +379,15 @@
     <string name="capture_ai_preview_learning_title">Learning: %1$s</string>
     <string name="capture_ai_preview_duration">Dur: %1$sm</string>
     <string name="capture_ai_preview_time_title">Time: %1$s</string>
+    <string name="capture_ai_preview_unknown_title">Unknown item</string>
+    <string name="capture_ai_edit_draft">Edit Draft Item</string>
+    <string name="capture_ai_field_start_hour">Start hour (0-23)</string>
+    <string name="capture_ai_field_end_hour">End hour (0-23)</string>
+    <string name="capture_ai_field_duration_hours">Duration hours</string>
+    <string name="capture_ai_field_duration_minutes">Duration minutes</string>
+    <string name="capture_ai_field_description">Description</string>
+    <string name="capture_ai_field_application_level">Application level (input/applied/result)</string>
+    <string name="capture_ai_field_raw">Raw content</string>
     <string name="capture_ai_no_content_to_commit">No content to commit</string>
     <string name="capture_ai_commit_success">✓ Commit success (%1$d items)</string>
     <string name="capture_ai_commit_partial">Partial commit: success %1$d, failed %2$d</string>

@@ -1,5 +1,15 @@
 package com.example.skyeos.ui.fragment;
 
+import com.example.skyeos.data.auth.CurrentUserContext;
+
+import com.example.skyeos.data.db.LifeOsDatabase;
+
+import com.example.skyeos.domain.usecase.LifeOsUseCases;
+
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.view.LayoutInflater;
